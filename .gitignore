@@ -1,0 +1,9 @@
+*.pyc
+*.pyo
+*.bak
+*.orig
+*.egg-info
+build
+dist
+tags
+*.so
