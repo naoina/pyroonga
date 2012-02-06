@@ -30,12 +30,80 @@ __author__ = "Naoya INADA <naoina@kuune.org>"
 __all__ = [
 ]
 
+import os
+import shutil
 import unittest
 
+from subprocess import Popen, PIPE
+from signal import SIGTERM
+from multiprocessing import Process, Pipe
 
-class TestGroonga(unittest.TestCase):
+import pyroonga
+
+
+class GroongaTestBase(unittest.TestCase):
+    FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'fixture')
+    DB_PATH = os.path.join(FIXTURE_DIR, 'test.db')
+
+    @classmethod
+    def setUpClass(cls):
+        parent_conn, child_conn = Pipe()
+        proc = Process(target=cls._start_groonga, args=(child_conn,))
+        proc.daemon = True
+        proc.start()
+        cls.serverpid = parent_conn.recv()
+        proc.join(1)
+        # 生存戦略
+        if not proc.is_alive():
+            raise RuntimeError(parent_conn.recv())
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._stop_groonga()
+        cls._removefixtures()
+
+    @classmethod
+    def _start_groonga(cls, conn):
+        if os.path.isdir(cls.FIXTURE_DIR):
+            cls._removefixtures()
+        os.mkdir(cls.FIXTURE_DIR)
+        Popen('groonga -n %s quit' % cls.DB_PATH, shell=True, stdout=PIPE,
+                stderr=PIPE).wait()
+        server = Popen('groonga -s ' + cls.DB_PATH, shell=True, stdout=PIPE,
+                stderr=PIPE)
+        conn.send(server.pid)
+        server.wait()
+        conn.send(server.stderr.read().decode('utf-8'))
+
+    @classmethod
+    def _stop_groonga(cls):
+        try:
+            os.kill(cls.serverpid, SIGTERM)
+        except OSError:
+            pass  # ignore
+
+    @classmethod
+    def _removefixtures(cls):
+        if os.path.isdir(cls.FIXTURE_DIR):
+            shutil.rmtree(cls.FIXTURE_DIR)
+
+
+class TestGroonga(GroongaTestBase):
     def test_connect(self):
-        raise NotImplementedError
+        grn = pyroonga.connect()
+        self.assertTrue(grn.connected)
+        self.assertEqual(grn.host, '0.0.0.0')
+        self.assertEqual(grn.port, 10041)
+
+        grn = pyroonga.connect(host='localhost', port=10041)
+        self.assertTrue(grn.connected)
+        self.assertEqual(grn.host, 'localhost')
+        self.assertEqual(grn.port, 10041)
+
+        self.assertRaises(pyroonga.GroongaError, pyroonga.connect,
+                host='unknown', port=10041)
+        self.assertRaises(pyroonga.GroongaError, pyroonga.connect,
+                host='localhost', port=0)
 
 
 def main():

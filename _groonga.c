@@ -275,13 +275,13 @@ GroongaContext_send(GroongaContext *self, PyObject *args, PyObject *kwargs)
 static PyObject *
 GroongaContext_recv(GroongaContext *self)
 {
-    char *str;
-    unsigned int str_len;
+    char *str = NULL;
+    unsigned int str_len = 0;
     int flags;
 
     grn_ctx_recv(&self->ctx, &str, &str_len, &flags);
 
-    return Py_BuildValue("(s#i)", str, str_len, flags);
+    return Py_BuildValue("(is#i)", self->ctx.rc, str, str_len, flags);
 }
 
 static PyMethodDef GroongaContext_methods[] = {

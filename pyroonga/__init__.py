@@ -36,6 +36,7 @@ __all__ = [
 import logging
 
 from pyroonga.groonga import *
+from pyroonga.exceptions import *
 
 logger = logging.getLogger(__name__)
 

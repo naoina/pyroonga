@@ -49,6 +49,11 @@ encodings = {
     }
 
 
+def raise_if_notsuccess(rc):
+    if rc != _groonga.SUCCESS:
+        raise GroongaError(rc)
+
+
 class Groonga(object):
     def __init__(self, encoding='utf-8'):
         """Construct a Groonga.
@@ -60,8 +65,9 @@ class Groonga(object):
         encodename = encoding.replace('_', '-')
         enc = encodings.get(encodename, DEFAULT_ENCODING)
         ctx.set_encoding(enc)
-        self.ctx = ctx
+        self._ctx = ctx
         self.connected = False
+        self.host = self.port = None
 
     def connect(self, host, port):
         """Connect to the groonga server
@@ -69,9 +75,8 @@ class Groonga(object):
         :param host: String of server hostname.
         :param port: Integer of server port number.
         """
-        rc = self.ctx.connect(host, port, flags=0)
-        if rc != _groonga.SUCCESS:
-            raise GroongaError(rc)
+        rc = self._ctx.connect(host, port, flags=0)
+        raise_if_notsuccess(rc)
         self.connected = True
         self.host = host
         self.port = port
@@ -82,6 +87,9 @@ class Groonga(object):
         :param qstr: Query string.
         :returns: Result string.
         """
-        self.ctx.send(qstr, flags=0)
-        result, flags = self.ctx.recv()
+        if not self.connected:
+            raise GroongaError(_groonga.SOCKET_IS_NOT_CONNECTED)
+        self._ctx.send(qstr, flags=0)
+        rc, result, flags = self._ctx.recv()
+        raise_if_notsuccess(rc)
         return result

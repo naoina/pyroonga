@@ -37,6 +37,8 @@ setup(name='pyroonga',
       install_requires=[
           # -*- Extra requirements: -*-
       ],
+      setup_requires=['nose'],
+      test_suite='nose.collector',
       ext_modules=[Extension(
           '_groonga',
           sources=['_groonga.c'],

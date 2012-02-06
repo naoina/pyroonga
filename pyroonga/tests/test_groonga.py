@@ -32,16 +32,67 @@ __all__ = [
 
 import unittest
 
+import _groonga
 
-class TestGroonga(unittest.TestCase):
+from pyroonga.exceptions import GroongaError
+from pyroonga.groonga import Groonga
+from pyroonga.tests import GroongaTestBase
+
+
+class TestGroongaWithNotConnected(unittest.TestCase):
     def test___init__(self):
-        raise NotImplementedError
+        # test with default encoding
+        grn = Groonga()
+        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_UTF8)
+        self.assertFalse(grn.connected)
 
+        # test with all encodings
+        grn = Groonga(encoding='utf-8')
+        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_UTF8)
+        self.assertFalse(grn.connected)
+        grn = Groonga(encoding='euc-jp')
+        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_EUC_JP)
+        self.assertFalse(grn.connected)
+        grn = Groonga(encoding='sjis')
+        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_SJIS)
+        self.assertFalse(grn.connected)
+        grn = Groonga(encoding='latin1')
+        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_LATIN1)
+        self.assertFalse(grn.connected)
+        grn = Groonga(encoding='koi8-r')
+        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_KOI8R)
+        self.assertFalse(grn.connected)
+
+    def test_connect_not_running_server(self):
+        grn = Groonga()
+        self.assertRaises(GroongaError, grn.connect, host='', port=0)
+
+
+class TestGroonga(GroongaTestBase):
     def test_connect(self):
-        raise NotImplementedError
+        grn = Groonga()
+        grn.connect(host='localhost', port=10041)
+        self.assertTrue(grn.connected)
+        self.assertEqual(grn.host, 'localhost')
+        self.assertEqual(grn.port, 10041)
 
     def test_query(self):
-        raise NotImplementedError
+        # test with not connected
+        grn = Groonga()
+        self.assertRaises(GroongaError, grn.query, 'a')
+
+        # test with invalid command
+        grn = Groonga()
+        grn.connect('localhost', 10041)
+        self.assertRaises(GroongaError, grn.query, 'a')
+
+        # test the query
+        grn = Groonga()
+        grn.connect('localhost', 10041)
+        result = grn.query('table_list')
+        self.assertEqual(result, '''[[["id","UInt32"],["name","ShortText"],\
+["path","ShortText"],["flags","ShortText"],["domain","ShortText"],\
+["range","ShortText"]]]''')
 
 
 def main():
