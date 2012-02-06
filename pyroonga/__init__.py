@@ -25,6 +25,9 @@
 # SUCH DAMAGE.
 
 
+"""Python interface for groonga fulltext search engine.
+"""
+
 __author__ = "Naoya INADA <naoina@kuune.org>"
 
 __all__ = [
@@ -38,15 +41,15 @@ logger = logging.getLogger(__name__)
 
 
 def connect(host='0.0.0.0', port=10041):
-    """convenience function of pyroonga.Groonga.connect
+    """Convenience function of pyroonga.Groonga.connect
+
+    Create the Groonga object and connect to groonga server with default
+    hostname and port.
+
+    :param host: String of server hostname. Default is 0.0.0.0 (aka localhost).
+    :param port: Integer of server port. Default is 10041.
+    :returns: :class:`pyroonga.groonga.Groonga`
     """
     grn = Groonga()
     grn.connect(host, port)
     return grn
-
-
-def main():
-    pass
-
-if __name__ == '__main__':
-    main()

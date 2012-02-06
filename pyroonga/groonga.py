@@ -51,6 +51,11 @@ encodings = {
 
 class Groonga(object):
     def __init__(self, encoding='utf-8'):
+        """Construct a Groonga.
+
+        :param encoding: Encoding of groonga. Suppoted value is 'utf-8',
+            'euc-jp', 'sjis', 'latin1' and 'koi8-r'. Default is 'utf-8'.
+        """
         ctx = _groonga.Context(flags=0)
         encodename = encoding.replace('_', '-')
         enc = encodings.get(encodename, DEFAULT_ENCODING)
@@ -59,6 +64,11 @@ class Groonga(object):
         self.connected = False
 
     def connect(self, host, port):
+        """Connect to the groonga server
+
+        :param host: String of server hostname.
+        :param port: Integer of server port number.
+        """
         rc = self.ctx.connect(host, port, flags=0)
         if rc != _groonga.SUCCESS:
             raise GroongaError(rc)
@@ -67,13 +77,11 @@ class Groonga(object):
         self.port = port
 
     def query(self, qstr):
+        """Send and receive the query string to the groonga server
+
+        :param qstr: Query string.
+        :returns: Result string.
+        """
         self.ctx.send(qstr, flags=0)
         result, flags = self.ctx.recv()
         return result
-
-
-def main():
-    pass
-
-if __name__ == '__main__':
-    main()
