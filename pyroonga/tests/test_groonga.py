@@ -30,7 +30,10 @@ __author__ = "Naoya INADA <naoina@kuune.org>"
 __all__ = [
 ]
 
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 import _groonga
 
@@ -43,25 +46,37 @@ class TestGroongaWithNotConnected(unittest.TestCase):
     def test___init__(self):
         # test with default encoding
         grn = Groonga()
-        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_UTF8)
+        self.assertEqual(grn.encoding, 'utf-8')
         self.assertFalse(grn.connected)
+        self.assertIsNone(grn.host)
+        self.assertIsNone(grn.port)
 
         # test with all encodings
         grn = Groonga(encoding='utf-8')
-        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_UTF8)
+        self.assertEqual(grn.encoding, 'utf-8')
         self.assertFalse(grn.connected)
+        self.assertIsNone(grn.host)
+        self.assertIsNone(grn.port)
         grn = Groonga(encoding='euc-jp')
-        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_EUC_JP)
+        self.assertEqual(grn.encoding, 'euc-jp')
         self.assertFalse(grn.connected)
+        self.assertIsNone(grn.host)
+        self.assertIsNone(grn.port)
         grn = Groonga(encoding='sjis')
-        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_SJIS)
+        self.assertEqual(grn.encoding, 'sjis')
         self.assertFalse(grn.connected)
+        self.assertIsNone(grn.host)
+        self.assertIsNone(grn.port)
         grn = Groonga(encoding='latin1')
-        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_LATIN1)
+        self.assertEqual(grn.encoding, 'latin1')
         self.assertFalse(grn.connected)
+        self.assertIsNone(grn.host)
+        self.assertIsNone(grn.port)
         grn = Groonga(encoding='koi8-r')
-        self.assertEqual(grn._ctx.get_encoding(), _groonga.ENC_KOI8R)
+        self.assertEqual(grn.encoding, 'koi8-r')
         self.assertFalse(grn.connected)
+        self.assertIsNone(grn.host)
+        self.assertIsNone(grn.port)
 
     def test_connect_not_running_server(self):
         grn = Groonga()
@@ -70,11 +85,29 @@ class TestGroongaWithNotConnected(unittest.TestCase):
 
 class TestGroonga(GroongaTestBase):
     def test_connect(self):
+        # test the connect
         grn = Groonga()
         grn.connect(host='localhost', port=10041)
         self.assertTrue(grn.connected)
         self.assertEqual(grn.host, 'localhost')
         self.assertEqual(grn.port, 10041)
+
+    def test_reconnect(self):
+        # test the reconnect with not connected
+        grn = Groonga()
+        ctx = grn._ctx
+        self.assertRaises(GroongaError, grn.reconnect)
+        self.assertIs(grn._ctx, ctx)
+        self.assertFalse(grn.connected)
+
+        # test the reconnect
+        grn = Groonga()
+        ctx = grn._ctx
+        grn.host = 'localhost'
+        grn.port = 10041
+        grn.reconnect()
+        self.assertIsNot(grn._ctx, ctx)
+        self.assertTrue(grn.connected)
 
     def test_query(self):
         # test with not connected
@@ -93,6 +126,25 @@ class TestGroonga(GroongaTestBase):
         self.assertEqual(result, '''[[["id","UInt32"],["name","ShortText"],\
 ["path","ShortText"],["flags","ShortText"],["domain","ShortText"],\
 ["range","ShortText"]]]''')
+
+        # test the query with after the query of invalid command
+        grn = Groonga()
+        grn.connect('localhost', 10041)
+        self.assertRaises(GroongaError, grn.query, 'unknown command')
+        result = grn.query('table_list')
+        self.assertEqual(result, '''[[["id","UInt32"],["name","ShortText"],\
+["path","ShortText"],["flags","ShortText"],["domain","ShortText"],\
+["range","ShortText"]]]''')
+
+    def test__raise_if_notsuccess(self):
+        grn = Groonga()
+        try:
+            grn._raise_if_notsuccess(_groonga.SUCCESS)
+        except GroongaError:
+            self.fail("GroongaError has not been raised")
+        from pyroonga.exceptions import error_messages
+        for rc in [rc for rc in error_messages if rc != _groonga.SUCCESS]:
+            self.assertRaises(GroongaError, grn._raise_if_notsuccess, rc)
 
 
 def main():

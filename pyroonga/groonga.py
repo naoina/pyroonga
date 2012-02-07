@@ -49,23 +49,28 @@ encodings = {
     }
 
 
-def raise_if_notsuccess(rc):
-    if rc != _groonga.SUCCESS:
-        raise GroongaError(rc)
+class Context(_groonga.Context):
+    def __init__(self, encoding):
+        """Construct a Context of groonga
+
+        :param encoding: Encoding of groonga. Supported value is 'utf-8',
+            'euc-jp', 'sjis', 'latin1', and 'koi8-r'.
+        """
+        super(Context, self).__init__(flags=0)
+        encodename = encoding.replace('_', '-')
+        enc = encodings.get(encodename, DEFAULT_ENCODING)
+        self.set_encoding(enc)
 
 
 class Groonga(object):
     def __init__(self, encoding='utf-8'):
         """Construct a Groonga.
 
-        :param encoding: Encoding of groonga. Suppoted value is 'utf-8',
+        :param encoding: Encoding of groonga. Supported value is 'utf-8',
             'euc-jp', 'sjis', 'latin1' and 'koi8-r'. Default is 'utf-8'.
         """
-        ctx = _groonga.Context(flags=0)
-        encodename = encoding.replace('_', '-')
-        enc = encodings.get(encodename, DEFAULT_ENCODING)
-        ctx.set_encoding(enc)
-        self._ctx = ctx
+        self._ctx = Context(encoding)
+        self.encoding = encoding
         self.connected = False
         self.host = self.port = None
 
@@ -76,10 +81,20 @@ class Groonga(object):
         :param port: Integer of server port number.
         """
         rc = self._ctx.connect(host, port, flags=0)
-        raise_if_notsuccess(rc)
+        self._raise_if_notsuccess(rc)
         self.connected = True
         self.host = host
         self.port = port
+
+    def reconnect(self):
+        """Reconnect to the groonga server
+        """
+        if self.host is None or self.port is None:
+            raise GroongaError(_groonga.SOCKET_IS_NOT_CONNECTED)
+        del self._ctx
+        self._ctx = Context(self.encoding)
+        self.connect(self.host, self.port)
+        self.connected = True
 
     def query(self, qstr):
         """Send and receive the query string to the groonga server
@@ -91,5 +106,14 @@ class Groonga(object):
             raise GroongaError(_groonga.SOCKET_IS_NOT_CONNECTED)
         self._ctx.send(qstr, flags=0)
         rc, result, flags = self._ctx.recv()
-        raise_if_notsuccess(rc)
+        try:
+            self._raise_if_notsuccess(rc)
+        except GroongaError:
+            self.reconnect()
+            raise
         return result
+
+    def _raise_if_notsuccess(self, rc):
+        if rc != _groonga.SUCCESS:
+            self.connected = False
+            raise GroongaError(rc)

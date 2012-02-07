@@ -1,3 +1,5 @@
+import sys
+
 from setuptools import setup, find_packages, Extension
 from subprocess import Popen, PIPE
 
@@ -13,6 +15,12 @@ def pkgconfig(*packages, **kw):
     return kw
 
 version = '0.1'
+
+setup_requires = [
+    'nose',
+    ]
+if sys.version_info[:2] < (2, 7):
+    setup_requires.append('unittest2')
 
 setup(name='pyroonga',
       version=version,
@@ -37,7 +45,7 @@ setup(name='pyroonga',
       install_requires=[
           # -*- Extra requirements: -*-
       ],
-      setup_requires=['nose'],
+      setup_requires=setup_requires,
       test_suite='nose.collector',
       ext_modules=[Extension(
           '_groonga',
