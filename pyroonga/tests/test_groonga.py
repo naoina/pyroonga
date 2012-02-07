@@ -30,16 +30,11 @@ __author__ = "Naoya INADA <naoina@kuune.org>"
 __all__ = [
 ]
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
-
 import _groonga
 
 from pyroonga.exceptions import GroongaError
 from pyroonga.groonga import Groonga
-from pyroonga.tests import GroongaTestBase
+from pyroonga.tests import (unittest, GroongaTestBase)
 
 
 class TestGroongaWithNotConnected(unittest.TestCase):
