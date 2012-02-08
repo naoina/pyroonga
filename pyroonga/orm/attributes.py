@@ -42,6 +42,8 @@ __all__ = [
     'EMERGENCY', 'CRITICAL', 'WARNING', 'NOTICE', 'INFO', 'DEBUG',
 ]
 
+from collections import Iterable
+
 
 class Symbol(object):
     """Symbol representation class of groonga"""
@@ -55,16 +57,16 @@ class Symbol(object):
         return self.name
 
 
-class Flags(object):
+class Flags(list):
     """Flags representation class of groonga"""
 
-    __slots__ = ['flags']
+    __slots__ = []
 
     def __init__(self, flags):
-        if isinstance(flags, (list, tuple)):
-            self.flags = list(flags)
+        if not isinstance(flags, str) and isinstance(flags, Iterable):
+            self.extend(flags)
         elif isinstance(flags, Symbol):
-            self.flags = [flags]
+            self.append(flags)
         else:
             raise TypeError('"flags" type must be instance of Symbol or list')
 
@@ -73,10 +75,10 @@ class Flags(object):
         if not isinstance(other, cls):
             raise TypeError('operand type must be instance of %s' %
                     cls.__name__)
-        return cls(self.flags + other.flags)
+        return cls(self + other)
 
     def __str__(self):
-        return '|'.join([str(flag) for flag in self.flagas])
+        return '|'.join([str(flag) for flag in self])
 
 
 class TableFlags(Flags):
