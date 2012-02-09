@@ -107,7 +107,7 @@ class TestGroonga(GroongaTestBase):
         self.assertRaises(pyroonga.GroongaError, pyroonga.connect,
                 host='unknown', port=10041)
         self.assertRaises(pyroonga.GroongaError, pyroonga.connect,
-                host='localhost', port=0)
+                host='localhost', port=1)
 
 
 def main():

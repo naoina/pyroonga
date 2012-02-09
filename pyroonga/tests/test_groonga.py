@@ -75,7 +75,7 @@ class TestGroongaWithNotConnected(unittest.TestCase):
 
     def test_connect_not_running_server(self):
         grn = Groonga()
-        self.assertRaises(GroongaError, grn.connect, host='', port=0)
+        self.assertRaises(GroongaError, grn.connect, host='dummy', port=1)
 
 
 class TestGroonga(GroongaTestBase):

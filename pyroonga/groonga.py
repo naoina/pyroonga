@@ -74,17 +74,17 @@ class Groonga(object):
         self.connected = False
         self.host = self.port = None
 
-    def connect(self, host, port):
+    def connect(self, host=None, port=None):
         """Connect to the groonga server
 
         :param host: String of server hostname.
         :param port: Integer of server port number.
         """
-        rc = self._ctx.connect(host, port, flags=0)
+        self.host = host or '0.0.0.0'
+        self.port = port or 10041
+        rc = self._ctx.connect(self.host, self.port, flags=0)
         self._raise_if_notsuccess(rc)
         self.connected = True
-        self.host = host
-        self.port = port
 
     def reconnect(self):
         """Reconnect to the groonga server

@@ -42,7 +42,7 @@ from pyroonga.orm.attributes import *
 logger = logging.getLogger(__name__)
 
 
-def connect(host='0.0.0.0', port=10041):
+def connect(host=None, port=None):
     """Convenience function of pyroonga.Groonga.connect
 
     Create the Groonga object and connect to groonga server with default
