@@ -30,43 +30,11 @@ __author__ = "Naoya INADA <naoina@kuune.org>"
 __all__ = [
 ]
 
-import json
-import logging
 
-from pyroonga import utils
+def escape(s):
+    """Escape for query of groonga
 
-logger = logging.getLogger(__name__)
-
-
-class QueryError(Exception):
-    def __init__(self, msg):
-        self.msg
-
-    def __str__(self):
-        return self.msg
-
-
-class Query(object):
-    def __init__(self, tbl):
-        self._table = tbl
-
-
-class SelectQuery(Query):
-    def __init__(self, tbl, **kwargs):
-        super(SelectQuery, self).__init__(tbl)
-        self._target = kwargs
-
-    def all(self):
-        q = str(self)
-        result = self._table.grn.query(q)
-        return json.loads(result)
-
-    def _makeparam(self):
-        params = [utils.escape('%s:@%s' % target) for target in
-                  self._target.items()]
-        param = ' OR '.join(params)
-        return param and '(' + param + ')'
-
-    def __str__(self):
-        return 'select --table "%s" --query "%s"' % (self._table.__tablename__,
-                self._makeparam())
+    :param s: string
+    :returns: escaped string
+    """
+    return s.replace('\\', r'\\').replace('\n', r'\n').replace('"', r'\"')

@@ -169,8 +169,18 @@ class TableBase(object):
             cls.grn.query(query)
 
     @classmethod
-    def select(cls):
-        query = SelectQuery(cls)
+    def select(cls, **kwargs):
+        """Select query to the groonga
+
+        e.g.::
+
+            # returns data that contains "cthulhu" in the title
+            Table.select(title="cthulhu").all()
+
+        :param kwargs: search columns and search texts
+        :returns: :class:`pyroonga.orm.query.SelectQuery`
+        """
+        query = SelectQuery(cls, **kwargs)
         return query
 
 

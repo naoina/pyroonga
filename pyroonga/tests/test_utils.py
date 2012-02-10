@@ -27,46 +27,22 @@
 
 __author__ = "Naoya INADA <naoina@kuune.org>"
 
-__all__ = [
-]
-
-import json
-import logging
+import unittest
 
 from pyroonga import utils
 
-logger = logging.getLogger(__name__)
+
+class TestEscape(unittest.TestCase):
+    def test_escape(self):
+        result = utils.escape('https://github.com/naoina/pyroonga')
+        self.assertEqual(result, 'https://github.com/naoina/pyroonga')
+
+        result = utils.escape('left "center" right\nhello \\yen')
+        self.assertEqual(result, r'left \"center\" right\nhello \\yen')
 
 
-class QueryError(Exception):
-    def __init__(self, msg):
-        self.msg
+def main():
+    unittest.main()
 
-    def __str__(self):
-        return self.msg
-
-
-class Query(object):
-    def __init__(self, tbl):
-        self._table = tbl
-
-
-class SelectQuery(Query):
-    def __init__(self, tbl, **kwargs):
-        super(SelectQuery, self).__init__(tbl)
-        self._target = kwargs
-
-    def all(self):
-        q = str(self)
-        result = self._table.grn.query(q)
-        return json.loads(result)
-
-    def _makeparam(self):
-        params = [utils.escape('%s:@%s' % target) for target in
-                  self._target.items()]
-        param = ' OR '.join(params)
-        return param and '(' + param + ')'
-
-    def __str__(self):
-        return 'select --table "%s" --query "%s"' % (self._table.__tablename__,
-                self._makeparam())
+if __name__ == '__main__':
+    main()

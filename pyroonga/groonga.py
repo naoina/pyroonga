@@ -104,6 +104,7 @@ class Groonga(object):
         """
         if not self.connected:
             raise GroongaError(_groonga.SOCKET_IS_NOT_CONNECTED)
+        logger.debug(qstr)
         self._ctx.send(qstr, flags=0)
         rc, result, flags = self._ctx.recv()
         try:

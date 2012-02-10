@@ -114,6 +114,11 @@ class TestTable(GroongaTestBase):
         proc.wait()
         return result.decode('utf-8')
 
+    def _insert(self, tbl, data):
+        data = json.dumps(data)
+        self._sendquery('load --table %s --input_type json --values\n%s' %
+                (tbl, data))
+
     def test_default_value(self):
         Table = tablebase()
         self.assertIs(Table.__tableflags__, TABLE_HASH_KEY)
@@ -242,15 +247,71 @@ class TestTable(GroongaTestBase):
         Table.bind(grn)
         self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
                         '--key_type ShortText')
-        data = json.dumps([{'_key': 'key1'}, {'_key': 'key2'}],
-                separators=(',', ':')).replace('"', r'\"')
-        self._sendquery(r'load --table Tb --input_type json --values %s' %
-                        data)
+        self._insert('Tb', [{'_key': 'key1'}, {'_key': 'key2'}])
         result = Tb.select().all()
         expected = [
             [[2], [['_id', 'UInt32'], ['_key', 'ShortText']],
              [1, 'key1'],
              [2, 'key2']]]
+        self.assertListEqual(result, expected)
+
+    def test_select_with_column(self):
+        Table = tablebase()
+
+        class Tb(Table):
+            name = Column()
+            address = Column()
+
+        grn = Groonga()
+        Table.bind(grn)
+        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
+                        '--key_type ShortText')
+        self._sendquery('column_create --table Tb --name name --flags '
+                        'COLUMN_SCALAR --type ShortText')
+        self._sendquery('column_create --table Tb --name address --flags '
+                        'COLUMN_SCALAR --type ShortText')
+        self._insert('Tb', [{'_key': 'key1', 'name': 'Name1',
+                             'address': 'Address1'},
+                            {'_key': 'key2', 'name': 'name2',
+                             'address': 'address2'},
+                            {'_key': 'key3', 'name': 'foo',
+                             'address': 'bar'}])
+
+        result = Tb.select(_key='1').all()
+        expected = [[[1],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['address', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [1, 'key1', 'Address1', 'Name1']]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select(_key='2').all()
+        expected = [[[1],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['address', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [2, 'key2', 'address2', 'name2']]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select(name='name').all()
+        expected = [[[2],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['address', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [1, 'key1', 'Address1', 'Name1'],
+                     [2, 'key2', 'address2', 'name2']]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select(address='ar').all()
+        expected = [[[1],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['address', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [3, 'key3', 'bar', 'foo']]]
         self.assertListEqual(result, expected)
 
 
