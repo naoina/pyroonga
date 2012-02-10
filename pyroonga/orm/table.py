@@ -33,7 +33,9 @@ __all__ = [
 
 import logging
 
+from pyroonga.groonga import Groonga
 from pyroonga.orm.attributes import *
+from pyroonga.orm.query import SelectQuery
 
 logger = logging.getLogger(__name__)
 
@@ -138,26 +140,38 @@ class TableBase(object):
 
     __tableflags__ = TABLE_HASH_KEY
     __key_type__   = ShortText
+    grn = None
 
     @prop_attr
     def __tablename__(cls):
         return cls.__name__
 
     @classmethod
-    def create_all(cls, grn):
+    def bind(cls, grn):
+        if not isinstance(grn, Groonga):
+            raise TypeError("not %s instance" % Groonga.__name__)
+        if not grn.connected:
+            grn.connect()
+        cls.grn = grn
+
+    @classmethod
+    def create_all(cls):
         """Create the all defined tables and columns
 
         :param grn: instance of :class:`pyroonga.groonga.Groonga`\ .
         """
-        if not grn.connected:
-            grn.connect()
         queries = []
         for tbl in cls._tables:
             queries.append(str(tbl))
             queries.extend([str(col) for col in tbl.columns])
         for query in queries:
             logger.debug(query)
-            grn.query(query)
+            cls.grn.query(query)
+
+    @classmethod
+    def select(cls):
+        query = SelectQuery(cls)
+        return query
 
 
 def tablebase(name='Table', cls=TableBase):

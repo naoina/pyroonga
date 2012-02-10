@@ -98,6 +98,15 @@ class TestPropAttr(unittest.TestCase):
 
 
 class TestTable(GroongaTestBase):
+    def setUp(self):
+        super(TestTable, self).setUp()
+        super(TestTable, self).tearDownClass()
+        super(TestTable, self).setUpClass()
+
+    def tearDown(self):
+        super(TestTable, self).tearDown()
+        super(TestTable, self).tearDownClass()
+
     def _sendquery(self, cmd):
         proc = Popen('groonga -c', shell=True, stdin=PIPE, stdout=PIPE,
                 stderr=PIPE)
@@ -146,6 +155,14 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(Tb2.columns, [sitecol, addresscol])
         self.assertListEqual(Table._tables, [Tb1, Tb2])
 
+    def test_bind(self):
+        Table = tablebase()
+        self.assertRaises(TypeError, Table.bind, 'dummy')
+
+        grn = Groonga()
+        Table.bind(grn)
+        self.assertIs(Table.grn, grn)
+
     def test_create_all(self):
         Table = tablebase()
 
@@ -156,7 +173,8 @@ class TestTable(GroongaTestBase):
             word = Column(flags=COLUMN_SCALAR, type=ShortText)
 
         grn = Groonga()
-        Table.create_all(grn)
+        Table.bind(grn)
+        Table.create_all()
         result = json.loads(self._sendquery('table_list'))
         expected = [[['id', 'UInt32'],
                      ['name', 'ShortText'],
@@ -213,6 +231,27 @@ class TestTable(GroongaTestBase):
                      'ShortText',
                      []]]
         self.assertListEqual(result[1], expected)
+
+    def test_select_all(self):
+        Table = tablebase()
+
+        class Tb(Table):
+            pass
+
+        grn = Groonga()
+        Table.bind(grn)
+        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
+                        '--key_type ShortText')
+        data = json.dumps([{'_key': 'key1'}, {'_key': 'key2'}],
+                separators=(',', ':')).replace('"', r'\"')
+        self._sendquery(r'load --table Tb --input_type json --values %s' %
+                        data)
+        result = Tb.select().all()
+        expected = [
+            [[2], [['_id', 'UInt32'], ['_key', 'ShortText']],
+             [1, 'key1'],
+             [2, 'key2']]]
+        self.assertListEqual(result, expected)
 
 
 def main():
