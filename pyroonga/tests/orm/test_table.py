@@ -373,6 +373,59 @@ class TestTable(GroongaTestBase):
                      [5, 'key5', fixture[4]['body'], fixture[4]['title']]]]
         self.assertListEqual(result, expected)
 
+    def test_select_with_limit(self):
+        Table = tablebase()
+
+        class Tb(Table):
+            title = Column()
+            body = Column()
+
+        grn = Groonga()
+        Table.bind(grn)
+        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
+                        '--key_type ShortText')
+        self._sendquery('column_create --table Tb --name title --flags '
+                        'COLUMN_SCALAR --type ShortText')
+        self._sendquery('column_create --table Tb --name body --flags '
+                        'COLUMN_SCALAR --type Text')
+        fixture = self.loadfixture()
+        self._insert('Tb', fixture)
+
+        result = Tb.select().limit(2).all()
+        expected = [[[5],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['body', 'Text'],
+                      ['title', 'ShortText']],
+                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
+                     [2, 'key2', fixture[1]['body'], fixture[1]['title']]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().limit(100).all()
+        expected = [[[5],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['body', 'Text'],
+                      ['title', 'ShortText']],
+                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
+                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
+                     [3, 'key3', fixture[2]['body'], fixture[2]['title']],
+                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
+                     [5, 'key5', fixture[4]['body'], fixture[4]['title']]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().limit(-2).all()
+        expected = [[[5],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['body', 'Text'],
+                      ['title', 'ShortText']],
+                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
+                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
+                     [3, 'key3', fixture[2]['body'], fixture[2]['title']],
+                     [4, 'key4', fixture[3]['body'], fixture[3]['title']]]]
+        self.assertListEqual(result, expected)
+
 
 def main():
     unittest.main()

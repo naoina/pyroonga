@@ -71,6 +71,7 @@ class SelectQuery(Query):
         super(SelectQuery, self).__init__(tbl)
         self._expr = args
         self._target = kwargs
+        self._limit = None
 
     def all(self):
         """Obtain the all result from this query instance
@@ -80,6 +81,15 @@ class SelectQuery(Query):
         q = str(self)
         result = self._table.grn.query(q)
         return json.loads(result)
+
+    def limit(self, lim):
+        """Limit for number of result of query
+
+        :param lim: max number of results.
+        :returns: :class:`SelectQuery`\. for method chain.
+        """
+        self._limit = int(lim)
+        return self
 
     def _makeparam(self):
         params = [utils.escape('%s:@%s' % target) for target in
@@ -100,9 +110,14 @@ class SelectQuery(Query):
         else:
             return str(expr)
 
+    def _makelimit(self):
+        return '--limit %d' % self._limit if self._limit else ''
+
     def __str__(self):
-        return 'select --table "%s" --query "%s"' % (self._table.__tablename__,
-                self._makeparam())
+        return ('select --table "%(table)s" --query "%(query)s" %(limit)s' %
+                dict(table=self._table.__tablename__,
+                     query=self._makeparam(),
+                     limit=self._makelimit()))
 
 
 class Expression(object):
