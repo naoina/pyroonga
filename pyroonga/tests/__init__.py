@@ -30,6 +30,7 @@ __author__ = "Naoya INADA <naoina@kuune.org>"
 __all__ = [
 ]
 
+import json
 import os
 import shutil
 
@@ -47,7 +48,9 @@ import pyroonga
 
 class GroongaTestBase(unittest.TestCase):
     FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'fixture')
-    DB_PATH = os.path.join(FIXTURE_DIR, 'test.db')
+    FIXTURE_PATH = os.path.join(FIXTURE_DIR, 'dbfixture.json')
+    DB_DIR = os.path.join(FIXTURE_DIR, 'db')
+    DB_PATH = os.path.join(DB_DIR, 'test.db')
 
     @classmethod
     def setUpClass(cls):
@@ -64,13 +67,13 @@ class GroongaTestBase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls._stop_groonga()
-        cls._removefixtures()
+        cls._remove_dbdir()
 
     @classmethod
     def _start_groonga(cls, conn):
-        if os.path.isdir(cls.FIXTURE_DIR):
-            cls._removefixtures()
-        os.mkdir(cls.FIXTURE_DIR)
+        if os.path.isdir(cls.DB_DIR):
+            cls._remove_dbdir()
+        os.makedirs(cls.DB_DIR)
         Popen('groonga -n %s quit' % cls.DB_PATH, shell=True, stdout=PIPE,
                 stderr=PIPE).wait()
         server = Popen('groonga -s ' + cls.DB_PATH, shell=True, stdout=PIPE,
@@ -87,9 +90,12 @@ class GroongaTestBase(unittest.TestCase):
             pass  # ignore
 
     @classmethod
-    def _removefixtures(cls):
-        if os.path.isdir(cls.FIXTURE_DIR):
-            shutil.rmtree(cls.FIXTURE_DIR)
+    def _remove_dbdir(cls):
+        if os.path.isdir(cls.DB_DIR):
+            shutil.rmtree(cls.DB_DIR)
+
+    def loadfixture(self):
+        return json.load(open(self.FIXTURE_PATH))
 
 
 class TestGroonga(GroongaTestBase):

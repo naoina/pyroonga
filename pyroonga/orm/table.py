@@ -35,7 +35,7 @@ import logging
 
 from pyroonga.groonga import Groonga
 from pyroonga.orm.attributes import *
-from pyroonga.orm.query import SelectQuery
+from pyroonga.orm.query import (Expression, ExpressionTree, SelectQuery)
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +72,24 @@ class Column(object):
         self.flags = flags
         self.type = type
         self.tablename = self.name = self.value = None
+
+    def __eq__(self, other):
+        return ExpressionTree(Expression.EQUAL, self.name, other)
+
+    def __ge__(self, other):
+        return ExpressionTree(Expression.GREATER_EQUAL, self.name, other)
+
+    def __gt__(self, other):
+        return ExpressionTree(Expression.GREATER_THAN, self.name, other)
+
+    def __le__(self, other):
+        return ExpressionTree(Expression.LESS_EQUAL, self.name, other)
+
+    def __lt__(self, other):
+        return ExpressionTree(Expression.LESS_THAN, self.name, other)
+
+    def __ne__(self, other):
+        return ExpressionTree(Expression.NOT_EQUAL, self.name, other)
 
     def __str__(self):
         if not (self.tablename and self.name):
@@ -148,6 +166,10 @@ class TableBase(object):
 
     @classmethod
     def bind(cls, grn):
+        """Bind the :class:`pyroonga.groonga.Groonga` object to the this table
+
+        :param grn: :class:`pyroonga.groonga.Groonga` object.
+        """
         if not isinstance(grn, Groonga):
             raise TypeError("not %s instance" % Groonga.__name__)
         if not grn.connected:
@@ -169,20 +191,31 @@ class TableBase(object):
             cls.grn.query(query)
 
     @classmethod
-    def select(cls, **kwargs):
+    def select(cls, *args, **kwargs):
         """Select query to the groonga
 
         e.g.::
 
             # returns data that contains "cthulhu" in the title
-            Table.select(title="cthulhu").all()
+            Table.select(title='cthulhu').all()
 
-        :param kwargs: search columns and search texts
-        :returns: :class:`pyroonga.orm.query.SelectQuery`
+            # returns data that "name" is not "nyarlathotep".
+            Table.select(Table.name != 'nyarlathotep').all()
+
+        :param args: :class:`pyroonga.orm.query.ExpressionTree`\ . Created by
+            comparison of :class:`Column` and any value.
+        :param kwargs: search columns and search texts.
+        :returns: :class:`pyroonga.orm.query.SelectQuery`\ .
         """
-        query = SelectQuery(cls, **kwargs)
+        query = SelectQuery(cls, *args, **kwargs)
         return query
 
 
 def tablebase(name='Table', cls=TableBase):
+    """Create the base class of Table definition
+
+    :param name: name of Table. Default is 'Table'.
+    :param cls: class of base of base class. Default is :class:`TableBase`\ .
+    :returns: base class.
+    """
     return TableMeta(name, (cls,), {'_tables': []})

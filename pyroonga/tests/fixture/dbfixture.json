@@ -1,0 +1,26 @@
+[
+{"_key": "key1",
+ "title": "Arch_Linux",
+ "body": "Arch Linux is an independently developed, Linux-based operating system for i686 and x86-64 computers. It is composed predominantly of free and open source software, and supports community involvement.\n\nThe design approach of the development team focuses on simplicity, elegance, code correctness and minimalism. \"Simplicity\", according to Arch, is defined as \"...without unnecessary additions, modifications, or complications..\" and is defined from a developer standpoint, rather than a user standpoint. What is necessary and what not is also based on the standpoint of the development team.\n\nInspired by CRUX, another minimalist distribution, Judd Vinet started Arch Linux in March 2002. Vinet led the project until 1 October 2007, when he stepped down due to lack of time, transferring control of the project to Aaron Griffin.\n\nArch Linux uses a rolling release model, such that a regular system update is all that is needed to obtain the latest Arch software; the installation images released by the Arch team are simply up to date snapshots of the main system components.\n\nTo facilitate regular package changes, pacman was developed by Judd Vinet to provide Arch with its own package manager able to track dependencies.\n\nUsers can create packages compatible with pacman using the Arch Build System and custom PKGBUILD scripts. This functionality has helped support the Arch User Repository, which consists of user contributed packages to supplement the official repositories."
+},
+
+{"_key": "key2",
+ "title": "Gentoo_Linux",
+ "body": "Gentoo Linux is a computer operating system built on top of the Linux kernel and based on the Portage package management system. It is distributed as free and open source software. Unlike a conventional software distribution, the user compiles the source code locally according to their chosen configuration. Where source-code is available, Portage normally supplies no precompiled binaries, continuing in the tradition of the ports collection, although for convenience, some software packages (such as Mozilla Firefox and LibreOffice) are also available as precompiled binaries for various architectures where compiling would otherwise be very time consuming. The development project and its products are named after the fastest-swimming penguin, the Gentoo, to reflect the potential speed improvements of machine-specific optimization. Gentoo package management is designed to be modular, portable, easy to maintain, flexible, and optimized for the user's machine. Gentoo describes itself as a meta-distribution, \"because of its near-unlimited adaptability\", in that the majority of users have configurations and sets of installed programs which are unique to themselves."
+},
+
+{"_key": "key3",
+ "title": "Nyarlathotep",
+ "body": "Nyarlathotep, also known as the Crawling Chaos, is a malign deity in the Cthulhu Mythos fictional universe created by H. P. Lovecraft. First appearing in Lovecraft's 1920 prose poem of the same name, he was later mentioned in other works by Lovecraft and by other writers and in the tabletop roleplaying games making use of the Cthulhu Mythos. Later writers describe him as one of the Outer Gods."
+},
+
+{"_key": "key4",
+ "title": "Cthugha",
+ "body": "Cthugha is a fictional deity in the Cthulhu Mythos genre of horror fiction, the creation of August Derleth. He first appeared in Derleth's short story \"The House on Curwen Street\" (1944).\nCthugha resembles a giant ball of fire. He is served by the Flame Creatures of Cthugha. Fthaggua, regent of the fire vampires, may be his progeny. He has at least one other known progeny, the being known as Aphoom-Zhah.\n\nIn Derleth's version of the Cthulhu Mythos, Cthugha is a Great Old One, an elemental spirit of fire opposed to the Elder Gods."
+},
+
+{"_key": "key5",
+ "title": "Hastur",
+ "body": "Hastur (The Unspeakable One, Him Who Is Not to be Named, Assatur, Xastur, or Kaiwan) is a fictional entity of the Cthulhu Mythos. Hastur first appeared in Ambrose Bierce's short story \"Haïta the Shepherd\" (1893) as a benign god of shepherds. Robert W. Chambers later used Hastur in his own stories to represent both a person and a place associated with the names of several stars, including Aldebaran.\n\nReferences to Hastur also appear throughout Marion Zimmer Bradley's work, most notably the Darkover series (e.g., The Heritage of Hastur, 1975), although without explicit Cthulhu mythos connection. In her work, Hastur is a noble house, descended from an officer of a \"Lost Ship.\" In the Darkover series, the House of Hastur is the power behind the throne. The House symbol is a silver pine tree on a dark green background. In addition, Paul Edwin Zimmer (Marion's brother) included Hastur figures in his Dark Border series (e.g., The Lost Prince, \"King Chondos' Ride, A Gathering of Heroes, and Ingulf the Mad), also without explicit Cthulhu mythos connection.\n\nIn Terry Pratchett and Neil Gaiman's book Good Omens Hastur appears as a fallen angel and duke of hell."
+}
+]
