@@ -72,6 +72,7 @@ class SelectQuery(Query):
         self._expr = args
         self._target = kwargs
         self._limit = None
+        self._offset = None
 
     def all(self):
         """Obtain the all result from this query instance
@@ -89,6 +90,15 @@ class SelectQuery(Query):
         :returns: :class:`SelectQuery`\. for method chain.
         """
         self._limit = int(lim)
+        return self
+
+    def offset(self, off):
+        """Offset for start position of result of query
+
+        :param off: offset. Base is 0.
+        :returns: :class:`SelectQuery`\ . for method chain.
+        """
+        self._offset = int(off)
         return self
 
     def _makeparam(self):
@@ -113,11 +123,17 @@ class SelectQuery(Query):
     def _makelimit(self):
         return '--limit %d' % self._limit if self._limit else ''
 
+    def _makeoffset(self):
+        return '--offset %d' % self._offset if self._offset else ''
+
     def __str__(self):
-        return ('select --table "%(table)s" --query "%(query)s" %(limit)s' %
-                dict(table=self._table.__tablename__,
-                     query=self._makeparam(),
-                     limit=self._makelimit()))
+        return 'select --table "%(table)s" ' \
+                      '--query "%(query)s" ' \
+                      '%(limit)s %(offset)s' % \
+                      dict(table=self._table.__tablename__,
+                           query=self._makeparam(),
+                           limit=self._makelimit(),
+                           offset=self._makeoffset())
 
 
 class Expression(object):
