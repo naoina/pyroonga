@@ -73,6 +73,7 @@ class SelectQuery(Query):
         self._target = kwargs
         self._limit = None
         self._offset = None
+        self._order = []
 
     def all(self):
         """Obtain the all result from this query instance
@@ -99,6 +100,15 @@ class SelectQuery(Query):
         :returns: :class:`SelectQuery`\ . for method chain.
         """
         self._offset = int(off)
+        return self
+
+    def sortby(self, *args):
+        """Set the sort order for result of query
+
+        :param args: :class:`pyroonga.orm.table.Column` of sort keys.
+        :returns: :class:`SelectQuery`\ . for method chain.
+        """
+        self._order = args
         return self
 
     def _makeparam(self):
@@ -128,14 +138,19 @@ class SelectQuery(Query):
     def _makeoffset(self):
         return '--offset %d' % self._offset if self._offset else ''
 
+    def _makesortby(self):
+        keys = ['-' * key._desc + key.name for key in self._order]
+        return '--sortby %s' % ','.join(keys)
+
     def __str__(self):
         return 'select --table "%(table)s" ' \
                       '--query "%(query)s" ' \
-                      '%(limit)s %(offset)s' % \
+                      '%(limit)s %(offset)s %(sortby)s' % \
                       dict(table=self._table.__tablename__,
                            query=self._makeparam(),
                            limit=self._makelimit(),
-                           offset=self._makeoffset())
+                           offset=self._makeoffset(),
+                           sortby=self._makesortby())
 
 
 class Value(object):

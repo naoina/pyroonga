@@ -72,6 +72,7 @@ class Column(object):
         self.flags = flags
         self.type = type
         self.tablename = self.name = self.value = None
+        self._desc = False
 
     def __eq__(self, other):
         return ExpressionTree(Expression.EQUAL, self.name,
@@ -96,6 +97,10 @@ class Column(object):
     def __ne__(self, other):
         return ExpressionTree(Expression.NOT_EQUAL, self.name,
                 Value(other))
+
+    def __neg__(self):
+        self._desc = True
+        return self
 
     def __str__(self):
         if not (self.tablename and self.name):

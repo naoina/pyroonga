@@ -119,6 +119,25 @@ class TestTable(GroongaTestBase):
         self._sendquery('load --table %s --input_type json --values\n%s' %
                 (tbl, data))
 
+    def _maketable(self):
+        Table = tablebase()
+
+        class Tb(Table):
+            title = Column()
+            body = Column()
+
+        grn = Groonga()
+        Table.bind(grn)
+        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
+                        '--key_type ShortText')
+        self._sendquery('column_create --table Tb --name title --flags '
+                        'COLUMN_SCALAR --type ShortText')
+        self._sendquery('column_create --table Tb --name body --flags '
+                        'COLUMN_SCALAR --type Text')
+        fixture = self.loadfixture()
+        self._insert('Tb', fixture)
+        return Tb, fixture
+
     def test_default_value(self):
         Table = tablebase()
         self.assertIs(Table.__tableflags__, TABLE_HASH_KEY)
@@ -315,22 +334,7 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(result, expected)
 
     def test_select_with_condition(self):
-        Table = tablebase()
-
-        class Tb(Table):
-            title = Column()
-            body = Column()
-
-        grn = Groonga()
-        Table.bind(grn)
-        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
-                        '--key_type ShortText')
-        self._sendquery('column_create --table Tb --name title --flags '
-                        'COLUMN_SCALAR --type ShortText')
-        self._sendquery('column_create --table Tb --name body --flags '
-                        'COLUMN_SCALAR --type Text')
-        fixture = self.loadfixture()
-        self._insert('Tb', fixture)
+        Tb, fixture = self._maketable()
 
         result = Tb.select(Tb.title == 'Nyarlathotep').all()
         expected = [[[1],
@@ -374,22 +378,7 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(result, expected)
 
     def test_select_with_limit(self):
-        Table = tablebase()
-
-        class Tb(Table):
-            title = Column()
-            body = Column()
-
-        grn = Groonga()
-        Table.bind(grn)
-        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
-                        '--key_type ShortText')
-        self._sendquery('column_create --table Tb --name title --flags '
-                        'COLUMN_SCALAR --type ShortText')
-        self._sendquery('column_create --table Tb --name body --flags '
-                        'COLUMN_SCALAR --type Text')
-        fixture = self.loadfixture()
-        self._insert('Tb', fixture)
+        Tb, fixture = self._maketable()
 
         result = Tb.select().limit(2).all()
         expected = [[[5],
@@ -427,22 +416,7 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(result, expected)
 
     def test_select_with_offset(self):
-        Table = tablebase()
-
-        class Tb(Table):
-            title = Column()
-            body = Column()
-
-        grn = Groonga()
-        Table.bind(grn)
-        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
-                        '--key_type ShortText')
-        self._sendquery('column_create --table Tb --name title --flags '
-                        'COLUMN_SCALAR --type ShortText')
-        self._sendquery('column_create --table Tb --name body --flags '
-                        'COLUMN_SCALAR --type Text')
-        fixture = self.loadfixture()
-        self._insert('Tb', fixture)
+        Tb, fixture = self._maketable()
 
         result = Tb.select().offset(2).all()
         expected = [[[5],
@@ -463,6 +437,50 @@ class TestTable(GroongaTestBase):
                       ['title', 'ShortText']],
                      [4, 'key4', fixture[3]['body'], fixture[3]['title']],
                      [5, 'key5', fixture[4]['body'], fixture[4]['title']]]]
+        self.assertListEqual(result, expected)
+
+    def test_select_with_sortby(self):
+        Tb, fixture = self._maketable()
+
+        result = Tb.select().sortby(Tb.title).all()
+        expected = [[[5],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['body', 'Text'],
+                      ['title', 'ShortText']],
+                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
+                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
+                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
+                     [5, 'key5', fixture[4]['body'], fixture[4]['title']],
+                     [3, 'key3', fixture[2]['body'], fixture[2]['title']]]]
+        self.assertListEqual(result, expected)
+
+        # FIXME: bad pattern. the reason is because the same result as the
+        #        above tests.
+        result = Tb.select().sortby(Tb.title, Tb.body).all()
+        expected = [[[5],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['body', 'Text'],
+                      ['title', 'ShortText']],
+                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
+                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
+                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
+                     [5, 'key5', fixture[4]['body'], fixture[4]['title']],
+                     [3, 'key3', fixture[2]['body'], fixture[2]['title']]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().sortby(-Tb.title).all()
+        expected = [[[5],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['body', 'Text'],
+                      ['title', 'ShortText']],
+                     [3, 'key3', fixture[2]['body'], fixture[2]['title']],
+                     [5, 'key5', fixture[4]['body'], fixture[4]['title']],
+                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
+                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
+                     [1, 'key1', fixture[0]['body'], fixture[0]['title']]]]
         self.assertListEqual(result, expected)
 
 
