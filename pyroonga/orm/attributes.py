@@ -70,6 +70,16 @@ class Flags(list):
         else:
             raise TypeError('"flags" type must be instance of Symbol or list')
 
+    def __and__(self, other):
+        cls = self.__class__
+        if not isinstance(other, cls):
+            raise TypeError('operand type must be instance of %s' %
+                    cls.__name__)
+        for item in other:
+            if item not in self:
+                return False
+        return True
+
     def __or__(self, other):
         cls = self.__class__
         if not isinstance(other, cls):
