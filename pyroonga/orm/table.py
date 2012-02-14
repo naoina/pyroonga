@@ -120,12 +120,17 @@ class TableMeta(type):
             for k, v in cls.__dict__.items():
                 if isinstance(v, Column):
                     cls._setcolumn(k, v)
+                    cls.columns.append(v)
+            cls._id = Column(flags=COLUMN_SCALAR, type=UInt32)
+            cls._setcolumn('_id', cls._id)
+            if not (cls.__tableflags__ & TABLE_NO_KEY):
+                cls._key = Column(flags=COLUMN_SCALAR, type=cls.__key_type__)
+                cls._setcolumn('_key', cls._key)
         return type.__init__(cls, name, bases, dict_)
 
     def _setcolumn(cls, name, col):
         col.name = name
         col.tablename = cls.__tablename__
-        cls.columns.append(col)
 
     def __str__(cls):
         return ('table_create --name %s --flags %s --key_type %s' %
