@@ -140,7 +140,7 @@ class SelectQuery(Query):
 
     def _makesortby(self):
         keys = ['-' * key._desc + key.name for key in self._order]
-        return '--sortby %s' % ','.join(keys)
+        return '--sortby %s' % ','.join(keys) if keys else ''
 
     def __str__(self):
         return 'select --table "%(table)s" ' \
