@@ -35,7 +35,7 @@ import logging
 
 from pyroonga.groonga import Groonga
 from pyroonga.orm.attributes import *
-from pyroonga.orm.query import (Expression, ExpressionTree, SelectQuery)
+from pyroonga.orm.query import (Expression, ExpressionTree, SelectQuery, Value)
 
 logger = logging.getLogger(__name__)
 
@@ -74,22 +74,28 @@ class Column(object):
         self.tablename = self.name = self.value = None
 
     def __eq__(self, other):
-        return ExpressionTree(Expression.EQUAL, self.name, other)
+        return ExpressionTree(Expression.EQUAL, self.name,
+                Value(other))
 
     def __ge__(self, other):
-        return ExpressionTree(Expression.GREATER_EQUAL, self.name, other)
+        return ExpressionTree(Expression.GREATER_EQUAL, self.name,
+                Value(other))
 
     def __gt__(self, other):
-        return ExpressionTree(Expression.GREATER_THAN, self.name, other)
+        return ExpressionTree(Expression.GREATER_THAN, self.name,
+                Value(other))
 
     def __le__(self, other):
-        return ExpressionTree(Expression.LESS_EQUAL, self.name, other)
+        return ExpressionTree(Expression.LESS_EQUAL, self.name,
+                Value(other))
 
     def __lt__(self, other):
-        return ExpressionTree(Expression.LESS_THAN, self.name, other)
+        return ExpressionTree(Expression.LESS_THAN, self.name,
+                Value(other))
 
     def __ne__(self, other):
-        return ExpressionTree(Expression.NOT_EQUAL, self.name, other)
+        return ExpressionTree(Expression.NOT_EQUAL, self.name,
+                Value(other))
 
     def __str__(self):
         if not (self.tablename and self.name):

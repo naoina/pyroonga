@@ -353,7 +353,7 @@ class TestTable(GroongaTestBase):
                      [5, 'key5', fixture[4]['body'], fixture[4]['title']]]]
         self.assertListEqual(result, expected)
 
-        result = Tb.select(Tb.title != 'Gentoo_Linux', body='linux').all()
+        result = Tb.select(Tb.title != 'Gentoo Linux', body='linux').all()
         expected = [[[1],
                      [['_id', 'UInt32'],
                       ['_key', 'ShortText'],
@@ -362,7 +362,7 @@ class TestTable(GroongaTestBase):
                      [1, 'key1', fixture[0]['body'], fixture[0]['title']]]]
         self.assertListEqual(result, expected)
 
-        result = Tb.select((Tb.title == 'Gentoo_Linux') |
+        result = Tb.select((Tb.title == 'Gentoo Linux') |
                            (Tb.title == 'Hastur')).all()
         expected = [[[2],
                      [['_id', 'UInt32'],

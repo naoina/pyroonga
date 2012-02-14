@@ -102,7 +102,7 @@ class SelectQuery(Query):
         return self
 
     def _makeparam(self):
-        params = [utils.escape('%s:@%s' % target) for target in
+        params = [utils.escape('%s:@"%s"' % target) for target in
                   self._target.items()]
         param = Expression.OR.join(params)
         exprs = [utils.escape(self._makeexpr(expr)) for expr in self._expr]
@@ -117,6 +117,8 @@ class SelectQuery(Query):
         if isinstance(expr, ExpressionTree):
             return '(%s%s%s)' % (self._makeexpr(expr.left), expr.expr,
                     self._makeexpr(expr.right))
+        elif isinstance(expr, Value):
+            return '"%s"' % expr
         else:
             return str(expr)
 
@@ -134,6 +136,16 @@ class SelectQuery(Query):
                            query=self._makeparam(),
                            limit=self._makelimit(),
                            offset=self._makeoffset())
+
+
+class Value(object):
+    slots = ['value']
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
 
 
 class Expression(object):
