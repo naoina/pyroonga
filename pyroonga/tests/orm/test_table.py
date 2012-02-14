@@ -483,6 +483,41 @@ class TestTable(GroongaTestBase):
                      [1, 'key1', fixture[0]['body'], fixture[0]['title']]]]
         self.assertListEqual(result, expected)
 
+    def test_select_with_output_columns(self):
+        Tb, fixture = self._maketable()
+
+        result = Tb.select().output_columns(Tb.title).all()
+        expected = [[[5],
+                     [['title', 'ShortText']],
+                     [fixture[0]['title']],
+                     [fixture[1]['title']],
+                     [fixture[2]['title']],
+                     [fixture[3]['title']],
+                     [fixture[4]['title']]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().output_columns(Tb.body, Tb.title).all()
+        expected = [[[5],
+                     [['body', 'Text'],
+                      ['title', 'ShortText']],
+                     [fixture[0]['body'], fixture[0]['title']],
+                     [fixture[1]['body'], fixture[1]['title']],
+                     [fixture[2]['body'], fixture[2]['title']],
+                     [fixture[3]['body'], fixture[3]['title']],
+                     [fixture[4]['body'], fixture[4]['title']]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().output_columns(Column.ALL).all()
+        expected = [[[5],
+                     [['body', 'Text'],
+                      ['title', 'ShortText']],
+                     [fixture[0]['body'], fixture[0]['title']],
+                     [fixture[1]['body'], fixture[1]['title']],
+                     [fixture[2]['body'], fixture[2]['title']],
+                     [fixture[3]['body'], fixture[3]['title']],
+                     [fixture[4]['body'], fixture[4]['title']]]]
+        self.assertListEqual(result, expected)
+
 
 def main():
     unittest.main()

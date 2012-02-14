@@ -108,6 +108,9 @@ class Column(object):
         return ('column_create --table %s --name %s --flags %s --type %s' %
                 (self.tablename, self.name, self.flags, self.type))
 
+Column.ALL = Column()
+Column.ALL.name = '*'
+
 
 class TableMeta(type):
     def __init__(cls, name, bases, dict_):

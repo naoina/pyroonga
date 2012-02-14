@@ -74,6 +74,7 @@ class SelectQuery(Query):
         self._limit = None
         self._offset = None
         self._order = []
+        self._columns = []
 
     def all(self):
         """Obtain the all result from this query instance
@@ -111,6 +112,15 @@ class SelectQuery(Query):
         self._order = args
         return self
 
+    def output_columns(self, *args):
+        """Select the output columns for result of query
+
+        :param args: :class:`pyroonga.orm.table.Column`
+        :returns: :class:`SelectQuery`\ . for method chain.
+        """
+        self._columns = args
+        return self
+
     def _makeparam(self):
         params = [utils.escape('%s:@"%s"' % target) for target in
                   self._target.items()]
@@ -142,15 +152,20 @@ class SelectQuery(Query):
         keys = ['-' * key._desc + key.name for key in self._order]
         return '--sortby %s' % ','.join(keys) if keys else ''
 
+    def _makeoutput_columns(self):
+        cols = [col.name for col in self._columns]
+        return '--output_columns %s' % ','.join(cols) if cols else ''
+
     def __str__(self):
         return 'select --table "%(table)s" ' \
                       '--query "%(query)s" ' \
-                      '%(limit)s %(offset)s %(sortby)s' % \
+                      '%(limit)s %(offset)s %(sortby)s %(output_columns)s' % \
                       dict(table=self._table.__tablename__,
                            query=self._makeparam(),
                            limit=self._makelimit(),
                            offset=self._makeoffset(),
-                           sortby=self._makesortby())
+                           sortby=self._makesortby(),
+                           output_columns=self._makeoutput_columns())
 
 
 class Value(object):
