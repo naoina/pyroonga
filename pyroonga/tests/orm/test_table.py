@@ -528,7 +528,7 @@ class TestTable(GroongaTestBase):
                      [fixture[4]['body'], fixture[4]['title']]]]
         self.assertListEqual(result, expected)
 
-        result = Tb.select().output_columns(Column.ALL).all()
+        result = Tb.select().output_columns(Tb.ALL).all()
         expected = [[[5],
                      [['body', 'Text'],
                       ['title', 'ShortText']],

@@ -108,9 +108,6 @@ class Column(object):
         return ('column_create --table %s --name %s --flags %s --type %s' %
                 (self.tablename, self.name, self.flags, self.type))
 
-Column.ALL = Column()
-Column.ALL.name = '*'
-
 
 class TableMeta(type):
     def __init__(cls, name, bases, dict_):
@@ -121,12 +118,18 @@ class TableMeta(type):
                 if isinstance(v, Column):
                     cls._setcolumn(k, v)
                     cls.columns.append(v)
-            cls._id = Column(flags=COLUMN_SCALAR, type=UInt32)
-            cls._setcolumn('_id', cls._id)
-            if not (cls.__tableflags__ & TABLE_NO_KEY):
-                cls._key = Column(flags=COLUMN_SCALAR, type=cls.__key_type__)
-                cls._setcolumn('_key', cls._key)
+            cls._set_pseudocolumns()
         return type.__init__(cls, name, bases, dict_)
+
+    def _set_pseudocolumns(cls):
+        for attr, name, typ in (('_id', '_id', UInt32),
+                                ('ALL', '*', ShortText)):
+            col = Column(flags=COLUMN_SCALAR, type=typ)
+            setattr(cls, attr, col)
+            cls._setcolumn(name, col)
+        if not (cls.__tableflags__ & TABLE_NO_KEY):
+            cls._key = Column(flags=COLUMN_SCALAR, type=cls.__key_type__)
+            cls._setcolumn('_key', cls._key)
 
     def _setcolumn(cls, name, col):
         col.name = name
