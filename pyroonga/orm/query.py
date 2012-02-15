@@ -81,6 +81,7 @@ class SelectQueryBase(Query):
         self._sortby = []
         self._output_columns = []
         self._cache = True
+        self._match_escalation_threshold = None
 
     def all(self):
         """Obtain the all result from this query instance
@@ -136,6 +137,15 @@ class SelectQueryBase(Query):
         self._cache = bool(iscache)
         return self
 
+    def match_escalation_threshold(self, threshold):
+        """Set the match escalation threshold
+
+        :param threshold: threshold of match escalation
+        :returns: self. for method chain.
+        """
+        self._match_escalation_threshold = int(threshold)
+        return self
+
     def _makelimit(self):
         if self._limit:
             return '%s %d' % (self.__options__['limit'], self._limit)
@@ -166,17 +176,26 @@ class SelectQueryBase(Query):
     def _makecache(self):
         return '' if self._cache else '--cache no'
 
+    def _makematch_escalation_threshold(self):
+        if self._match_escalation_threshold is None:
+            return ''
+        else:
+            return ('--match_escalation_threshold %d' %
+                    self._match_escalation_threshold)
+
     def _makeparams(self):
         return ''
 
     def _condition(self):
         return '%(cache)s %(limit)s %(offset)s %(sortby)s %(output_columns)s ' \
-               '%(params)s' % dict(cache=self._makecache(),
-                                   limit=self._makelimit(),
-                                   offset=self._makeoffset(),
-                                   sortby=self._makesortby(),
-                                   output_columns=self._makeoutput_columns(),
-                                   params=self._makeparams())
+               '%(match_escalation_threshold)s %(params)s' % \
+               dict(cache=self._makecache(),
+                    limit=self._makelimit(),
+                    offset=self._makeoffset(),
+                    sortby=self._makesortby(),
+                    output_columns=self._makeoutput_columns(),
+                    match_escalation_threshold=self._makematch_escalation_threshold(),
+                    params=self._makeparams())
 
     def __str__(self):
         return 'select --table "%(table)s" %(condition)s' % dict(
