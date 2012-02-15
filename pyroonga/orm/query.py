@@ -80,6 +80,7 @@ class SelectQueryBase(Query):
         self._offset = None
         self._sortby = []
         self._output_columns = []
+        self._cache = True
 
     def all(self):
         """Obtain the all result from this query instance
@@ -126,6 +127,15 @@ class SelectQueryBase(Query):
         self._output_columns = args
         return self
 
+    def cache(self, iscache):
+        """Set the query cache
+
+        :param iscache: no query cache if False. otherwise **yes**\ .
+        :returns: :class:`SelectQuery`\ . for method chain.
+        """
+        self._cache = bool(iscache)
+        return self
+
     def _makelimit(self):
         if self._limit:
             return '%s %d' % (self.__options__['limit'], self._limit)
@@ -153,12 +163,16 @@ class SelectQueryBase(Query):
         else:
             return ''
 
+    def _makecache(self):
+        return '' if self._cache else '--cache no'
+
     def _makeparams(self):
         return ''
 
     def _condition(self):
-        return '%(limit)s %(offset)s %(sortby)s %(output_columns)s ' \
-               '%(params)s' % dict(limit=self._makelimit(),
+        return '%(cache)s %(limit)s %(offset)s %(sortby)s %(output_columns)s ' \
+               '%(params)s' % dict(cache=self._makecache(),
+                                   limit=self._makelimit(),
                                    offset=self._makeoffset(),
                                    sortby=self._makesortby(),
                                    output_columns=self._makeoutput_columns(),
