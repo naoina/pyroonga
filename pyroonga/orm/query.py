@@ -58,8 +58,13 @@ class Query(object):
         self._table = tbl
 
 
-class SelectQuery(Query):
-    """Query representation class for 'select' query"""
+class SelectQueryBase(Query):
+    """'select' query representation base class"""
+
+    __options__ = {'limit':  '',
+                   'offset': '',
+                   'sortby': '',
+                   'output_columns': ''}
 
     def __init__(self, tbl, *args, **kwargs):
         """Construct of 'select' query
@@ -68,13 +73,13 @@ class SelectQuery(Query):
         :param args: :class:`ExpressionTree`\ .
         :param kwargs: search columns and search texts.
         """
-        super(SelectQuery, self).__init__(tbl)
+        super(SelectQueryBase, self).__init__(tbl)
         self._expr = args
         self._target = kwargs
         self._limit = None
         self._offset = None
-        self._order = []
-        self._columns = []
+        self._sortby = []
+        self._output_columns = []
 
     def all(self):
         """Obtain the all result from this query instance
@@ -109,7 +114,7 @@ class SelectQuery(Query):
         :param args: :class:`pyroonga.orm.table.Column` of sort keys.
         :returns: :class:`SelectQuery`\ . for method chain.
         """
-        self._order = args
+        self._sortby = args
         return self
 
     def output_columns(self, *args):
@@ -118,10 +123,62 @@ class SelectQuery(Query):
         :param args: :class:`pyroonga.orm.table.Column`
         :returns: :class:`SelectQuery`\ . for method chain.
         """
-        self._columns = args
+        self._output_columns = args
         return self
 
-    def _makeparam(self):
+    def _makelimit(self):
+        if self._limit:
+            return '%s %d' % (self.__options__['limit'], self._limit)
+        else:
+            return ''
+
+    def _makeoffset(self):
+        if self._offset:
+            return '%s %d' % (self.__options__['offset'], self._offset)
+        else:
+            return ''
+
+    def _makesortby(self):
+        if self._sortby:
+            keys = ['-' * key._desc + key.name for key in self._sortby]
+            return '%s %s' % (self.__options__['sortby'], ','.join(keys))
+        else:
+            return ''
+
+    def _makeoutput_columns(self):
+        if self._output_columns:
+            cols = [col.name for col in self._output_columns]
+            return '%s %s' % (self.__options__['output_columns'],
+                              ','.join(cols))
+        else:
+            return ''
+
+    def _makeparams(self):
+        return ''
+
+    def _condition(self):
+        return '%(limit)s %(offset)s %(sortby)s %(output_columns)s ' \
+               '%(params)s' % dict(limit=self._makelimit(),
+                                   offset=self._makeoffset(),
+                                   sortby=self._makesortby(),
+                                   output_columns=self._makeoutput_columns(),
+                                   params=self._makeparams())
+
+    def __str__(self):
+        return 'select --table "%(table)s" %(condition)s' % dict(
+                table=self._table.__tablename__,
+                condition=self._condition())
+
+
+class SelectQuery(SelectQueryBase):
+    """Query representation class for 'select' query"""
+
+    __options__ = {'limit':  '--limit',
+                   'offset': '--offset',
+                   'sortby': '--sortby',
+                   'output_columns': '--output_columns'}
+
+    def _makeparams(self):
         params = [utils.escape('%s:@"%s"' % target) for target in
                   self._target.items()]
         param = Expression.OR.join(params)
@@ -131,7 +188,7 @@ class SelectQuery(Query):
         if result and expr:
             result += Expression.AND
         result += expr
-        return result
+        return '--query "%s"' % result if result else ''
 
     def _makeexpr(self, expr):
         if isinstance(expr, ExpressionTree):
@@ -141,31 +198,6 @@ class SelectQuery(Query):
             return '"%s"' % expr
         else:
             return str(expr)
-
-    def _makelimit(self):
-        return '--limit %d' % self._limit if self._limit else ''
-
-    def _makeoffset(self):
-        return '--offset %d' % self._offset if self._offset else ''
-
-    def _makesortby(self):
-        keys = ['-' * key._desc + key.name for key in self._order]
-        return '--sortby %s' % ','.join(keys) if keys else ''
-
-    def _makeoutput_columns(self):
-        cols = [col.name for col in self._columns]
-        return '--output_columns %s' % ','.join(cols) if cols else ''
-
-    def __str__(self):
-        return 'select --table "%(table)s" ' \
-                      '--query "%(query)s" ' \
-                      '%(limit)s %(offset)s %(sortby)s %(output_columns)s' % \
-                      dict(table=self._table.__tablename__,
-                           query=self._makeparam(),
-                           limit=self._makelimit(),
-                           offset=self._makeoffset(),
-                           sortby=self._makesortby(),
-                           output_columns=self._makeoutput_columns())
 
 
 class Value(object):
