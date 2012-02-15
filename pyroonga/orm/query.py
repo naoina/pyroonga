@@ -95,7 +95,7 @@ class SelectQueryBase(Query):
         """Limit for number of result of query
 
         :param lim: max number of results.
-        :returns: :class:`SelectQuery`\. for method chain.
+        :returns: self. for method chain.
         """
         self._limit = int(lim)
         return self
@@ -104,7 +104,7 @@ class SelectQueryBase(Query):
         """Offset for start position of result of query
 
         :param off: offset. Base is 0.
-        :returns: :class:`SelectQuery`\ . for method chain.
+        :returns: self. for method chain.
         """
         self._offset = int(off)
         return self
@@ -113,7 +113,7 @@ class SelectQueryBase(Query):
         """Set the sort order for result of query
 
         :param args: :class:`pyroonga.orm.table.Column` of sort keys.
-        :returns: :class:`SelectQuery`\ . for method chain.
+        :returns: self. for method chain.
         """
         self._sortby = args
         return self
@@ -122,7 +122,7 @@ class SelectQueryBase(Query):
         """Select the output columns for result of query
 
         :param args: :class:`pyroonga.orm.table.Column`
-        :returns: :class:`SelectQuery`\ . for method chain.
+        :returns: self. for method chain.
         """
         self._output_columns = args
         return self
@@ -131,7 +131,7 @@ class SelectQueryBase(Query):
         """Set the query cache
 
         :param iscache: no query cache if False. otherwise **yes**\ .
-        :returns: :class:`SelectQuery`\ . for method chain.
+        :returns: self. for method chain.
         """
         self._cache = bool(iscache)
         return self
