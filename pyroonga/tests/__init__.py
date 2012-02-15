@@ -48,7 +48,7 @@ import pyroonga
 
 class GroongaTestBase(unittest.TestCase):
     FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'fixture')
-    FIXTURE_PATH = os.path.join(FIXTURE_DIR, 'dbfixture.json')
+    FIXTURE_PATH = os.path.join(FIXTURE_DIR, 'dbfixture%s.json')
     DB_DIR = os.path.join(FIXTURE_DIR, 'db')
     DB_PATH = os.path.join(DB_DIR, 'test.db')
 
@@ -94,8 +94,8 @@ class GroongaTestBase(unittest.TestCase):
         if os.path.isdir(cls.DB_DIR):
             shutil.rmtree(cls.DB_DIR)
 
-    def loadfixture(self):
-        return json.load(open(self.FIXTURE_PATH))
+    def loadfixture(self, num):
+        return json.load(open(self.FIXTURE_PATH % num))
 
 
 class TestGroonga(GroongaTestBase):

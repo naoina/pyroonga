@@ -119,7 +119,7 @@ class TestTable(GroongaTestBase):
         self._sendquery('load --table %s --input_type json --values\n%s' %
                 (tbl, data))
 
-    def _maketable(self):
+    def _maketable1(self):
         Table = tablebase()
 
         class Tb(Table):
@@ -134,7 +134,26 @@ class TestTable(GroongaTestBase):
                         'COLUMN_SCALAR --type ShortText')
         self._sendquery('column_create --table Tb --name body --flags '
                         'COLUMN_SCALAR --type Text')
-        fixture = self.loadfixture()
+        fixture = self.loadfixture(1)
+        self._insert('Tb', fixture)
+        return Tb, fixture
+
+    def _maketable2(self):
+        Table = tablebase()
+
+        class Tb(Table):
+            category = Column()
+            name = Column()
+
+        grn = Groonga()
+        Table.bind(grn)
+        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
+                        '--key_type ShortText')
+        self._sendquery('column_create --table Tb --name category --flags '
+                        'COLUMN_SCALAR --type ShortText')
+        self._sendquery('column_create --table Tb --name name --flags '
+                        'COLUMN_SCALAR --type ShortText')
+        fixture = self.loadfixture(2)
         self._insert('Tb', fixture)
         return Tb, fixture
 
@@ -334,7 +353,7 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(result, expected)
 
     def test_select_with_condition(self):
-        Tb, fixture = self._maketable()
+        Tb, fixture = self._maketable1()
 
         result = Tb.select(Tb.title == 'Nyarlathotep').all()
         expected = [[[1],
@@ -399,7 +418,7 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(result, expected)
 
     def test_select_with_limit(self):
-        Tb, fixture = self._maketable()
+        Tb, fixture = self._maketable1()
 
         result = Tb.select().limit(2).all()
         expected = [[[5],
@@ -437,7 +456,7 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(result, expected)
 
     def test_select_with_offset(self):
-        Tb, fixture = self._maketable()
+        Tb, fixture = self._maketable1()
 
         result = Tb.select().offset(2).all()
         expected = [[[5],
@@ -461,7 +480,7 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(result, expected)
 
     def test_select_with_sortby(self):
-        Tb, fixture = self._maketable()
+        Tb, fixture = self._maketable1()
 
         result = Tb.select().sortby(Tb.title).all()
         expected = [[[5],
@@ -505,7 +524,7 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(result, expected)
 
     def test_select_with_output_columns(self):
-        Tb, fixture = self._maketable()
+        Tb, fixture = self._maketable1()
 
         result = Tb.select().output_columns(Tb.title).all()
         expected = [[[5],
@@ -537,6 +556,210 @@ class TestTable(GroongaTestBase):
                      [fixture[2]['body'], fixture[2]['title']],
                      [fixture[3]['body'], fixture[3]['title']],
                      [fixture[4]['body'], fixture[4]['title']]]]
+        self.assertListEqual(result, expected)
+
+    def test_select_with_drilldown(self):
+        Tb, fixture = self._maketable2()
+        column_result = ([[8],
+                         [['_id', 'UInt32'],
+                          ['_key', 'ShortText'],
+                          ['category', 'ShortText'],
+                          ['name', 'ShortText']]] +
+                         [[i + 1, fx['_key'], fx['category'], fx['name']]
+                                 for i, fx in enumerate(fixture)])
+
+        result = Tb.select().drilldown(Tb.category).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['VOCALOID', 3],
+                     ['Ghostory', 2],
+                     ['BLACK LAGOON', 3]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.name).all()
+        expected = [column_result,
+                    [[8],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['Miku Hatsune', 1],
+                     ['Luka Megurine', 1],
+                     ['MEIKO', 1],
+                     ['Hitagi Senjogahara', 1],
+                     ['Shinobu Oshino', 1],
+                     ['Revy', 1],
+                     ['Rock', 1],
+                     ['Roberta', 1]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.category, Tb.name).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['VOCALOID', 3],
+                     ['Ghostory', 2],
+                     ['BLACK LAGOON', 3]],
+                    [[8],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['Miku Hatsune', 1],
+                     ['Luka Megurine', 1],
+                     ['MEIKO', 1],
+                     ['Hitagi Senjogahara', 1],
+                     ['Shinobu Oshino', 1],
+                     ['Revy', 1],
+                     ['Rock', 1],
+                     ['Roberta', 1]]]
+        self.assertListEqual(result, expected)
+
+    def test_select_with_drilldown_sortby(self):
+        Tb, fixture = self._maketable2()
+        column_result = ([[8],
+                         [['_id', 'UInt32'],
+                          ['_key', 'ShortText'],
+                          ['category', 'ShortText'],
+                          ['name', 'ShortText']]] +
+                         [[i + 1, fx['_key'], fx['category'], fx['name']]
+                                 for i, fx in enumerate(fixture)])
+
+        result = Tb.select().drilldown(Tb.category).sortby(Tb._key).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['BLACK LAGOON', 3],
+                     ['Ghostory', 2],
+                     ['VOCALOID', 3]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.category).sortby(Tb._nsubrecs).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['Ghostory', 2],
+                     ['VOCALOID', 3],
+                     ['BLACK LAGOON', 3]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.category). \
+                    sortby(Tb._nsubrecs, Tb._key).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['Ghostory', 2],
+                     ['BLACK LAGOON', 3],
+                     ['VOCALOID', 3]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.category).sortby(-Tb._nsubrecs).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['VOCALOID', 3],
+                     ['BLACK LAGOON', 3],
+                     ['Ghostory', 2]]]
+        self.assertListEqual(result, expected)
+
+    def test_select_with_drilldown_output_columns(self):
+        Tb, fixture = self._maketable2()
+        column_result = ([[8],
+                         [['_id', 'UInt32'],
+                          ['_key', 'ShortText'],
+                          ['category', 'ShortText'],
+                          ['name', 'ShortText']]] +
+                         [[i + 1, fx['_key'], fx['category'], fx['name']]
+                                 for i, fx in enumerate(fixture)])
+
+        result = Tb.select().drilldown(Tb.category). \
+                    output_columns(Tb._key).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText']],
+                     ['VOCALOID'],
+                     ['Ghostory'],
+                     ['BLACK LAGOON']]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.category). \
+                    output_columns(Tb._nsubrecs, Tb._key).all()
+        expected = [column_result,
+                    [[3],
+                     [['_nsubrecs', 'Int32'], ['_key', 'ShortText']],
+                     [3, 'VOCALOID'],
+                     [2, 'Ghostory'],
+                     [3, 'BLACK LAGOON']]]
+        self.assertListEqual(result, expected)
+
+    def test_select_with_drilldown_offset(self):
+        Tb, fixture = self._maketable2()
+        column_result = ([[8],
+                         [['_id', 'UInt32'],
+                          ['_key', 'ShortText'],
+                          ['category', 'ShortText'],
+                          ['name', 'ShortText']]] +
+                         [[i + 1, fx['_key'], fx['category'], fx['name']]
+                                 for i, fx in enumerate(fixture)])
+
+        result = Tb.select().drilldown(Tb.category).offset(1).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['Ghostory', 2],
+                     ['BLACK LAGOON', 3]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.category).offset(2).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['BLACK LAGOON', 3]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.category).offset(-2).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['Ghostory', 2],
+                     ['BLACK LAGOON', 3]]]
+        self.assertListEqual(result, expected)
+
+    def test_select_with_drilldown_limit(self):
+        Tb, fixture = self._maketable2()
+        column_result = ([[8],
+                         [['_id', 'UInt32'],
+                          ['_key', 'ShortText'],
+                          ['category', 'ShortText'],
+                          ['name', 'ShortText']]] +
+                         [[i + 1, fx['_key'], fx['category'], fx['name']]
+                                 for i, fx in enumerate(fixture)])
+
+        result = Tb.select().drilldown(Tb.category).limit(1).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['VOCALOID', 3]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.category).limit(2).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['VOCALOID', 3],
+                     ['Ghostory', 2]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.category).limit(100).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['VOCALOID', 3],
+                     ['Ghostory', 2],
+                     ['BLACK LAGOON', 3]]]
+        self.assertListEqual(result, expected)
+
+        result = Tb.select().drilldown(Tb.category).limit(-2).all()
+        expected = [column_result,
+                    [[3],
+                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
+                     ['VOCALOID', 3],
+                     ['Ghostory', 2]]]
         self.assertListEqual(result, expected)
 
 

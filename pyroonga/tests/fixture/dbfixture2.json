@@ -1,0 +1,41 @@
+[
+{"_key": "key1",
+ "category": "VOCALOID",
+ "name": "Miku Hatsune"
+},
+
+{"_key": "key2",
+ "category": "VOCALOID",
+ "name": "Luka Megurine"
+},
+
+{"_key": "key3",
+ "category": "VOCALOID",
+ "name": "MEIKO"
+},
+
+{"_key": "key4",
+ "category": "Ghostory",
+ "name": "Hitagi Senjogahara"
+},
+
+{"_key": "key5",
+ "category": "Ghostory",
+ "name": "Shinobu Oshino"
+},
+
+{"_key": "key6",
+ "category": "BLACK LAGOON",
+ "name": "Revy"
+},
+
+{"_key": "key7",
+ "category": "BLACK LAGOON",
+ "name": "Rock"
+},
+
+{"_key": "key8",
+ "category": "BLACK LAGOON",
+ "name": "Roberta"
+}
+]

@@ -123,6 +123,7 @@ class TableMeta(type):
 
     def _set_pseudocolumns(cls):
         for attr, name, typ in (('_id', '_id', UInt32),
+                                ('_nsubrecs', '_nsubrecs', Int32),
                                 ('ALL', '*', ShortText)):
             col = Column(flags=COLUMN_SCALAR, type=typ)
             setattr(cls, attr, col)

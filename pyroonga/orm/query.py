@@ -178,6 +178,14 @@ class SelectQuery(SelectQueryBase):
                    'sortby': '--sortby',
                    'output_columns': '--output_columns'}
 
+    def drilldown(self, *columns):
+        """Switch to the drilldown query
+
+        :param columns: target columns for drilldown.
+        :returns: :class:`DrillDownQuery`\ .
+        """
+        return DrillDownQuery(self, *columns)
+
     def _makeparams(self):
         params = [utils.escape('%s:@"%s"' % target) for target in
                   self._target.items()]
@@ -198,6 +206,38 @@ class SelectQuery(SelectQueryBase):
             return '"%s"' % expr
         else:
             return str(expr)
+
+
+class DrillDownQuery(SelectQueryBase):
+    """'select' query with drilldown representation class
+
+    Instantiate from :meth:`SelectQuery.drilldown`\ .
+    """
+
+    __options__ = {'limit':  '--drilldown_limit',
+                   'offset': '--drilldown_offset',
+                   'sortby': '--drilldown_sortby',
+                   'output_columns': '--drilldown_output_columns'}
+
+    def __init__(self, parent, *args):
+        """Construct of drilldown query
+
+        :param parent: parent :class:`SelectQuery`\ .
+        :param args: target columns for drilldown. Type is
+            :class:`pyroonga.orm.table.Column`\ .
+        """
+        if not args:
+            raise ValueError("args is must be one or more columns")
+        super(DrillDownQuery, self).__init__(parent._table)
+        self.parent = parent
+        self.columns = args
+
+    def _makeparams(self):
+        cols = [col.name for col in self.columns]
+        return ('--drilldown %s' % ','.join(cols)) if cols else ''
+
+    def __str__(self):
+        return str(self.parent) + (' %s' % self._condition())
 
 
 class Value(object):
