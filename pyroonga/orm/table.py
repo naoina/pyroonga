@@ -229,6 +229,8 @@ class TableBase(object):
 
         :param grn: instance of :class:`pyroonga.groonga.Groonga`\ .
         """
+        if not isinstance(cls.grn, Groonga):
+            raise TypeError("%s object is not bind" % Groonga.__name__)
         queries = []
         for tbl in cls._tables:
             queries.append(str(tbl))
