@@ -145,6 +145,12 @@ pyroonga is licensed under the BSD license.
 Changelog
 ---------
 
+v0.2 (2012-02-17)
+^^^^^^^^^^^^^^^^^
+
+- Add ORM
+- Add documentation of basic usage
+
 v0.1 (2012-02-05)
 ^^^^^^^^^^^^^^^^^
 
