@@ -25,7 +25,7 @@ from source::
 Usage
 -----
 
-First, Please run ``groonga`` by server mode or daemon mode. see folowing::
+First, Please run ``groonga`` by server mode or daemon mode. see following::
 
    # server mode
    % groonga -s DB_PATH_NAME
