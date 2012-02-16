@@ -36,6 +36,7 @@ from pyroonga.orm.attributes import (COLUMN_SCALAR, COLUMN_VECTOR,
                                      TABLE_HASH_KEY, TABLE_PAT_KEY, ShortText,
                                      UInt32)
 from pyroonga.orm.table import Column, prop_attr, tablebase
+from pyroonga.orm.query import GroongaResultBase
 from pyroonga.tests import unittest
 from pyroonga.tests import GroongaTestBase
 
@@ -106,6 +107,18 @@ class TestTable(GroongaTestBase):
     def tearDown(self):
         super(TestTable, self).tearDown()
         super(TestTable, self).tearDownClass()
+
+    def assertGroongaResultEqual(self, result, expect, all_len):
+        self.assertIsInstance(result, GroongaResultBase)
+        self.assertEqual(result.all_len, all_len)
+        self.assertEqual(len(result), len(expect))
+        for tbl, val in zip(result, expect):
+            for k, v in val.items():
+                self.assertEqual(getattr(tbl, k), v)
+
+    def assertGroongaDrilldownResultEqual(self, result, expected, all_len):
+        for r, (e, ln) in zip(result.drilldown, zip(expected, all_len)):
+            self.assertGroongaResultEqual(r, e, all_len=ln)
 
     def _sendquery(self, cmd):
         proc = Popen('groonga -c', shell=True, stdin=PIPE, stdout=PIPE,
@@ -287,11 +300,9 @@ class TestTable(GroongaTestBase):
                         '--key_type ShortText')
         self._insert('Tb', [{'_key': 'key1'}, {'_key': 'key2'}])
         result = Tb.select().all()
-        expected = [
-            [[2], [['_id', 'UInt32'], ['_key', 'ShortText']],
-             [1, 'key1'],
-             [2, 'key2']]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1'},
+                    {'_id': 2, '_key': 'key2'}]
+        self.assertGroongaResultEqual(result, expected, all_len=2)
 
     def test_select_with_column(self):
         Table = tablebase()
@@ -316,451 +327,333 @@ class TestTable(GroongaTestBase):
                              'address': 'bar'}])
 
         result = Tb.select(_key='1').all()
-        expected = [[[1],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['address', 'ShortText'],
-                      ['name', 'ShortText']],
-                     [1, 'key1', 'Address1', 'Name1']]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1', 'address': 'Address1',
+                     'name': 'Name1'}]
+        self.assertGroongaResultEqual(result, expected, all_len=1)
 
         result = Tb.select(_key='2').all()
-        expected = [[[1],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['address', 'ShortText'],
-                      ['name', 'ShortText']],
-                     [2, 'key2', 'address2', 'name2']]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 2, '_key': 'key2', 'address': 'address2',
+                     'name': 'name2'}]
+        self.assertGroongaResultEqual(result, expected, all_len=1)
 
         result = Tb.select(name='name').all()
-        expected = [[[2],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['address', 'ShortText'],
-                      ['name', 'ShortText']],
-                     [1, 'key1', 'Address1', 'Name1'],
-                     [2, 'key2', 'address2', 'name2']]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1', 'address': 'Address1',
+                     'name': 'Name1'},
+                    {'_id': 2, '_key': 'key2', 'address': 'address2',
+                     'name': 'name2'}]
+        self.assertGroongaResultEqual(result, expected, all_len=2)
 
         result = Tb.select(address='ar').all()
-        expected = [[[1],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['address', 'ShortText'],
-                      ['name', 'ShortText']],
-                     [3, 'key3', 'bar', 'foo']]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 3, '_key': 'key3', 'address': 'bar',
+                     'name': 'foo'}]
+        self.assertGroongaResultEqual(result, expected, all_len=1)
 
     def test_select_with_condition(self):
         Tb, fixture = self._maketable1()
 
         result = Tb.select(Tb.title == 'Nyarlathotep').all()
-        expected = [[[1],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [3, 'key3', fixture[2]['body'], fixture[2]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 3, '_key': 'key3', 'body': fixture[2]['body'],
+                     'title': fixture[2]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=1)
 
         result = Tb.select(Tb.title != 'Nyarlathotep').all()
-        expected = [[[4],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
-                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
-                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
-                     [5, 'key5', fixture[4]['body'], fixture[4]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1', 'body': fixture[0]['body'],
+                     'title': fixture[0]['title']},
+                    {'_id': 2, '_key': 'key2', 'body': fixture[1]['body'],
+                     'title': fixture[1]['title']},
+                    {'_id': 4, '_key': 'key4', 'body': fixture[3]['body'],
+                     'title': fixture[3]['title']},
+                    {'_id': 5, '_key': 'key5', 'body': fixture[4]['body'],
+                     'title': fixture[4]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=4)
 
         result = Tb.select(Tb.title != 'Gentoo Linux', body='linux').all()
-        expected = [[[1],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [1, 'key1', fixture[0]['body'], fixture[0]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1', 'body': fixture[0]['body'],
+                     'title': fixture[0]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=1)
 
         result = Tb.select(Tb._key < 'key3').all()
-        expected = [[[2],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
-                     [2, 'key2', fixture[1]['body'], fixture[1]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1', 'body': fixture[0]['body'],
+                     'title': fixture[0]['title']},
+                    {'_id': 2, '_key': 'key2', 'body': fixture[1]['body'],
+                     'title': fixture[1]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=2)
 
         result = Tb.select(Tb._id >= 3).all()
-        expected = [[[3],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [3, 'key3', fixture[2]['body'], fixture[2]['title']],
-                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
-                     [5, 'key5', fixture[4]['body'], fixture[4]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 3, '_key': 'key3', 'body': fixture[2]['body'],
+                     'title': fixture[2]['title']},
+                    {'_id': 4, '_key': 'key4', 'body': fixture[3]['body'],
+                     'title': fixture[3]['title']},
+                    {'_id': 5, '_key': 'key5', 'body': fixture[4]['body'],
+                     'title': fixture[4]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=3)
 
         result = Tb.select((Tb.title == 'Gentoo Linux') |
                            (Tb.title == 'Hastur')).all()
-        expected = [[[2],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
-                     [5, 'key5', fixture[4]['body'], fixture[4]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 2, '_key': 'key2', 'body': fixture[1]['body'],
+                     'title': fixture[1]['title']},
+                    {'_id': 5, '_key': 'key5', 'body': fixture[4]['body'],
+                     'title': fixture[4]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=2)
 
     def test_select_with_limit(self):
         Tb, fixture = self._maketable1()
 
         result = Tb.select().limit(2).all()
-        expected = [[[5],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
-                     [2, 'key2', fixture[1]['body'], fixture[1]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1', 'body': fixture[0]['body'],
+                     'title': fixture[0]['title']},
+                    {'_id': 2, '_key': 'key2', 'body': fixture[1]['body'],
+                     'title': fixture[1]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
         result = Tb.select().limit(100).all()
-        expected = [[[5],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
-                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
-                     [3, 'key3', fixture[2]['body'], fixture[2]['title']],
-                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
-                     [5, 'key5', fixture[4]['body'], fixture[4]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1', 'body': fixture[0]['body'],
+                     'title': fixture[0]['title']},
+                    {'_id': 2, '_key': 'key2', 'body': fixture[1]['body'],
+                     'title': fixture[1]['title']},
+                    {'_id': 3, '_key': 'key3', 'body': fixture[2]['body'],
+                     'title': fixture[2]['title']},
+                    {'_id': 4, '_key': 'key4', 'body': fixture[3]['body'],
+                     'title': fixture[3]['title']},
+                    {'_id': 5, '_key': 'key5', 'body': fixture[4]['body'],
+                     'title': fixture[4]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
         result = Tb.select().limit(-2).all()
-        expected = [[[5],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
-                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
-                     [3, 'key3', fixture[2]['body'], fixture[2]['title']],
-                     [4, 'key4', fixture[3]['body'], fixture[3]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1', 'body': fixture[0]['body'],
+                     'title': fixture[0]['title']},
+                    {'_id': 2, '_key': 'key2', 'body': fixture[1]['body'],
+                     'title': fixture[1]['title']},
+                    {'_id': 3, '_key': 'key3', 'body': fixture[2]['body'],
+                     'title': fixture[2]['title']},
+                    {'_id': 4, '_key': 'key4', 'body': fixture[3]['body'],
+                     'title': fixture[3]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
     def test_select_with_offset(self):
         Tb, fixture = self._maketable1()
 
         result = Tb.select().offset(2).all()
-        expected = [[[5],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [3, 'key3', fixture[2]['body'], fixture[2]['title']],
-                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
-                     [5, 'key5', fixture[4]['body'], fixture[4]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 3, '_key': 'key3', 'body': fixture[2]['body'],
+                     'title': fixture[2]['title']},
+                    {'_id': 4, '_key': 'key4', 'body': fixture[3]['body'],
+                     'title': fixture[3]['title']},
+                    {'_id': 5, '_key': 'key5', 'body': fixture[4]['body'],
+                     'title': fixture[4]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
         result = Tb.select().offset(-2).all()
-        expected = [[[5],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
-                     [5, 'key5', fixture[4]['body'], fixture[4]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 4, '_key': 'key4', 'body': fixture[3]['body'],
+                     'title': fixture[3]['title']},
+                    {'_id': 5, '_key': 'key5', 'body': fixture[4]['body'],
+                     'title': fixture[4]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
     def test_select_with_sortby(self):
         Tb, fixture = self._maketable1()
 
         result = Tb.select().sortby(Tb.title).all()
-        expected = [[[5],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
-                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
-                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
-                     [5, 'key5', fixture[4]['body'], fixture[4]['title']],
-                     [3, 'key3', fixture[2]['body'], fixture[2]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1', 'body': fixture[0]['body'],
+                     'title': fixture[0]['title']},
+                    {'_id': 4, '_key': 'key4', 'body': fixture[3]['body'],
+                     'title': fixture[3]['title']},
+                    {'_id': 2, '_key': 'key2', 'body': fixture[1]['body'],
+                     'title': fixture[1]['title']},
+                    {'_id': 5, '_key': 'key5', 'body': fixture[4]['body'],
+                     'title': fixture[4]['title']},
+                    {'_id': 3, '_key': 'key3', 'body': fixture[2]['body'],
+                     'title': fixture[2]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
         # FIXME: bad pattern. the reason is because the same result as the
         #        above tests.
         result = Tb.select().sortby(Tb.title, Tb.body).all()
-        expected = [[[5],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [1, 'key1', fixture[0]['body'], fixture[0]['title']],
-                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
-                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
-                     [5, 'key5', fixture[4]['body'], fixture[4]['title']],
-                     [3, 'key3', fixture[2]['body'], fixture[2]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 1, '_key': 'key1', 'body': fixture[0]['body'],
+                     'title': fixture[0]['title']},
+                    {'_id': 4, '_key': 'key4', 'body': fixture[3]['body'],
+                     'title': fixture[3]['title']},
+                    {'_id': 2, '_key': 'key2', 'body': fixture[1]['body'],
+                     'title': fixture[1]['title']},
+                    {'_id': 5, '_key': 'key5', 'body': fixture[4]['body'],
+                     'title': fixture[4]['title']},
+                    {'_id': 3, '_key': 'key3', 'body': fixture[2]['body'],
+                     'title': fixture[2]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
         result = Tb.select().sortby(-Tb.title).all()
-        expected = [[[5],
-                     [['_id', 'UInt32'],
-                      ['_key', 'ShortText'],
-                      ['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [3, 'key3', fixture[2]['body'], fixture[2]['title']],
-                     [5, 'key5', fixture[4]['body'], fixture[4]['title']],
-                     [2, 'key2', fixture[1]['body'], fixture[1]['title']],
-                     [4, 'key4', fixture[3]['body'], fixture[3]['title']],
-                     [1, 'key1', fixture[0]['body'], fixture[0]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'_id': 3, '_key': 'key3', 'body': fixture[2]['body'],
+                     'title': fixture[2]['title']},
+                    {'_id': 5, '_key': 'key5', 'body': fixture[4]['body'],
+                     'title': fixture[4]['title']},
+                    {'_id': 2, '_key': 'key2', 'body': fixture[1]['body'],
+                     'title': fixture[1]['title']},
+                    {'_id': 4, '_key': 'key4', 'body': fixture[3]['body'],
+                     'title': fixture[3]['title']},
+                    {'_id': 1, '_key': 'key1', 'body': fixture[0]['body'],
+                     'title': fixture[0]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
     def test_select_with_output_columns(self):
         Tb, fixture = self._maketable1()
 
         result = Tb.select().output_columns(Tb.title).all()
-        expected = [[[5],
-                     [['title', 'ShortText']],
-                     [fixture[0]['title']],
-                     [fixture[1]['title']],
-                     [fixture[2]['title']],
-                     [fixture[3]['title']],
-                     [fixture[4]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'title': fixture[0]['title']},
+                    {'title': fixture[1]['title']},
+                    {'title': fixture[2]['title']},
+                    {'title': fixture[3]['title']},
+                    {'title': fixture[4]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
         result = Tb.select().output_columns(Tb.body, Tb.title).all()
-        expected = [[[5],
-                     [['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [fixture[0]['body'], fixture[0]['title']],
-                     [fixture[1]['body'], fixture[1]['title']],
-                     [fixture[2]['body'], fixture[2]['title']],
-                     [fixture[3]['body'], fixture[3]['title']],
-                     [fixture[4]['body'], fixture[4]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'body': fixture[0]['body'], 'title': fixture[0]['title']},
+                    {'body': fixture[1]['body'], 'title': fixture[1]['title']},
+                    {'body': fixture[2]['body'], 'title': fixture[2]['title']},
+                    {'body': fixture[3]['body'], 'title': fixture[3]['title']},
+                    {'body': fixture[4]['body'], 'title': fixture[4]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
         result = Tb.select().output_columns(Tb.ALL).all()
-        expected = [[[5],
-                     [['body', 'Text'],
-                      ['title', 'ShortText']],
-                     [fixture[0]['body'], fixture[0]['title']],
-                     [fixture[1]['body'], fixture[1]['title']],
-                     [fixture[2]['body'], fixture[2]['title']],
-                     [fixture[3]['body'], fixture[3]['title']],
-                     [fixture[4]['body'], fixture[4]['title']]]]
-        self.assertListEqual(result, expected)
+        expected = [{'body': fixture[0]['body'], 'title': fixture[0]['title']},
+                    {'body': fixture[1]['body'], 'title': fixture[1]['title']},
+                    {'body': fixture[2]['body'], 'title': fixture[2]['title']},
+                    {'body': fixture[3]['body'], 'title': fixture[3]['title']},
+                    {'body': fixture[4]['body'], 'title': fixture[4]['title']}]
+        self.assertGroongaResultEqual(result, expected, all_len=5)
 
     def test_select_with_drilldown(self):
         Tb, fixture = self._maketable2()
-        column_result = ([[8],
-                         [['_id', 'UInt32'],
-                          ['_key', 'ShortText'],
-                          ['category', 'ShortText'],
-                          ['name', 'ShortText']]] +
-                         [[i + 1, fx['_key'], fx['category'], fx['name']]
-                                 for i, fx in enumerate(fixture)])
 
         result = Tb.select().drilldown(Tb.category).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['VOCALOID', 3],
-                     ['Ghostory', 2],
-                     ['BLACK LAGOON', 3]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'VOCALOID', '_nsubrecs': 3},
+                     {'_key': 'Ghostory', '_nsubrecs': 2},
+                     {'_key': 'BLACK LAGOON', '_nsubrecs': 3}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.name).all()
-        expected = [column_result,
-                    [[8],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['Miku Hatsune', 1],
-                     ['Luka Megurine', 1],
-                     ['MEIKO', 1],
-                     ['Hitagi Senjogahara', 1],
-                     ['Shinobu Oshino', 1],
-                     ['Revy', 1],
-                     ['Rock', 1],
-                     ['Roberta', 1]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'Miku Hatsune', '_nsubrecs': 1},
+                     {'_key': 'Luka Megurine', '_nsubrecs': 1},
+                     {'_key': 'MEIKO', '_nsubrecs': 1},
+                     {'_key': 'Hitagi Senjogahara', '_nsubrecs': 1},
+                     {'_key': 'Shinobu Oshino', '_nsubrecs': 1},
+                     {'_key': 'Revy', '_nsubrecs': 1},
+                     {'_key': 'Rock', '_nsubrecs': 1},
+                     {'_key': 'Roberta', '_nsubrecs': 1}]]
+        all_len = [8]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category, Tb.name).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['VOCALOID', 3],
-                     ['Ghostory', 2],
-                     ['BLACK LAGOON', 3]],
-                    [[8],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['Miku Hatsune', 1],
-                     ['Luka Megurine', 1],
-                     ['MEIKO', 1],
-                     ['Hitagi Senjogahara', 1],
-                     ['Shinobu Oshino', 1],
-                     ['Revy', 1],
-                     ['Rock', 1],
-                     ['Roberta', 1]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'VOCALOID', '_nsubrecs': 3},
+                     {'_key': 'Ghostory', '_nsubrecs': 2},
+                     {'_key': 'BLACK LAGOON', '_nsubrecs': 3}],
+                    [{'_key': 'Miku Hatsune', '_nsubrecs': 1},
+                     {'_key': 'Luka Megurine', '_nsubrecs': 1},
+                     {'_key': 'MEIKO', '_nsubrecs': 1},
+                     {'_key': 'Hitagi Senjogahara', '_nsubrecs': 1},
+                     {'_key': 'Shinobu Oshino', '_nsubrecs': 1},
+                     {'_key': 'Revy', '_nsubrecs': 1},
+                     {'_key': 'Rock', '_nsubrecs': 1},
+                     {'_key': 'Roberta', '_nsubrecs': 1}]]
+        all_len = [3, 8]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
     def test_select_with_drilldown_sortby(self):
         Tb, fixture = self._maketable2()
-        column_result = ([[8],
-                         [['_id', 'UInt32'],
-                          ['_key', 'ShortText'],
-                          ['category', 'ShortText'],
-                          ['name', 'ShortText']]] +
-                         [[i + 1, fx['_key'], fx['category'], fx['name']]
-                                 for i, fx in enumerate(fixture)])
 
         result = Tb.select().drilldown(Tb.category).sortby(Tb._key).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['BLACK LAGOON', 3],
-                     ['Ghostory', 2],
-                     ['VOCALOID', 3]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'BLACK LAGOON', '_nsubrecs': 3},
+                     {'_key': 'Ghostory', '_nsubrecs': 2},
+                     {'_key': 'VOCALOID', '_nsubrecs': 3}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category).sortby(Tb._nsubrecs).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['Ghostory', 2],
-                     ['VOCALOID', 3],
-                     ['BLACK LAGOON', 3]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'Ghostory', '_nsubrecs': 2},
+                     {'_key': 'VOCALOID', '_nsubrecs': 3},
+                     {'_key': 'BLACK LAGOON', '_nsubrecs': 3}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category). \
                     sortby(Tb._nsubrecs, Tb._key).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['Ghostory', 2],
-                     ['BLACK LAGOON', 3],
-                     ['VOCALOID', 3]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'Ghostory', '_nsubrecs': 2},
+                     {'_key': 'BLACK LAGOON', '_nsubrecs': 3},
+                     {'_key': 'VOCALOID', '_nsubrecs': 3}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category).sortby(-Tb._nsubrecs).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['VOCALOID', 3],
-                     ['BLACK LAGOON', 3],
-                     ['Ghostory', 2]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'VOCALOID', '_nsubrecs': 3},
+                     {'_key': 'BLACK LAGOON', '_nsubrecs': 3},
+                     {'_key': 'Ghostory', '_nsubrecs': 2}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
     def test_select_with_drilldown_output_columns(self):
         Tb, fixture = self._maketable2()
-        column_result = ([[8],
-                         [['_id', 'UInt32'],
-                          ['_key', 'ShortText'],
-                          ['category', 'ShortText'],
-                          ['name', 'ShortText']]] +
-                         [[i + 1, fx['_key'], fx['category'], fx['name']]
-                                 for i, fx in enumerate(fixture)])
 
         result = Tb.select().drilldown(Tb.category). \
                     output_columns(Tb._key).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText']],
-                     ['VOCALOID'],
-                     ['Ghostory'],
-                     ['BLACK LAGOON']]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'VOCALOID'},
+                     {'_key': 'Ghostory'},
+                     {'_key': 'BLACK LAGOON'}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category). \
                     output_columns(Tb._nsubrecs, Tb._key).all()
-        expected = [column_result,
-                    [[3],
-                     [['_nsubrecs', 'Int32'], ['_key', 'ShortText']],
-                     [3, 'VOCALOID'],
-                     [2, 'Ghostory'],
-                     [3, 'BLACK LAGOON']]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_nsubrecs': 3, '_key': 'VOCALOID'},
+                     {'_nsubrecs': 2, '_key': 'Ghostory'},
+                     {'_nsubrecs': 3, '_key': 'BLACK LAGOON'}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
     def test_select_with_drilldown_offset(self):
         Tb, fixture = self._maketable2()
-        column_result = ([[8],
-                         [['_id', 'UInt32'],
-                          ['_key', 'ShortText'],
-                          ['category', 'ShortText'],
-                          ['name', 'ShortText']]] +
-                         [[i + 1, fx['_key'], fx['category'], fx['name']]
-                                 for i, fx in enumerate(fixture)])
 
         result = Tb.select().drilldown(Tb.category).offset(1).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['Ghostory', 2],
-                     ['BLACK LAGOON', 3]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'Ghostory', '_nsubrecs': 2},
+                     {'_key': 'BLACK LAGOON', '_nsubrecs': 3}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category).offset(2).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['BLACK LAGOON', 3]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'BLACK LAGOON', '_nsubrecs': 3}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category).offset(-2).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['Ghostory', 2],
-                     ['BLACK LAGOON', 3]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'Ghostory', '_nsubrecs': 2},
+                     {'_key': 'BLACK LAGOON', '_nsubrecs': 3}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
     def test_select_with_drilldown_limit(self):
         Tb, fixture = self._maketable2()
-        column_result = ([[8],
-                         [['_id', 'UInt32'],
-                          ['_key', 'ShortText'],
-                          ['category', 'ShortText'],
-                          ['name', 'ShortText']]] +
-                         [[i + 1, fx['_key'], fx['category'], fx['name']]
-                                 for i, fx in enumerate(fixture)])
 
         result = Tb.select().drilldown(Tb.category).limit(1).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['VOCALOID', 3]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'VOCALOID', '_nsubrecs': 3}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category).limit(2).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['VOCALOID', 3],
-                     ['Ghostory', 2]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'VOCALOID', '_nsubrecs': 3},
+                     {'_key': 'Ghostory', '_nsubrecs': 2}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category).limit(100).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['VOCALOID', 3],
-                     ['Ghostory', 2],
-                     ['BLACK LAGOON', 3]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'VOCALOID', '_nsubrecs': 3},
+                     {'_key': 'Ghostory', '_nsubrecs': 2},
+                     {'_key': 'BLACK LAGOON', '_nsubrecs': 3}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category).limit(-2).all()
-        expected = [column_result,
-                    [[3],
-                     [['_key', 'ShortText'], ['_nsubrecs', 'Int32']],
-                     ['VOCALOID', 3],
-                     ['Ghostory', 2]]]
-        self.assertListEqual(result, expected)
+        expected = [[{'_key': 'VOCALOID', '_nsubrecs': 3},
+                     {'_key': 'Ghostory', '_nsubrecs': 2}]]
+        all_len = [3]
+        self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
 
 def main():

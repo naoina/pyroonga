@@ -187,6 +187,30 @@ class TableBase(object):
     def __tablename__(cls):
         return cls.__name__
 
+    def __init__(self, **kwargs):
+        """Construct of TableBase
+
+        :param kwargs: name and value of columns
+        """
+        for k, v in kwargs.items():
+            try:
+                object.__getattribute__(self.__class__, k)
+            except AttributeError:
+                raise AttributeError('key "%s" is not defined in %s' % (k,
+                    self.__class__.__name__))
+            else:
+                setattr(self, TableBase._attrname(k), v)
+
+    @classmethod
+    def _attrname(self, base):
+        return '%s_' % base
+
+    def __getattribute__(self, name):
+        try:
+            return object.__getattribute__(self, TableBase._attrname(name))
+        except AttributeError:
+            return object.__getattribute__(self, name)
+
     @classmethod
     def bind(cls, grn):
         """Bind the :class:`pyroonga.groonga.Groonga` object to the this table

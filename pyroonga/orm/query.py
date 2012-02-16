@@ -58,6 +58,83 @@ class Query(object):
         self._table = tbl
 
 
+class GroongaResultBase(object):
+    """Base class of query result"""
+
+    def __init__(self, cls, results, maxlen=None):
+        """Construct of GroongaResultBase
+
+        :param cls: Class for mappings.
+        :param results: query results.
+        :param maxlen: maximum length of mapping results. Default is all.
+        """
+        cols = [col[0] for col in results[1]]
+        colrange = range(len(cols))
+        result = []
+        for v in results[2:maxlen]:
+            mapped = dict(zip(cols, [v[i] for i in colrange]))
+            result.append(cls(**mapped))
+        self._all_len = results[0][0]
+        self._result = result
+
+    @property
+    def all_len(self):
+        """All length of query results
+
+        Note that the number of elements is not necessarily equal.
+        """
+        return self._all_len
+
+    def __len__(self):
+        return len(self._result)
+
+    def __iter__(self):
+        return iter(self._result)
+
+    def __getitem__(self, key):
+        return self._result[key]
+
+    def __reversed__(self):
+        return reversed(self._result)
+
+
+class GroongaResult(GroongaResultBase):
+    """Result class for 'select' query"""
+
+    def __init__(self, table, resultstr, maxlen=None):
+        """Construct of GroongaResult
+
+        :param table: Table class for mappings.
+        :param resultstr: result string of 'select' query.
+        :param maxlen: maximum length of mapping results. Default is all.
+        """
+        objs = json.loads(resultstr)
+        super(GroongaResult, self).__init__(table, objs[0], maxlen)
+        self._drilldown = self._drilldown_mapping(objs[1:])
+        self._table = table
+
+    def _drilldown_mapping(self, results):
+        drilldown = [GroongaDrilldownResult(Drilldown, v) for v in results]
+        return drilldown
+
+    @property
+    def drilldown(self):
+        """List of instance of `GroongaDrilldownResult`"""
+        return self._drilldown
+
+
+class GroongaDrilldownResult(GroongaResultBase):
+    """Result class for drilldown"""
+
+
+class Drilldown(object):
+    """Drilldown representation class"""
+
+    def __init__(self, _key=None, _nsubrecs=None):
+        self._key = _key
+        self._nsubrecs = _nsubrecs
+
+
 class SelectQueryBase(Query):
     """'select' query representation base class"""
 
@@ -90,7 +167,7 @@ class SelectQueryBase(Query):
         """
         q = str(self)
         result = self._table.grn.query(q)
-        return json.loads(result)
+        return GroongaResult(self._table, result)
 
     def limit(self, lim):
         """Limit for number of result of query
