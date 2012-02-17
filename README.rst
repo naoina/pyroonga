@@ -60,6 +60,39 @@ Create Table
    # create the all table on groonga's database
    Table.create_all()
 
+Data loading
+^^^^^^^^^^^^
+
+::
+
+   data = [Site(_key='key1', title='foo', name='hoge'),
+           Site(_key='key2', title='bar', name='fuga'),
+           Site(_key='key3', title='baz', name='piyo'),
+           Site(_key='key4', title='qux', name='xyzzy')]
+
+   Site.load(data)
+
+The example above is load the data to groonga immediately.
+Also pseudo commit and rollback are supported::
+
+   data1 = [Site(_key='key5', title='Constellation', name='Sagittarius'),
+            Site(_key='key6', title='Constellation', name='Pisces')]
+
+   # first load, but not load to groonga actually
+   data = Site.load(data1, immediate=False)
+
+   data2 = [Site(_key='key7', title='Constellation', name='Aquarius')]
+   data.load(data2)  # same as previous
+
+   # load data to groonga actually
+   data.commit()
+
+Or reset loaded data::
+
+   data.rollback()
+
+Note that loaded data reset is only if set ``immediate=False``\ .
+
 Query and get data as a mapped object
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -126,11 +159,10 @@ For sortby of drilldown, Please call of ``sortby()`` method after the call of ``
 A ``sortby()`` method in example above, It is query option of ``--drilldown_sortby``\ .
 Of course, As well as ``limit()`` , ``offset()`` and ``output_columns()`` methods.
 
-Other
-^^^^^
+More information
+^^^^^^^^^^^^^^^^
 
-However, Data load is not yet implemented.
-And more documents is still not written.
+Still not written.
 
 See also
 --------
