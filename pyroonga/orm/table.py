@@ -35,7 +35,8 @@ import logging
 
 from pyroonga.groonga import Groonga
 from pyroonga.orm.attributes import *
-from pyroonga.orm.query import (Expression, ExpressionTree, SelectQuery, Value)
+from pyroonga.orm.query import (Expression, ExpressionTree, LoadQuery,
+                                SelectQuery, Value)
 
 logger = logging.getLogger(__name__)
 
@@ -258,6 +259,23 @@ class TableBase(object):
         """
         query = SelectQuery(cls, *args, **kwargs)
         return query
+
+    @classmethod
+    def load(cls, data, immediate=True):
+        """Load data to the groonga
+
+        :param data: iterable object of instance of Table.
+        :param immediate: load data to groonga immediately if True. Otherwise,
+            Must call :meth:`pyroonga.orm.query.LoadQuery.commit` explicitly for data
+            load.
+        :returns: :class:`pyroonga.orm.query.LoadQuery`\ .
+        """
+        query = LoadQuery(cls, data)
+        return query.commit() if immediate else query
+
+    def asdict(self):
+        return dict((k[:-1], v) for k, v in self.__dict__.items()
+                    if k.endswith('_'))
 
 
 def tablebase(name='Table', cls=TableBase):

@@ -30,6 +30,7 @@ __author__ = "Naoya INADA <naoina@kuune.org>"
 __all__ = [
 ]
 
+import itertools
 import json
 import logging
 
@@ -410,3 +411,52 @@ class ExpressionTree(object):
 
     def __sub__(self, other):
         return ExpressionTree(Expression.NOT, self, other)
+
+
+class LoadQuery(Query):
+    """'load' query representation class"""
+
+    def __init__(self, tbl, data):
+        """Construct of LoadQuery
+
+        :param tbl: Table class. see also :class:`Query`\ .
+        :param data: iterable object of instance of Table.
+        """
+        super(LoadQuery, self).__init__(tbl)
+        self._data = iter(data)
+
+    def load(self, data):
+        """Prepare the load data
+
+        :param data: iterable or Table object
+        :returns: self. for method chain.
+        """
+        try:
+            data = iter(data)
+        except TypeError:
+            data = [data]
+        self._data = itertools.chain(self._data, data)
+        return self
+
+    def commit(self):
+        """Load data to groonga actually
+
+        :returns: number of loaded data
+        """
+        if self._data is None:
+            raise RuntimeError('query is already commited or rollbacked')
+        q = str(self)
+        result = int(self._table.grn.query(q))
+        self.rollback()
+        return result
+
+    def rollback(self):
+        self._data = None
+
+    def _makejson(self):
+        return utils.escape(json.dumps([v.asdict() for v in self._data]))
+
+    def __str__(self):
+        return 'load --table %(table)s --input_type json --values ' \
+               '"%(data)s"' % dict(table=self._table.__name__,
+                                   data=self._makejson())

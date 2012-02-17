@@ -36,7 +36,7 @@ from pyroonga.orm.attributes import (COLUMN_SCALAR, COLUMN_VECTOR,
                                      TABLE_HASH_KEY, TABLE_PAT_KEY, ShortText,
                                      UInt32)
 from pyroonga.orm.table import Column, prop_attr, tablebase
-from pyroonga.orm.query import GroongaResultBase
+from pyroonga.orm.query import GroongaResultBase, LoadQuery
 from pyroonga.tests import unittest
 from pyroonga.tests import GroongaTestBase
 
@@ -654,6 +654,157 @@ class TestTable(GroongaTestBase):
                      {'_key': 'Ghostory', '_nsubrecs': 2}]]
         all_len = [3]
         self.assertGroongaDrilldownResultEqual(result, expected, all_len)
+
+    def test_load_immediately(self):
+        Table = tablebase()
+
+        class Tb(Table):
+            name = Column()
+
+        grn = Groonga()
+        Table.bind(grn)
+        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
+                        '--key_type ShortText')
+        self._sendquery('column_create --table Tb --name name --flags '
+                        'COLUMN_SCALAR --type ShortText')
+
+        data = [Tb(_key='key1', name='name1'),
+                Tb(_key='key2', name='name2'),
+                Tb(_key='key3', name='name3')]
+        result = Tb.load(data)
+        self.assertEqual(result, 3)
+        stored = json.loads(self._sendquery('select --table Tb'))
+        expected = [[[3],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [1, 'key1', 'name1'],
+                     [2, 'key2', 'name2'],
+                     [3, 'key3', 'name3']]]
+        self.assertListEqual(stored[1], expected)
+
+        # data override test
+        data = [Tb(_key='key1', name='foo'),
+                Tb(_key='key2', name='bar'),
+                Tb(_key='key3', name='baz')]
+        result = Tb.load(data)
+        stored = json.loads(self._sendquery('select --table Tb'))
+        expected = [[[3],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [1, 'key1', 'foo'],
+                     [2, 'key2', 'bar'],
+                     [3, 'key3', 'baz']]]
+        self.assertListEqual(stored[1], expected)
+
+    def test_load_lazy(self):
+        Table = tablebase()
+
+        class Tb(Table):
+            name = Column()
+
+        grn = Groonga()
+        Table.bind(grn)
+        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
+                        '--key_type ShortText')
+        self._sendquery('column_create --table Tb --name name --flags '
+                        'COLUMN_SCALAR --type ShortText')
+
+        data = [Tb(_key='key1', name='name1'),
+                Tb(_key='key2', name='name2'),
+                Tb(_key='key3', name='name3')]
+        result = Tb.load(data, immediate=False)
+        self.assertIsInstance(result, LoadQuery)
+        stored = json.loads(self._sendquery('select --table Tb'))
+        expected = [[[0],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']]]]
+        self.assertListEqual(stored[1], expected)
+        result.commit()  # load actually
+        stored = json.loads(self._sendquery('select --table Tb'))
+        expected = [[[3],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [1, 'key1', 'name1'],
+                     [2, 'key2', 'name2'],
+                     [3, 'key3', 'name3']]]
+        self.assertListEqual(stored[1], expected)
+
+        # duplicate commit
+        with self.assertRaises(RuntimeError):
+            result.commit()
+
+    def test_load_lazy_multiple(self):
+        Table = tablebase()
+
+        class Tb(Table):
+            name = Column()
+
+        grn = Groonga()
+        Table.bind(grn)
+        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
+                        '--key_type ShortText')
+        self._sendquery('column_create --table Tb --name name --flags '
+                        'COLUMN_SCALAR --type ShortText')
+
+        data1 = [Tb(_key='key1', name='name1'),
+                 Tb(_key='key2', name='name2'),
+                 Tb(_key='key3', name='name3')]
+        result = Tb.load(data1, immediate=False)
+        self.assertIsInstance(result, LoadQuery)
+        stored = json.loads(self._sendquery('select --table Tb'))
+        expected = [[[0],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']]]]
+        self.assertListEqual(stored[1], expected)
+        data2 = [Tb(_key='key4', name='Madoka Kaname'),
+                 Tb(_key='key5', name='Homura Akemi'),
+                 Tb(_key='key6', name='Kyoko Sakura'),
+                 Tb(_key='key7', name='Sayaka Miki')]
+        result.load(data2)
+        stored = json.loads(self._sendquery('select --table Tb'))
+        expected = [[[0],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']]]]
+        self.assertListEqual(stored[1], expected)
+        result.commit()  # load actually
+        stored = json.loads(self._sendquery('select --table Tb'))
+        expected = [[[7],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [1, 'key1', 'name1'],
+                     [2, 'key2', 'name2'],
+                     [3, 'key3', 'name3'],
+                     [4, 'key4', 'Madoka Kaname'],
+                     [5, 'key5', 'Homura Akemi'],
+                     [6, 'key6', 'Kyoko Sakura'],
+                     [7, 'key7', 'Sayaka Miki']]]
+        self.assertListEqual(stored[1], expected)
+
+    def test_load_lazy_rollback(self):
+        Table = tablebase()
+
+        class Tb(Table):
+            name = Column()
+
+        grn = Groonga()
+        Table.bind(grn)
+        self._sendquery('table_create --name Tb --flags TABLE_HASH_KEY '
+                        '--key_type ShortText')
+        self._sendquery('column_create --table Tb --name name --flags '
+                        'COLUMN_SCALAR --type ShortText')
+
+        data1 = [Tb(_key='key1', name='name1'),
+                 Tb(_key='key2', name='name2'),
+                 Tb(_key='key3', name='name3')]
+        result = Tb.load(data1, immediate=False)
+        result.rollback()
+        with self.assertRaises(RuntimeError):
+            result.commit()
+        stored = json.loads(self._sendquery('select --table Tb'))
+        expected = [[[0],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']]]]
+        self.assertListEqual(stored[1], expected)
 
 
 def main():
