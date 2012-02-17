@@ -177,6 +177,11 @@ pyroonga is licensed under the BSD license.
 Changelog
 ---------
 
+v0.3 (2012-02-17)
+^^^^^^^^^^^^^^^^^
+
+- Add load the data to groonga
+
 v0.2 (2012-02-17)
 ^^^^^^^^^^^^^^^^^
 
