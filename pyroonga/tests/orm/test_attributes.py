@@ -86,7 +86,7 @@ class TestTableFlags(unittest.TestCase):
         self.assertRaises(TypeError, flags5.__or__, 'invalid')
         self.assertRaises(TypeError, flags5.__or__, 0)
 
-    def test___contains__(self):
+    def test___and__(self):
         sym1, sym2 = (Symbol('flag1'), Symbol('flag2'))
         flags = TableFlags([sym1, sym2])
         flag1 = TableFlags(sym1)
