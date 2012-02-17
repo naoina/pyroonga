@@ -31,12 +31,13 @@ __all__ = [
     'Groonga',
 ]
 
+import json
 import logging
-
-logger = logging.getLogger(__name__)
 
 import _groonga
 from pyroonga.exceptions import GroongaError
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_ENCODING = _groonga.ENC_UTF8
 
@@ -83,7 +84,7 @@ class Groonga(object):
         self.host = host or '0.0.0.0'
         self.port = port or 10041
         rc = self._ctx.connect(self.host, self.port, flags=0)
-        self._raise_if_notsuccess(rc)
+        self._raise_if_notsuccess(rc, "")
         self.connected = True
 
     def reconnect(self):
@@ -108,13 +109,17 @@ class Groonga(object):
         self._ctx.send(qstr, flags=0)
         rc, result, flags = self._ctx.recv()
         try:
-            self._raise_if_notsuccess(rc)
+            self._raise_if_notsuccess(rc, result)
         except GroongaError:
             self.reconnect()
             raise
         return result
 
-    def _raise_if_notsuccess(self, rc):
+    def _raise_if_notsuccess(self, rc, msg):
         if rc != _groonga.SUCCESS:
+            try:
+                msg = json.loads(msg)[0][3]
+            except (IndexError, ValueError):
+                pass
             self.connected = False
-            raise GroongaError(rc)
+            raise GroongaError(rc, msg)

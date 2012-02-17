@@ -134,12 +134,13 @@ class TestGroonga(GroongaTestBase):
     def test__raise_if_notsuccess(self):
         grn = Groonga()
         try:
-            grn._raise_if_notsuccess(_groonga.SUCCESS)
+            grn._raise_if_notsuccess(_groonga.SUCCESS, "")
         except GroongaError:
             self.fail("GroongaError has been raised")
         from pyroonga.exceptions import error_messages
         for rc in [rc for rc in error_messages if rc != _groonga.SUCCESS]:
-            self.assertRaises(GroongaError, grn._raise_if_notsuccess, rc)
+            with self.assertRaises(GroongaError):
+                grn._raise_if_notsuccess(rc, "")
 
 
 def main():

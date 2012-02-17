@@ -106,8 +106,9 @@ error_messages = {
 
 
 class GroongaError(Exception):
-    def __init__(self, err):
-        self.msg = error_messages.get(err) or err
+    def __init__(self, err, reason=""):
+        self.errmsg = error_messages.get(err) or err
+        self.reason = reason
 
     def __str__(self):
-        return self.msg
+        return "%s: %s" % (self.errmsg, self.reason)
