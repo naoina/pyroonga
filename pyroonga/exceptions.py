@@ -106,9 +106,13 @@ error_messages = {
 
 
 class GroongaError(Exception):
-    def __init__(self, err, reason=""):
+    def __init__(self, err, reason="", cause=""):
         self.errmsg = error_messages.get(err) or err
         self.reason = reason
+        self.cause  = cause
 
     def __str__(self):
-        return "%s: %s" % (self.errmsg, self.reason)
+        msg = "%s: %s" % (self.errmsg, self.reason)
+        if self.cause:
+            msg += ", query is `%s`" % self.cause
+        return msg

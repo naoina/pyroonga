@@ -84,7 +84,7 @@ class Groonga(object):
         self.host = host or '0.0.0.0'
         self.port = port or 10041
         rc = self._ctx.connect(self.host, self.port, flags=0)
-        self._raise_if_notsuccess(rc, "")
+        self._raise_if_notsuccess(rc, "", "")
         self.connected = True
 
     def reconnect(self):
@@ -109,17 +109,17 @@ class Groonga(object):
         self._ctx.send(qstr, flags=0)
         rc, result, flags = self._ctx.recv()
         try:
-            self._raise_if_notsuccess(rc, result)
+            self._raise_if_notsuccess(rc, result, qstr)
         except GroongaError:
             self.reconnect()
             raise
         return result
 
-    def _raise_if_notsuccess(self, rc, msg):
+    def _raise_if_notsuccess(self, rc, msg, query):
         if rc != _groonga.SUCCESS:
             try:
                 msg = json.loads(msg)[0][3]
-            except (IndexError, ValueError):
+            except (IndexError, ValueError, TypeError):
                 pass
             self.connected = False
-            raise GroongaError(rc, msg)
+            raise GroongaError(rc, msg, query)
