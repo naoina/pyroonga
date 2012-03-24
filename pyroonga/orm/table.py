@@ -172,13 +172,15 @@ class TableBase(object):
         """
         if not isinstance(cls.grn, Groonga):
             raise TypeError("%s object is not bind" % Groonga.__name__)
-        queries = []
+        table_queries  = []
+        column_queries = []
         for tbl in cls._tables:
-            queries.append(str(tbl))
-            queries.extend([str(col) for col in tbl.columns])
-        for query in queries:
-            logger.debug(query)
-            cls.grn.query(query)
+            table_queries.append(str(tbl))
+            column_queries.extend(str(col) for col in tbl.columns)
+        for queries in (table_queries, column_queries):
+            for query in queries:
+                logger.debug(query)
+                cls.grn.query(query)
 
     @classmethod
     def select(cls, *args, **kwargs):
