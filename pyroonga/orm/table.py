@@ -36,7 +36,14 @@ __all__ = [
 import logging
 
 from pyroonga.groonga import Groonga
-from pyroonga.orm.attributes import *
+from pyroonga.orm.attributes import (
+    TableFlags,
+    ColumnFlagsFlag,
+    ColumnFlags,
+    DataType,
+    TokenizerSymbol,
+    Tokenizer,
+    )
 from pyroonga.orm.query import (Expression, ExpressionTree, LoadQuery,
                                 SelectQuery, Value)
 
@@ -71,18 +78,18 @@ class TableMeta(type):
         return type.__init__(cls, name, bases, dict_)
 
     def _set_pseudocolumns(cls):
-        for attr, name, typ in (('_id', '_id', UInt32),
-                                ('_nsubrecs', '_nsubrecs', Int32),
-                                ('ALL', '*', ShortText)):
-            col = Column(flags=COLUMN_SCALAR, type=typ)
+        for attr, name, typ in (('_id', '_id', DataType.UInt32),
+                                ('_nsubrecs', '_nsubrecs', DataType.Int32),
+                                ('ALL', '*', DataType.ShortText)):
+            col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=typ)
             setattr(cls, attr, col)
             cls._setcolumn(name, col)
         if not cls._has_table_no_key():
-            cls._key = Column(flags=COLUMN_SCALAR, type=cls.__key_type__)
+            cls._key = Column(flags=ColumnFlags.COLUMN_SCALAR, type=cls.__key_type__)
             cls._setcolumn('_key', cls._key)
 
     def _has_table_no_key(cls):
-        return cls.__tableflags__ & TABLE_NO_KEY
+        return cls.__tableflags__ & TableFlags.TABLE_NO_KEY
 
     def _setcolumn(cls, name, col):
         col.name = name
@@ -93,7 +100,7 @@ class TableMeta(type):
                  '--flags %s' % cls.__tableflags__]
         if not cls._has_table_no_key():
             flags.append('--key_type %s' % cls.__key_type__)
-        if isinstance(cls.__default_tokenizer__, Tokenizer):
+        if isinstance(cls.__default_tokenizer__, TokenizerSymbol):
             flags.append('--default_tokenizer %s' % cls.__default_tokenizer__)
         return 'table_create ' + (' '.join(flags))
 
@@ -121,8 +128,8 @@ class TableBase(object):
         table_create --name ExampleTable --flags TABLE_HASH_KEY --key_type ShortText
     """
 
-    __tableflags__ = TABLE_HASH_KEY
-    __key_type__   = ShortText
+    __tableflags__ = TableFlags.TABLE_HASH_KEY
+    __key_type__   = DataType.ShortText
     __default_tokenizer__ = None
     grn = None
 
@@ -241,7 +248,8 @@ class Column(object):
 
     __tablemeta__ = TableMeta
 
-    def __init__(self, flags=COLUMN_SCALAR, type=ShortText, source=None):
+    def __init__(self, flags=ColumnFlags.COLUMN_SCALAR,
+                 type=DataType.ShortText, source=None):
         """Construct of table column
 
         :param flags: const of :class:`ColumnFlags`\ .
@@ -252,7 +260,7 @@ class Column(object):
         :param source: instance of :class:`Column` or str.
                        Default is None
         """
-        if not isinstance(flags, ColumnFlags):
+        if not isinstance(flags, ColumnFlagsFlag):
             raise TypeError('"flags" is must be instance of ColumnFlags')
         self.flags = flags
         if isinstance(type, self.__tablemeta__):
@@ -342,64 +350,67 @@ SuggestTable = tablebase(name='SuggestTable', cls=SuggestTableBase)
 
 
 class event_type(SuggestTable):
-    __tableflags__ = TABLE_HASH_KEY
-    __key_type__   = ShortText
+    __tableflags__ = TableFlags.TABLE_HASH_KEY
+    __key_type__   = DataType.ShortText
 
 
 # TODO: To allow users to configure name, but name prefix must be 'item_'
 class item_query(SuggestTable):
-    __tableflags__ = TABLE_PAT_KEY | KEY_NORMALIZE
-    __key_type__   = ShortText
-    __default_tokenizer__ = TokenDelimit
+    __tableflags__ = TableFlags.TABLE_PAT_KEY | TableFlags.KEY_NORMALIZE
+    __key_type__   = DataType.ShortText
+    __default_tokenizer__ = Tokenizer.TokenDelimit
 
-    kana  = Column(flags=COLUMN_VECTOR, type='kana')
-    freq  = Column(flags=COLUMN_SCALAR, type=Int32)
-    last  = Column(flags=COLUMN_SCALAR, type=Time)
-    boost = Column(flags=COLUMN_SCALAR, type=Int32)
-    freq2 = Column(flags=COLUMN_SCALAR, type=Int32)
-    buzz  = Column(flags=COLUMN_SCALAR, type=Int32)
-    co    = Column(flags=COLUMN_INDEX,  type='pair_query', source='pre')
+    kana  = Column(flags=ColumnFlags.COLUMN_VECTOR, type='kana')
+    freq  = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
+    last  = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Time)
+    boost = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
+    freq2 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
+    buzz  = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
+    co    = Column(flags=ColumnFlags.COLUMN_INDEX,  type='pair_query',
+                   source='pre')
 
 
 class bigram(SuggestTable):
-    __tableflags__ = TABLE_PAT_KEY | KEY_NORMALIZE
-    __key_type__   = ShortText
-    __default_tokenizer__ = TokenBigram
+    __tableflags__ = TableFlags.TABLE_PAT_KEY | TableFlags.KEY_NORMALIZE
+    __key_type__   = DataType.ShortText
+    __default_tokenizer__ = Tokenizer.TokenBigram
 
-    item_query_key = Column(flags=(COLUMN_INDEX | WITH_POSITION),
-                            type='item_query', source='_key')
+    item_query_key = Column(flags=(ColumnFlags.COLUMN_INDEX |
+                                   ColumnFlags.WITH_POSITION),
+                                   type='item_query', source='_key')
 
 
 class kana(SuggestTable):
-    __tableflags__ = TABLE_PAT_KEY | KEY_NORMALIZE
-    __key_type__   = ShortText
+    __tableflags__ = TableFlags.TABLE_PAT_KEY | TableFlags.KEY_NORMALIZE
+    __key_type__   = DataType.ShortText
 
-    item_query_kana = Column(flags=COLUMN_INDEX, type='item_query',
+    item_query_kana = Column(flags=ColumnFlags.COLUMN_INDEX, type='item_query',
                              source='kana')
 
 
 class pair_query(SuggestTable):
-    __tableflags__ = TABLE_HASH_KEY
-    __key_type__   = UInt64
+    __tableflags__ = TableFlags.TABLE_HASH_KEY
+    __key_type__   = DataType.UInt64
 
-    pre   = Column(flags=COLUMN_SCALAR, type='item_query')
-    post  = Column(flags=COLUMN_SCALAR, type='item_query')
-    freq0 = Column(flags=COLUMN_SCALAR, type=Int32)
-    freq1 = Column(flags=COLUMN_SCALAR, type=Int32)
-    freq2 = Column(flags=COLUMN_SCALAR, type=Int32)
+    pre   = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
+    post  = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
+    freq0 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
+    freq1 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
+    freq2 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
 
 
 class sequence_query(SuggestTable):
-    __tableflags__ = TABLE_HASH_KEY
-    __key_type__   = ShortText
+    __tableflags__ = TableFlags.TABLE_HASH_KEY
+    __key_type__   = DataType.ShortText
 
-    events = Column(flags=(COLUMN_VECTOR | RING_BUFFER), type='event_query')
+    events = Column(flags=(ColumnFlags.COLUMN_VECTOR |
+                           ColumnFlags.RING_BUFFER), type='event_query')
 
 
 class event_query(SuggestTable):
-    __tableflags__ = TABLE_NO_KEY
+    __tableflags__ = TableFlags.TABLE_NO_KEY
 
-    type = Column(flags=COLUMN_SCALAR, type='event_type')
-    time = Column(flags=COLUMN_SCALAR, type=Time)
-    item = Column(flags=COLUMN_SCALAR, type='item_query')
-    sequence = Column(flags=COLUMN_SCALAR, type='sequence_query')
+    type = Column(flags=ColumnFlags.COLUMN_SCALAR, type='event_type')
+    time = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Time)
+    item = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
+    sequence = Column(flags=ColumnFlags.COLUMN_SCALAR, type='sequence_query')

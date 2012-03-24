@@ -33,15 +33,10 @@ from subprocess import Popen, PIPE
 
 from pyroonga import Groonga
 from pyroonga.orm.attributes import (
-    COLUMN_SCALAR,
-    COLUMN_VECTOR,
-    COLUMN_INDEX,
-    TABLE_HASH_KEY,
-    TABLE_PAT_KEY,
-    TABLE_NO_KEY,
-    ShortText,
-    UInt32,
-    TokenBigram,
+    TableFlags,
+    ColumnFlags,
+    DataType,
+    Tokenizer,
     )
 from pyroonga.orm.table import Column, TableMeta, prop_attr, tablebase
 from pyroonga.orm.query import GroongaResultBase, LoadQuery
@@ -52,8 +47,8 @@ from pyroonga.tests import GroongaTestBase
 class TestColumn(unittest.TestCase):
     def test___init__with_default_value(self):
         col = Column()
-        self.assertIs(col.flags, COLUMN_SCALAR)
-        self.assertIs(col.type, ShortText)
+        self.assertIs(col.flags, ColumnFlags.COLUMN_SCALAR)
+        self.assertIs(col.type, DataType.ShortText)
         self.assertIs(col.__tablemeta__, TableMeta)
         self.assertIsNone(col.tablename)
         self.assertIsNone(col.name)
@@ -62,14 +57,14 @@ class TestColumn(unittest.TestCase):
     def test___init__(self):
         self.assertRaises(TypeError, Column, flags='')
         try:
-            col = Column(flags=COLUMN_VECTOR)
-            self.assertIs(col.flags, COLUMN_VECTOR)
+            col = Column(flags=ColumnFlags.COLUMN_VECTOR)
+            self.assertIs(col.flags, ColumnFlags.COLUMN_VECTOR)
         except TypeError:
             self.fail("TypeError has been raised")
 
         try:
-            col = Column(type=UInt32)
-            self.assertIs(col.type, UInt32)
+            col = Column(type=DataType.UInt32)
+            self.assertIs(col.type, DataType.UInt32)
         except TypeError:
             self.fail("TypeError has been raised")
 
@@ -80,18 +75,18 @@ class TestColumn(unittest.TestCase):
             self.fail("TypeError has been raised")
 
     def test___str__(self):
-        col = Column(flags=COLUMN_SCALAR, type=ShortText)
+        col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
         self.assertRaises(TypeError, col.__str__)
 
-        col = Column(flags=COLUMN_SCALAR, type=ShortText)
+        col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
         col.tablename = 'tb1'
         self.assertRaises(TypeError, col.__str__)
 
-        col = Column(flags=COLUMN_SCALAR, type=ShortText)
+        col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
         col.name = 'name1'
         self.assertRaises(TypeError, col.__str__)
 
-        col = Column(flags=COLUMN_VECTOR, type=ShortText)
+        col = Column(flags=ColumnFlags.COLUMN_VECTOR, type=DataType.ShortText)
         col.tablename = 'tb2'
         col.name = 'name2'
         self.assertEqual(col.__str__(), 'column_create --table tb2 ' \
@@ -102,7 +97,7 @@ class TestColumn(unittest.TestCase):
         class ExampleTable(ExampleTableBase):
             name = Column()
 
-        col = Column(flags=COLUMN_INDEX, type=ExampleTable,
+        col = Column(flags=ColumnFlags.COLUMN_INDEX, type=ExampleTable,
                      source=ExampleTable.name)
         col.tablename = 'tb3'
         col.name = 'name3'
@@ -110,7 +105,7 @@ class TestColumn(unittest.TestCase):
                 '--name name3 --flags COLUMN_INDEX --type ExampleTable ' \
                 '--source name')
 
-        col = Column(flags=COLUMN_INDEX, type='ExampleTable', source='name')
+        col = Column(flags=ColumnFlags.COLUMN_INDEX, type='ExampleTable', source='name')
         col.tablename = 'tb4'
         col.name = 'name4'
         self.assertEqual(col.__str__(), 'column_create --table tb4 ' \
@@ -206,23 +201,25 @@ class TestTable(GroongaTestBase):
 
     def test_default_value(self):
         Table = tablebase()
-        self.assertIs(Table.__tableflags__, TABLE_HASH_KEY)
-        self.assertIs(Table.__key_type__, ShortText)
+        self.assertIs(Table.__tableflags__, TableFlags.TABLE_HASH_KEY)
+        self.assertIs(Table.__key_type__, DataType.ShortText)
         self.assertEqual(Table.__tablename__, 'Table')
         self.assertEqual(Table.__default_tokenizer__, None)
 
     def test_table(self):
         Table = tablebase()
-        namecol = Column(flags=COLUMN_SCALAR, type=ShortText)
-        passwordcol = Column(flags=COLUMN_SCALAR, type=ShortText)
+        namecol = Column(flags=ColumnFlags.COLUMN_SCALAR,
+                         type=DataType.ShortText)
+        passwordcol = Column(flags=ColumnFlags.COLUMN_SCALAR,
+                             type=DataType.ShortText)
 
         class Tb1(Table):
             name = namecol
             password = passwordcol
             address = 'address'
 
-        self.assertIs(Tb1.__tableflags__, TABLE_HASH_KEY)
-        self.assertIs(Tb1.__key_type__, ShortText)
+        self.assertIs(Tb1.__tableflags__, TableFlags.TABLE_HASH_KEY)
+        self.assertIs(Tb1.__key_type__, DataType.ShortText)
         self.assertIs(Tb1.__default_tokenizer__, None)
         self.assertEqual(Tb1.__tablename__, 'Tb1')
         self.assertEqual(str(Tb1), 'table_create --name Tb1 --flags ' \
@@ -230,18 +227,20 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(Tb1.columns, [namecol, passwordcol])
         self.assertListEqual(Table._tables, [Tb1])
 
-        sitecol = Column(flags=COLUMN_SCALAR, type=ShortText)
-        addresscol = Column(flags=COLUMN_SCALAR, type=ShortText)
+        sitecol = Column(flags=ColumnFlags.COLUMN_SCALAR,
+                         type=DataType.ShortText)
+        addresscol = Column(flags=ColumnFlags.COLUMN_SCALAR,
+                            type=DataType.ShortText)
 
         class Tb2(Table):
-            __tableflags__ = TABLE_PAT_KEY
-            __key_type__ = UInt32
-            __default_tokenizer__ = TokenBigram
+            __tableflags__ = TableFlags.TABLE_PAT_KEY
+            __key_type__ = DataType.UInt32
+            __default_tokenizer__ = Tokenizer.TokenBigram
             site = sitecol
             address = addresscol
 
-        self.assertIs(Tb2.__tableflags__, TABLE_PAT_KEY)
-        self.assertIs(Tb2.__key_type__, UInt32)
+        self.assertIs(Tb2.__tableflags__, TableFlags.TABLE_PAT_KEY)
+        self.assertIs(Tb2.__key_type__, DataType.UInt32)
         self.assertEqual(Tb2.__tablename__, 'Tb2')
         self.assertEqual(str(Tb2), 'table_create --name Tb2 --flags ' \
                 'TABLE_PAT_KEY --key_type UInt32 --default_tokenizer ' \
@@ -250,11 +249,11 @@ class TestTable(GroongaTestBase):
         self.assertListEqual(Table._tables, [Tb1, Tb2])
 
         class Tb3(Table):
-            __tableflags__ = TABLE_NO_KEY
+            __tableflags__ = TableFlags.TABLE_NO_KEY
             site = sitecol
             address = addresscol
 
-        self.assertIs(Tb3.__tableflags__, TABLE_NO_KEY)
+        self.assertIs(Tb3.__tableflags__, TableFlags.TABLE_NO_KEY)
         self.assertEqual(Tb3.__tablename__, 'Tb3')
         self.assertEqual(str(Tb3), 'table_create --name Tb3 --flags ' \
                          'TABLE_NO_KEY')
@@ -273,10 +272,12 @@ class TestTable(GroongaTestBase):
         Table = tablebase()
 
         class Tb1(Table):
-            name = Column(flags=COLUMN_SCALAR, type=ShortText)
+            name = Column(flags=ColumnFlags.COLUMN_SCALAR,
+                          type=DataType.ShortText)
 
         class Tb2(Table):
-            word = Column(flags=COLUMN_SCALAR, type=ShortText)
+            word = Column(flags=ColumnFlags.COLUMN_SCALAR,
+                          type=DataType.ShortText)
 
         grn = Groonga()
         Table.bind(grn)

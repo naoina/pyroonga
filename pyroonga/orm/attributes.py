@@ -30,17 +30,8 @@
 __author__ = "Naoya INADA <naoina@kuune.org>"
 
 __all__ = [
-    'Symbol', 'TableFlags', 'TABLE_HASH_KEY', 'TABLE_PAT_KEY', 'TABLE_DAT_KEY',
-    'TABLE_NO_KEY', 'TABLE_VIEW', 'KEY_WITH_SIS', 'KEY_NORMALIZE',
-    'PERSISTENT', 'ColumnFlags', 'COLUMN_SCALAR', 'COLUMN_VECTOR',
-    'COLUMN_INDEX', 'WITH_SECTION', 'WITH_WEIGHT', 'WITH_POSITION',
-    'RING_BUFFER', 'DataType', 'Object', 'Bool', 'Int8', 'UInt8', 'Int16',
-    'UInt16', 'Int32', 'UInt32', 'Int64', 'UInt64', 'Float', 'Time',
-    'ShortText', 'Text', 'LongText', 'TokyoGeoPoint', 'WGS84GeoPoint',
-    'Tokenizer', 'TokenDelimit', 'TokenUnigram', 'TokenBigram', 'TokenTrigram',
-    'TokenMecab', 'LogLevel', 'EMERG', 'ALERT', 'CRIT', 'error', 'warning',
-    'notice', 'info', 'debug', 'EMERGENCY', 'CRITICAL', 'WARNING', 'NOTICE',
-    'INFO', 'DEBUG', 'COMPLETE', 'CORRECT', 'SUGGEST',
+    'Symbol', 'TableFlags', 'ColumnFlagsFlag', 'ColumnFlags', 'DataType',
+    'TokenizerSymbol', 'Tokenizer', 'LogLevel', 'SuggestType',
 ]
 
 from collections import Iterable
@@ -92,90 +83,112 @@ class Flags(list):
         return '|'.join([str(flag) for flag in self])
 
 
-class TableFlags(Flags):
+class TableFlagsFlag(Flags):
     """Table flags representation class of groonga"""
 
-TABLE_HASH_KEY = TableFlags(Symbol('TABLE_HASH_KEY'))
-TABLE_PAT_KEY  = TableFlags(Symbol('TABLE_PAT_KEY'))
-TABLE_DAT_KEY  = TableFlags(Symbol('TABLE_DAT_KEY'))
-TABLE_NO_KEY   = TableFlags(Symbol('TABLE_NO_KEY'))
-TABLE_VIEW     = TableFlags(Symbol('TABLE_VIEW'))
-KEY_WITH_SIS   = TableFlags(Symbol('KEY_WITH_SIS'))
-KEY_NORMALIZE  = TableFlags(Symbol('KEY_NORMALIZE'))
-PERSISTENT     = TableFlags(Symbol('PERSISTENT'))
+
+class TableFlags(object):
+    "Table flags"
+
+    TABLE_HASH_KEY = TableFlagsFlag(Symbol('TABLE_HASH_KEY'))
+    TABLE_PAT_KEY  = TableFlagsFlag(Symbol('TABLE_PAT_KEY'))
+    TABLE_DAT_KEY  = TableFlagsFlag(Symbol('TABLE_DAT_KEY'))
+    TABLE_NO_KEY   = TableFlagsFlag(Symbol('TABLE_NO_KEY'))
+    TABLE_VIEW     = TableFlagsFlag(Symbol('TABLE_VIEW'))
+    KEY_WITH_SIS   = TableFlagsFlag(Symbol('KEY_WITH_SIS'))
+    KEY_NORMALIZE  = TableFlagsFlag(Symbol('KEY_NORMALIZE'))
+    PERSISTENT     = TableFlagsFlag(Symbol('PERSISTENT'))
 
 
-class ColumnFlags(Flags):
+class ColumnFlagsFlag(Flags):
     """Column flags representation class of groonga"""
 
-COLUMN_SCALAR = ColumnFlags(Symbol('COLUMN_SCALAR'))
-COLUMN_VECTOR = ColumnFlags(Symbol('COLUMN_VECTOR'))
-COLUMN_INDEX  = ColumnFlags(Symbol('COLUMN_INDEX'))
-WITH_SECTION  = ColumnFlags(Symbol('WITH_SECTION'))
-WITH_WEIGHT   = ColumnFlags(Symbol('WITH_WEIGHT'))
-WITH_POSITION = ColumnFlags(Symbol('WITH_POSITION'))
-RING_BUFFER   = ColumnFlags(Symbol('RING_BUFFER'))
+
+class ColumnFlags(object):
+    "Column flags"
+
+    COLUMN_SCALAR = ColumnFlagsFlag(Symbol('COLUMN_SCALAR'))
+    COLUMN_VECTOR = ColumnFlagsFlag(Symbol('COLUMN_VECTOR'))
+    COLUMN_INDEX  = ColumnFlagsFlag(Symbol('COLUMN_INDEX'))
+    WITH_SECTION  = ColumnFlagsFlag(Symbol('WITH_SECTION'))
+    WITH_WEIGHT   = ColumnFlagsFlag(Symbol('WITH_WEIGHT'))
+    WITH_POSITION = ColumnFlagsFlag(Symbol('WITH_POSITION'))
+    RING_BUFFER   = ColumnFlagsFlag(Symbol('RING_BUFFER'))
 
 
-class DataType(Symbol):
+class DataTypeSymbol(Symbol):
     """Data type representation class of groonga"""
 
-# builtin types
-Object    = DataType('Object')
-Bool      = DataType('Bool')
-Int8      = DataType('Int8')
-UInt8     = DataType('UInt8')
-Int16     = DataType('Int16')
-UInt16    = DataType('UInt16')
-Int32     = DataType('Int32')
-UInt32    = DataType('UInt32')
-Int64     = DataType('Int64')
-UInt64    = DataType('UInt64')
-Float     = DataType('Float')
-Time      = DataType('Time')
-ShortText = DataType('ShortText')
-Text      = DataType('Text')
-LongText  = DataType('LongText')
-TokyoGeoPoint = DataType('TokyoGeoPoint')
-WGS84GeoPoint = DataType('WGS84GeoPoint')
+
+class DataType(object):
+    """Builtin types"""
+
+    Object    = DataTypeSymbol('Object')
+    Bool      = DataTypeSymbol('Bool')
+    Int8      = DataTypeSymbol('Int8')
+    UInt8     = DataTypeSymbol('UInt8')
+    Int16     = DataTypeSymbol('Int16')
+    UInt16    = DataTypeSymbol('UInt16')
+    Int32     = DataTypeSymbol('Int32')
+    UInt32    = DataTypeSymbol('UInt32')
+    Int64     = DataTypeSymbol('Int64')
+    UInt64    = DataTypeSymbol('UInt64')
+    Float     = DataTypeSymbol('Float')
+    Time      = DataTypeSymbol('Time')
+    ShortText = DataTypeSymbol('ShortText')
+    Text      = DataTypeSymbol('Text')
+    LongText  = DataTypeSymbol('LongText')
+    TokyoGeoPoint = DataTypeSymbol('TokyoGeoPoint')
+    WGS84GeoPoint = DataTypeSymbol('WGS84GeoPoint')
 
 
-# tokenizer
-class Tokenizer(Symbol):
+class TokenizerSymbol(Symbol):
     """Tokenizer type representation class of groonga"""
 
-TokenDelimit = Tokenizer('TokenDelimit')
-TokenUnigram = Tokenizer('TokenUnigram')
-TokenBigram  = Tokenizer('TokenBigram')
-TokenTrigram = Tokenizer('TokenTrigram')
-TokenMecab   = Tokenizer('TokenMecab')
+
+class Tokenizer(object):
+    """Tokenizer"""
+
+    TokenDelimit = TokenizerSymbol('TokenDelimit')
+    TokenUnigram = TokenizerSymbol('TokenUnigram')
+    TokenBigram  = TokenizerSymbol('TokenBigram')
+    TokenTrigram = TokenizerSymbol('TokenTrigram')
+    TokenMecab   = TokenizerSymbol('TokenMecab')
 
 
-# log level
-class LogLevel(Symbol):
+class LogLevelSymbol(Symbol):
     """Log lovel representation class of groonga"""
 
-EMERG     = LogLevel('EMERG')
-ALERT     = LogLevel('ALERT')
-CRIT      = LogLevel('CRIT')
-error     = LogLevel('error')
-warning   = LogLevel('warning')
-notice    = LogLevel('notice')
-info      = LogLevel('info')
-debug     = LogLevel('debug')
 
-# alias
-EMERGENCY = EMERG
-CRITICAL  = CRIT
-WARNING   = warning
-NOTICE    = notice
-INFO      = info
-DEBUG     = debug
+class LogLevel(object):
+    """Log level"""
+
+    EMERG     = LogLevelSymbol('EMERG')
+    ALERT     = LogLevelSymbol('ALERT')
+    CRIT      = LogLevelSymbol('CRIT')
+    error     = LogLevelSymbol('error')
+    warning   = LogLevelSymbol('warning')
+    notice    = LogLevelSymbol('notice')
+    info      = LogLevelSymbol('info')
+    debug     = LogLevelSymbol('debug')
+    EMERGENCY = EMERG   # alias
+    CRITICAL  = CRIT    # alias
+    WARNING   = warning # alias
+    NOTICE    = notice  # alias
+    INFO      = info    # alias
+    DEBUG     = debug   # alias
 
 
-class SuggestType(Flags):
+class SuggestTypeFlag(Flags):
     """Type flags representation class of groonga's suggest"""
 
-complete = SuggestType(Symbol('complete'))
-correct  = SuggestType(Symbol('correct'))
-suggest  = SuggestType(Symbol('suggest'))
+
+class SuggestType(object):
+    """Suggest types"""
+
+    complete = SuggestTypeFlag(Symbol('complete'))
+    correct  = SuggestTypeFlag(Symbol('correct'))
+    suggest  = SuggestTypeFlag(Symbol('suggest'))
+    COMPLETE = complete  # alias
+    CORRECT  = correct   # alias
+    SUGGEST  = suggest   # alias
