@@ -129,20 +129,25 @@ class TableMeta(type):
             col = Column(flags=COLUMN_SCALAR, type=typ)
             setattr(cls, attr, col)
             cls._setcolumn(name, col)
-        if not (cls.__tableflags__ & TABLE_NO_KEY):
+        if not cls._has_table_no_key():
             cls._key = Column(flags=COLUMN_SCALAR, type=cls.__key_type__)
             cls._setcolumn('_key', cls._key)
+
+    def _has_table_no_key(cls):
+        return cls.__tableflags__ & TABLE_NO_KEY
 
     def _setcolumn(cls, name, col):
         col.name = name
         col.tablename = cls.__tablename__
 
     def __str__(cls):
-        query =  'table_create --name %s --flags %s --key_type %s' % \
-                (cls.__tablename__, cls.__tableflags__, cls.__key_type__)
+        flags = ['--name %s' % cls.__tablename__,
+                 '--flags %s' % cls.__tableflags__]
+        if not cls._has_table_no_key():
+            flags.append('--key_type %s' % cls.__key_type__)
         if isinstance(cls.__default_tokenizer__, Tokenizer):
-            query += ' --default_tokenizer %s' % cls.__default_tokenizer__
-        return query
+            flags.append('--default_tokenizer %s' % cls.__default_tokenizer__)
+        return 'table_create ' + (' '.join(flags))
 
 
 class prop_attr(property):

@@ -32,9 +32,16 @@ import json
 from subprocess import Popen, PIPE
 
 from pyroonga import Groonga
-from pyroonga.orm.attributes import (COLUMN_SCALAR, COLUMN_VECTOR,
-                                     TABLE_HASH_KEY, TABLE_PAT_KEY, ShortText,
-                                     UInt32, TokenBigram)
+from pyroonga.orm.attributes import (
+    COLUMN_SCALAR,
+    COLUMN_VECTOR,
+    TABLE_HASH_KEY,
+    TABLE_PAT_KEY,
+    TABLE_NO_KEY,
+    ShortText,
+    UInt32,
+    TokenBigram
+    )
 from pyroonga.orm.table import Column, prop_attr, tablebase
 from pyroonga.orm.query import GroongaResultBase, LoadQuery
 from pyroonga.tests import unittest
@@ -214,6 +221,18 @@ class TestTable(GroongaTestBase):
                 'TokenBigram')
         self.assertListEqual(Tb2.columns, [sitecol, addresscol])
         self.assertListEqual(Table._tables, [Tb1, Tb2])
+
+        class Tb3(Table):
+            __tableflags__ = TABLE_NO_KEY
+            site = sitecol
+            address = addresscol
+
+        self.assertIs(Tb3.__tableflags__, TABLE_NO_KEY)
+        self.assertEqual(Tb3.__tablename__, 'Tb3')
+        self.assertEqual(str(Tb3), 'table_create --name Tb3 --flags ' \
+                         'TABLE_NO_KEY')
+        self.assertListEqual(Tb3.columns, [sitecol, addresscol])
+        self.assertListEqual(Table._tables, [Tb1, Tb2, Tb3])
 
     def test_bind(self):
         Table = tablebase()
