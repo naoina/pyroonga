@@ -34,7 +34,7 @@ from subprocess import Popen, PIPE
 from pyroonga import Groonga
 from pyroonga.orm.attributes import (COLUMN_SCALAR, COLUMN_VECTOR,
                                      TABLE_HASH_KEY, TABLE_PAT_KEY, ShortText,
-                                     UInt32)
+                                     UInt32, TokenBigram)
 from pyroonga.orm.table import Column, prop_attr, tablebase
 from pyroonga.orm.query import GroongaResultBase, LoadQuery
 from pyroonga.tests import unittest
@@ -175,6 +175,7 @@ class TestTable(GroongaTestBase):
         self.assertIs(Table.__tableflags__, TABLE_HASH_KEY)
         self.assertIs(Table.__key_type__, ShortText)
         self.assertEqual(Table.__tablename__, 'Table')
+        self.assertEqual(Table.__default_tokenizer__, None)
 
     def test_table(self):
         Table = tablebase()
@@ -188,6 +189,7 @@ class TestTable(GroongaTestBase):
 
         self.assertIs(Tb1.__tableflags__, TABLE_HASH_KEY)
         self.assertIs(Tb1.__key_type__, ShortText)
+        self.assertIs(Tb1.__default_tokenizer__, None)
         self.assertEqual(Tb1.__tablename__, 'Tb1')
         self.assertEqual(str(Tb1), 'table_create --name Tb1 --flags ' \
                 'TABLE_HASH_KEY --key_type ShortText')
@@ -200,6 +202,7 @@ class TestTable(GroongaTestBase):
         class Tb2(Table):
             __tableflags__ = TABLE_PAT_KEY
             __key_type__ = UInt32
+            __default_tokenizer__ = TokenBigram
             site = sitecol
             address = addresscol
 
@@ -207,7 +210,8 @@ class TestTable(GroongaTestBase):
         self.assertIs(Tb2.__key_type__, UInt32)
         self.assertEqual(Tb2.__tablename__, 'Tb2')
         self.assertEqual(str(Tb2), 'table_create --name Tb2 --flags ' \
-                'TABLE_PAT_KEY --key_type UInt32')
+                'TABLE_PAT_KEY --key_type UInt32 --default_tokenizer ' \
+                'TokenBigram')
         self.assertListEqual(Tb2.columns, [sitecol, addresscol])
         self.assertListEqual(Table._tables, [Tb1, Tb2])
 

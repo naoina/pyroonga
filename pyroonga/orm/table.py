@@ -138,8 +138,11 @@ class TableMeta(type):
         col.tablename = cls.__tablename__
 
     def __str__(cls):
-        return ('table_create --name %s --flags %s --key_type %s' %
-                (cls.__tablename__, cls.__tableflags__, cls.__key_type__))
+        query =  'table_create --name %s --flags %s --key_type %s' % \
+                (cls.__tablename__, cls.__tableflags__, cls.__key_type__)
+        if isinstance(cls.__default_tokenizer__, Tokenizer):
+            query += ' --default_tokenizer %s' % cls.__default_tokenizer__
+        return query
 
 
 class prop_attr(property):
@@ -182,6 +185,7 @@ class TableBase(object):
 
     __tableflags__ = TABLE_HASH_KEY
     __key_type__   = ShortText
+    __default_tokenizer__ = None
     grn = None
 
     @prop_attr
