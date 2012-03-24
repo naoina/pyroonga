@@ -33,13 +33,14 @@ __all__ = [
     'Symbol', 'TableFlags', 'TABLE_HASH_KEY', 'TABLE_PAT_KEY', 'TABLE_DAT_KEY',
     'TABLE_NO_KEY', 'TABLE_VIEW', 'KEY_WITH_SIS', 'KEY_NORMALIZE',
     'PERSISTENT', 'ColumnFlags', 'COLUMN_SCALAR', 'COLUMN_VECTOR',
-    'COLUMN_INDEX', 'WITH_SECTION', 'WITH_WEIGHT', 'WITH_POSITION', 'DataType',
-    'Object', 'Bool', 'Int8', 'UInt8', 'Int16', 'UInt16', 'Int32', 'UInt32',
-    'Int64', 'UInt64', 'Float', 'Time', 'ShortText', 'Text', 'LongText',
-    'TokyoGeoPoint', 'WGS84GeoPoint', 'Tokenizer', 'TokenDelimit',
-    'TokenUnigram', 'TokenBigram', 'TokenTrigram', 'TokenMecab', 'LogLevel',
-    'EMERG', 'ALERT', 'CRIT', 'error', 'warning', 'notice', 'info', 'debug',
-    'EMERGENCY', 'CRITICAL', 'WARNING', 'NOTICE', 'INFO', 'DEBUG',
+    'COLUMN_INDEX', 'WITH_SECTION', 'WITH_WEIGHT', 'WITH_POSITION',
+    'RING_BUFFER', 'DataType', 'Object', 'Bool', 'Int8', 'UInt8', 'Int16',
+    'UInt16', 'Int32', 'UInt32', 'Int64', 'UInt64', 'Float', 'Time',
+    'ShortText', 'Text', 'LongText', 'TokyoGeoPoint', 'WGS84GeoPoint',
+    'Tokenizer', 'TokenDelimit', 'TokenUnigram', 'TokenBigram', 'TokenTrigram',
+    'TokenMecab', 'LogLevel', 'EMERG', 'ALERT', 'CRIT', 'error', 'warning',
+    'notice', 'info', 'debug', 'EMERGENCY', 'CRITICAL', 'WARNING', 'NOTICE',
+    'INFO', 'DEBUG', 'COMPLETE', 'CORRECT', 'SUGGEST',
 ]
 
 from collections import Iterable
@@ -113,6 +114,7 @@ COLUMN_INDEX  = ColumnFlags(Symbol('COLUMN_INDEX'))
 WITH_SECTION  = ColumnFlags(Symbol('WITH_SECTION'))
 WITH_WEIGHT   = ColumnFlags(Symbol('WITH_WEIGHT'))
 WITH_POSITION = ColumnFlags(Symbol('WITH_POSITION'))
+RING_BUFFER   = ColumnFlags(Symbol('RING_BUFFER'))
 
 
 class DataType(Symbol):
@@ -169,3 +171,11 @@ WARNING   = warning
 NOTICE    = notice
 INFO      = info
 DEBUG     = debug
+
+
+class SuggestType(Flags):
+    """Type flags representation class of groonga's suggest"""
+
+complete = SuggestType(Symbol('complete'))
+correct  = SuggestType(Symbol('correct'))
+suggest  = SuggestType(Symbol('suggest'))

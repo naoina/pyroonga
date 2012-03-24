@@ -28,7 +28,9 @@
 __author__ = "Naoya INADA <naoina@kuune.org>"
 
 __all__ = [
-    'Column', 'prop_attr', 'tablebase',
+    'Column', 'prop_attr', 'tablebase', 'SuggestTable', 'event_type',
+    'bigram', 'kana', 'item_query', 'pair_query', 'sequence_query',
+    'event_query',
 ]
 
 import logging
@@ -309,3 +311,95 @@ def tablebase(name='Table', cls=TableBase):
     :returns: base class.
     """
     return TableMeta(name, (cls,), {'_tables': []})
+
+
+# for suggest
+class SuggestTableBase(TableBase):
+    """Suggest's table representation base class"""
+
+    @classmethod
+    def create_all(cls):
+        """Create the all defined tables and columns
+
+        :param grn: instance of :class:`pyroonga.groonga.Groonga`\ .
+        """
+        if not isinstance(cls.grn, Groonga):
+            raise TypeError("%s object is not bind" % Groonga.__name__)
+        table_queries  = []
+        column_queries = []
+        for tbl in cls._tables:
+            table_queries.append(str(tbl))
+            column_queries.extend([str(col) for col in tbl.columns])
+        suggest_query = 'register suggest/suggest'
+        logger.debug(suggest_query)
+        cls.grn.query(suggest_query)
+        for queries in (table_queries, column_queries):
+            for query in queries:
+                logger.debug(query)
+                cls.grn.query(query)
+
+SuggestTable = tablebase(name='SuggestTable', cls=SuggestTableBase)
+
+
+class event_type(SuggestTable):
+    __tableflags__ = TABLE_HASH_KEY
+    __key_type__   = ShortText
+
+
+# TODO: To allow users to configure name, but name prefix must be 'item_'
+class item_query(SuggestTable):
+    __tableflags__ = TABLE_PAT_KEY | KEY_NORMALIZE
+    __key_type__   = ShortText
+    __default_tokenizer__ = TokenDelimit
+
+    kana  = Column(flags=COLUMN_VECTOR, type='kana')
+    freq  = Column(flags=COLUMN_SCALAR, type=Int32)
+    last  = Column(flags=COLUMN_SCALAR, type=Time)
+    boost = Column(flags=COLUMN_SCALAR, type=Int32)
+    freq2 = Column(flags=COLUMN_SCALAR, type=Int32)
+    buzz  = Column(flags=COLUMN_SCALAR, type=Int32)
+    co    = Column(flags=COLUMN_INDEX,  type='pair_query', source='pre')
+
+
+class bigram(SuggestTable):
+    __tableflags__ = TABLE_PAT_KEY | KEY_NORMALIZE
+    __key_type__   = ShortText
+    __default_tokenizer__ = TokenBigram
+
+    item_query_key = Column(flags=(COLUMN_INDEX | WITH_POSITION),
+                            type='item_query', source='_key')
+
+
+class kana(SuggestTable):
+    __tableflags__ = TABLE_PAT_KEY | KEY_NORMALIZE
+    __key_type__   = ShortText
+
+    item_query_kana = Column(flags=COLUMN_INDEX, type='item_query',
+                             source='kana')
+
+
+class pair_query(SuggestTable):
+    __tableflags__ = TABLE_HASH_KEY
+    __key_type__   = UInt64
+
+    pre   = Column(flags=COLUMN_SCALAR, type='item_query')
+    post  = Column(flags=COLUMN_SCALAR, type='item_query')
+    freq0 = Column(flags=COLUMN_SCALAR, type=Int32)
+    freq1 = Column(flags=COLUMN_SCALAR, type=Int32)
+    freq2 = Column(flags=COLUMN_SCALAR, type=Int32)
+
+
+class sequence_query(SuggestTable):
+    __tableflags__ = TABLE_HASH_KEY
+    __key_type__   = ShortText
+
+    events = Column(flags=(COLUMN_VECTOR | RING_BUFFER), type='event_query')
+
+
+class event_query(SuggestTable):
+    __tableflags__ = TABLE_NO_KEY
+
+    type = Column(flags=COLUMN_SCALAR, type='event_type')
+    time = Column(flags=COLUMN_SCALAR, type=Time)
+    item = Column(flags=COLUMN_SCALAR, type='item_query')
+    sequence = Column(flags=COLUMN_SCALAR, type='sequence_query')
