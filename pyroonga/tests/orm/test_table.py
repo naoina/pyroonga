@@ -35,14 +35,15 @@ from pyroonga import Groonga
 from pyroonga.orm.attributes import (
     COLUMN_SCALAR,
     COLUMN_VECTOR,
+    COLUMN_INDEX,
     TABLE_HASH_KEY,
     TABLE_PAT_KEY,
     TABLE_NO_KEY,
     ShortText,
     UInt32,
-    TokenBigram
+    TokenBigram,
     )
-from pyroonga.orm.table import Column, prop_attr, tablebase
+from pyroonga.orm.table import Column, TableMeta, prop_attr, tablebase
 from pyroonga.orm.query import GroongaResultBase, LoadQuery
 from pyroonga.tests import unittest
 from pyroonga.tests import GroongaTestBase
@@ -53,13 +54,13 @@ class TestColumn(unittest.TestCase):
         col = Column()
         self.assertIs(col.flags, COLUMN_SCALAR)
         self.assertIs(col.type, ShortText)
+        self.assertIs(col.__tablemeta__, TableMeta)
         self.assertIsNone(col.tablename)
         self.assertIsNone(col.name)
         self.assertIsNone(col.value)
 
     def test___init__(self):
         self.assertRaises(TypeError, Column, flags='')
-        self.assertRaises(TypeError, Column, type='')
         try:
             col = Column(flags=COLUMN_VECTOR)
             self.assertIs(col.flags, COLUMN_VECTOR)
@@ -69,6 +70,12 @@ class TestColumn(unittest.TestCase):
         try:
             col = Column(type=UInt32)
             self.assertIs(col.type, UInt32)
+        except TypeError:
+            self.fail("TypeError has been raised")
+
+        try:
+            col = Column(type=TableMeta)
+            self.assertIs(col.type, TableMeta)
         except TypeError:
             self.fail("TypeError has been raised")
 
@@ -89,6 +96,26 @@ class TestColumn(unittest.TestCase):
         col.name = 'name2'
         self.assertEqual(col.__str__(), 'column_create --table tb2 ' \
                 '--name name2 --flags COLUMN_VECTOR --type ShortText')
+
+
+        ExampleTableBase = tablebase()
+        class ExampleTable(ExampleTableBase):
+            name = Column()
+
+        col = Column(flags=COLUMN_INDEX, type=ExampleTable,
+                     source=ExampleTable.name)
+        col.tablename = 'tb3'
+        col.name = 'name3'
+        self.assertEqual(col.__str__(), 'column_create --table tb3 ' \
+                '--name name3 --flags COLUMN_INDEX --type ExampleTable ' \
+                '--source name')
+
+        col = Column(flags=COLUMN_INDEX, type='ExampleTable', source='name')
+        col.tablename = 'tb4'
+        col.name = 'name4'
+        self.assertEqual(col.__str__(), 'column_create --table tb4 ' \
+                '--name name4 --flags COLUMN_INDEX --type ExampleTable ' \
+                '--source name')
 
 
 class TestPropAttr(unittest.TestCase):

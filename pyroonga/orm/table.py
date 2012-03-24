@@ -41,73 +41,19 @@ from pyroonga.orm.query import (Expression, ExpressionTree, LoadQuery,
 logger = logging.getLogger(__name__)
 
 
-class Column(object):
-    """Column representation class
+class prop_attr(property):
+    """Property decorator for class method
 
-    e.g. ::
+    Like @property decorator, but it can applicable to the class method::
 
-        class ExampleTable(Table):
-            name = Column()
-            age  = Column(flags=COLUMN_SCALAR, type=UInt8)
-
-    The above example is equivalent to the table that will be create in the
-    following query::
-
-        table_create --name ExampleTable --flags TABLE_HASH_KEY --key_type ShortText
-        column_create --table ExampleTable --name name --flags COLUMN_SCALAR --type ShortText
-        column_create --table ExampleTable --name age --flags COLUMN_SCALAR --type UInt8
+        class Example(object):
+            @prop_attr
+            def __tablename__(cls):
+                return cls.__name__.lower()
     """
 
-    def __init__(self, flags=COLUMN_SCALAR, type=ShortText):
-        """Construct of table column
-
-        :param flags: const of :class:`ColumnFlags`\ . Default is
-            :const:`COLUMN_SCALAR`\ .
-        :param type: const of :class:`DataType`\ . Default is
-            :const:`ShortText`\ .
-        """
-        if not isinstance(flags, ColumnFlags):
-            raise TypeError('"flags" is must be instance of ColumnFlags')
-        if not isinstance(type, DataType):
-            raise TypeError('"type" is must be instance of DataType')
-        self.flags = flags
-        self.type = type
-        self.tablename = self.name = self.value = None
-        self._desc = False
-
-    def __eq__(self, other):
-        return ExpressionTree(Expression.EQUAL, self.name,
-                Value(other))
-
-    def __ge__(self, other):
-        return ExpressionTree(Expression.GREATER_EQUAL, self.name,
-                Value(other))
-
-    def __gt__(self, other):
-        return ExpressionTree(Expression.GREATER_THAN, self.name,
-                Value(other))
-
-    def __le__(self, other):
-        return ExpressionTree(Expression.LESS_EQUAL, self.name,
-                Value(other))
-
-    def __lt__(self, other):
-        return ExpressionTree(Expression.LESS_THAN, self.name,
-                Value(other))
-
-    def __ne__(self, other):
-        return ExpressionTree(Expression.NOT_EQUAL, self.name,
-                Value(other))
-
-    def __neg__(self):
-        self._desc = True
-        return self
-
-    def __str__(self):
-        if not (self.tablename and self.name):
-            raise TypeError('column instance is not initialized')
-        return ('column_create --table %s --name %s --flags %s --type %s' %
-                (self.tablename, self.name, self.flags, self.type))
+    def __get__(self, instance, owner):
+        return self.fget(owner)
 
 
 class TableMeta(type):
@@ -148,21 +94,6 @@ class TableMeta(type):
         if isinstance(cls.__default_tokenizer__, Tokenizer):
             flags.append('--default_tokenizer %s' % cls.__default_tokenizer__)
         return 'table_create ' + (' '.join(flags))
-
-
-class prop_attr(property):
-    """Property decorator for class method 
-
-    Like @property decorator, but it can applicable to the class method::
-
-        class Example(object):
-            @prop_attr
-            def __tablename__(cls):
-                return cls.__name__.lower()
-    """
-
-    def __get__(self, instance, owner):
-        return self.fget(owner)
 
 
 class TableBase(object):
@@ -285,6 +216,87 @@ class TableBase(object):
     def asdict(self):
         return dict((k[:-1], v) for k, v in self.__dict__.items()
                     if k.endswith('_'))
+
+
+class Column(object):
+    """Column representation class
+
+    e.g. ::
+
+        class ExampleTable(Table):
+            name = Column()
+            age  = Column(flags=COLUMN_SCALAR, type=UInt8)
+
+    The above example is equivalent to the table that will be create in the
+    following query::
+
+        table_create --name ExampleTable --flags TABLE_HASH_KEY --key_type ShortText
+        column_create --table ExampleTable --name name --flags COLUMN_SCALAR --type ShortText
+        column_create --table ExampleTable --name age --flags COLUMN_SCALAR --type UInt8
+    """
+
+    __tablemeta__ = TableMeta
+
+    def __init__(self, flags=COLUMN_SCALAR, type=ShortText, source=None):
+        """Construct of table column
+
+        :param flags: const of :class:`ColumnFlags`\ .
+                      Default is :const:`COLUMN_SCALAR`\ .
+        :param type: const of :class:`DataType` or instance of
+                     :class:`TableMeta` or str.
+                     Default is :const:`ShortText`\ .
+        :param source: instance of :class:`Column` or str.
+                       Default is None
+        """
+        if not isinstance(flags, ColumnFlags):
+            raise TypeError('"flags" is must be instance of ColumnFlags')
+        self.flags = flags
+        if isinstance(type, self.__tablemeta__):
+            self.type = type.__tablename__
+        else:
+            self.type = type
+        self.source = source.name if isinstance(source, Column) else source
+        self.tablename = self.name = self.value = None
+        self._desc = False
+
+    def __eq__(self, other):
+        return ExpressionTree(Expression.EQUAL, self.name,
+                Value(other))
+
+    def __ge__(self, other):
+        return ExpressionTree(Expression.GREATER_EQUAL, self.name,
+                Value(other))
+
+    def __gt__(self, other):
+        return ExpressionTree(Expression.GREATER_THAN, self.name,
+                Value(other))
+
+    def __le__(self, other):
+        return ExpressionTree(Expression.LESS_EQUAL, self.name,
+                Value(other))
+
+    def __lt__(self, other):
+        return ExpressionTree(Expression.LESS_THAN, self.name,
+                Value(other))
+
+    def __ne__(self, other):
+        return ExpressionTree(Expression.NOT_EQUAL, self.name,
+                Value(other))
+
+    def __neg__(self):
+        self._desc = True
+        return self
+
+    def __str__(self):
+        if not (self.tablename and self.name):
+            raise TypeError('column instance is not initialized')
+        query = ['--table %s' % self.tablename,
+                 '--name %s' % self.name,
+                 '--flags %s' % self.flags,
+                 '--type %s' % self.type]
+        if self.source:
+            query.append('--source %s' % self.source)
+        return 'column_create %s' % (' '.join(query))
 
 
 def tablebase(name='Table', cls=TableBase):
