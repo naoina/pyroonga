@@ -38,8 +38,14 @@ from pyroonga.orm.attributes import (
     DataType,
     Tokenizer,
     )
-from pyroonga.orm.table import Column, TableMeta, prop_attr, tablebase
-from pyroonga.orm.query import GroongaResultBase, LoadQuery
+from pyroonga.orm.table import (
+    Column,
+    TableMeta,
+    SuggestTable,
+    prop_attr,
+    tablebase,
+    )
+from pyroonga.orm.query import GroongaResultBase, LoadQuery, SuggestLoadQuery
 from pyroonga.tests import unittest
 from pyroonga.tests import GroongaTestBase
 
@@ -856,6 +862,66 @@ class TestTable(GroongaTestBase):
                      [['_id', 'UInt32'], ['_key', 'ShortText'],
                       ['name', 'ShortText']]]]
         self.assertListEqual(stored[1], expected)
+
+
+class TestSuggestTable(GroongaTestBase):
+    def setUp(self):
+        super(TestSuggestTable, self).setUp()
+        super(TestSuggestTable, self).tearDownClass()
+        super(TestSuggestTable, self).setUpClass()
+
+    def tearDown(self):
+        super(TestSuggestTable, self).tearDown()
+        super(TestSuggestTable, self).tearDownClass()
+
+    def _sendquery(self, cmd):
+        proc = Popen('groonga -c', shell=True, stdin=PIPE, stdout=PIPE,
+                stderr=PIPE)
+        result = proc.communicate(cmd.encode('utf-8'))[0]
+        proc.wait()
+        return result.decode('utf-8')
+
+    def test_create_all(self):
+        grn = Groonga()
+        SuggestTable.bind(grn)
+        SuggestTable.create_all()
+        result = json.loads(self._sendquery('table_list'))
+        expected = [[['id', 'UInt32'],
+                     ['name', 'ShortText'],
+                     ['path', 'ShortText'],
+                     ['flags', 'ShortText'],
+                     ['domain', 'ShortText'],
+                     ['range', 'ShortText']],
+                    [260, 'bigram', GroongaTestBase.DB_PATH + '.0000104',
+                     'TABLE_PAT_KEY|KEY_NORMALIZE|PERSISTENT',
+                     'ShortText',
+                     'null'],
+                    [264, 'event_query', GroongaTestBase.DB_PATH + '.0000108',
+                     'TABLE_NO_KEY|PERSISTENT',
+                     'null',
+                     'null'],
+                    [258, 'event_type', GroongaTestBase.DB_PATH + '.0000102',
+                     'TABLE_HASH_KEY|PERSISTENT',
+                     'ShortText',
+                     'null'],
+                    [259, 'item_query', GroongaTestBase.DB_PATH + '.0000103',
+                     'TABLE_PAT_KEY|KEY_NORMALIZE|PERSISTENT',
+                     'ShortText',
+                     'null'],
+                    [261, 'kana', GroongaTestBase.DB_PATH + '.0000105',
+                     'TABLE_PAT_KEY|KEY_NORMALIZE|PERSISTENT',
+                     'ShortText',
+                     'null'],
+                    [262, 'pair_query', GroongaTestBase.DB_PATH + '.0000106',
+                     'TABLE_HASH_KEY|PERSISTENT',
+                     'UInt64',
+                     'null'],
+                    [263, 'sequence_query', GroongaTestBase.DB_PATH + '.0000107',
+                     'TABLE_HASH_KEY|PERSISTENT',
+                     'ShortText',
+                     'null'],
+                    ]
+        self.assertListEqual(result[1], expected)
 
 
 def main():
