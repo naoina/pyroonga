@@ -460,3 +460,13 @@ class LoadQuery(Query):
         return 'load --table %(table)s --input_type json --values ' \
                '"%(data)s"' % dict(table=self._table.__name__,
                                    data=self._makejson())
+
+
+class SuggestLoadQuery(LoadQuery):
+    """'load' query for suggestion representation class"""
+
+    def __str__(self):
+        return 'load --table %(table)s --input_type json --each ' \
+               '\'suggest_preparer(_id, type, item, sequence, time, ' \
+               'pair_query)\' "%(data)s"' % dict(table=self._table.__name__,
+                                                 data=self._makejson())

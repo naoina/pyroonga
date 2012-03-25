@@ -44,8 +44,14 @@ from pyroonga.orm.attributes import (
     TokenizerSymbol,
     Tokenizer,
     )
-from pyroonga.orm.query import (Expression, ExpressionTree, LoadQuery,
-                                SelectQuery, Value)
+from pyroonga.orm.query import (
+    Expression,
+    ExpressionTree,
+    LoadQuery,
+    SuggestLoadQuery,
+    SelectQuery,
+    Value,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -221,12 +227,16 @@ class TableBase(object):
             load.
         :returns: :class:`pyroonga.orm.query.LoadQuery`\ .
         """
-        query = LoadQuery(cls, data)
+        query = cls._load(data)
         return query.commit() if immediate else query
+
+    @classmethod
+    def _load(cls, data):
+        return LoadQuery(cls, data)
 
     def asdict(self):
         return dict((k[:-1], v) for k, v in self.__dict__.items()
-                    if k.endswith('_'))
+                    if v and k.endswith('_'))
 
 
 class Column(object):
@@ -345,6 +355,10 @@ class SuggestTableBase(TableBase):
             for query in queries:
                 logger.debug(query)
                 cls.grn.query(query)
+
+    @classmethod
+    def _load(cls, data):
+        return SuggestLoadQuery(cls, data)
 
 SuggestTable = tablebase(name='SuggestTable', cls=SuggestTableBase)
 

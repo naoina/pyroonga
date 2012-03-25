@@ -44,8 +44,9 @@ from pyroonga.orm.table import (
     SuggestTable,
     prop_attr,
     tablebase,
+    event_query,
     )
-from pyroonga.orm.query import GroongaResultBase, LoadQuery, SuggestLoadQuery
+from pyroonga.orm.query import GroongaResultBase, LoadQuery
 from pyroonga.tests import unittest
 from pyroonga.tests import GroongaTestBase
 
@@ -922,6 +923,69 @@ class TestSuggestTable(GroongaTestBase):
                      'null'],
                     ]
         self.assertListEqual(result[1], expected)
+
+    def test_load(self):
+        grn = Groonga()
+        SuggestTable.bind(grn)
+        SuggestTable.create_all()
+        data = [event_query(time=12, sequence='deadbeef', item='s'),
+                event_query(time=13, sequence='deadbeef', item='se'),
+                event_query(time=14, sequence='deadbeef', item='sea',
+                            type='submit')]
+        result = event_query.load(data)
+        self.assertEqual(result, 3)
+        stored = json.loads(self._sendquery('select --table event_query'))
+        expected = [[[3],
+                     [['_id', 'UInt32'],
+                      ['item', 'item_query'],
+                      ['sequence', 'sequence_query'],
+                      ['time', 'Time'],
+                      ['type', 'event_type']],
+                     [1, 's', 'deadbeef', 12.0, ''],
+                     [2, 'se', 'deadbeef', 13.0, ''],
+                     [3, 'sea', 'deadbeef', 14.0, 'submit']]]
+        self.assertListEqual(stored[1], expected)
+
+        data = [event_query(time=22, sequence='foobar', item='mou'),
+                event_query(time=23, sequence='foobar', item='moun',
+                            type='submit'),
+                event_query(time=24, sequence='foobar', item='mountain',
+                            type='submit')]
+        result = event_query.load(data)
+        self.assertEqual(result, 3)
+        stored = json.loads(self._sendquery('select --table event_query'))
+        expected = [[[6],
+                     [['_id', 'UInt32'],
+                      ['item', 'item_query'],
+                      ['sequence', 'sequence_query'],
+                      ['time', 'Time'],
+                      ['type', 'event_type']],
+                     [1, 's', 'deadbeef', 12.0, ''],
+                     [2, 'se', 'deadbeef', 13.0, ''],
+                     [3, 'sea', 'deadbeef', 14.0, 'submit'],
+                     [4, 'mou', 'foobar', 22.0, ''],
+                     [5, 'moun', 'foobar', 23.0, 'submit'],
+                     [6, 'mountain', 'foobar', 24.0, 'submit']]]
+        self.assertListEqual(stored[1], expected)
+
+        stored = json.loads(self._sendquery('select --table item_query'))
+        expected = [[[6],
+                     [['_id', 'UInt32'],
+                      ['_key', 'ShortText'],
+                      ['boost', 'Int32'],
+                      ['buzz', 'Int32'],
+                      ['co', 'pair_query'],
+                      ['freq', 'Int32'],
+                      ['freq2', 'Int32'],
+                      ['kana', 'kana'],
+                      ['last', 'Time']],
+                     [4, 'mou', 0, 0, 0, 1, 0, [], 22.0],
+                     [5, 'moun', 0, 0, 0, 1, 1, [], 23.0],
+                     [6, 'mountain', 0, 0, 0, 1, 1, [], 24.0],
+                     [1, 's', 0, 0, 0, 1, 0, [], 12.0],
+                     [2, 'se', 0, 0, 0, 1, 0, [], 13.0],
+                     [3, 'sea', 0, 0, 0, 1, 1, [], 14.0]]]
+        self.assertListEqual(stored[1], expected)
 
 
 def main():
