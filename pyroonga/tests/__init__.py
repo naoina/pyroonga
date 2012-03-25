@@ -94,8 +94,8 @@ class GroongaTestBase(unittest.TestCase):
         if os.path.isdir(cls.DB_DIR):
             shutil.rmtree(cls.DB_DIR)
 
-    def loadfixture(self, num):
-        return json.load(open(self.FIXTURE_PATH % num))
+    def loadfixture(self, suffix):
+        return json.load(open(self.FIXTURE_PATH % suffix))
 
 
 class TestGroonga(GroongaTestBase):
