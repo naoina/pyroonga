@@ -59,6 +59,89 @@ class Query(object):
         self._table = tbl
 
 
+class QueryOptionsMixin(object):
+    __options__ = {'limit':  '--limit',
+                   'offset': '--offset',
+                   'sortby': '--sortby',
+                   'output_columns': '--output_columns'}
+
+    def __init__(self):
+        self._limit = None
+        self._offset = None
+        self._sortby = []
+        self._output_columns = []
+
+    def limit(self, lim):
+        """Limit for number of result of query
+
+        :param lim: max number of results.
+        :returns: self. for method chain.
+        """
+        self._limit = int(lim)
+        return self
+
+    def offset(self, off):
+        """Offset for start position of result of query
+
+        :param off: offset. Base is 0.
+        :returns: self. for method chain.
+        """
+        self._offset = int(off)
+        return self
+
+    def sortby(self, *args):
+        """Set the sort order for result of query
+
+        :param args: :class:`pyroonga.orm.table.Column` of sort keys.
+        :returns: self. for method chain.
+        """
+        self._sortby = args
+        return self
+
+    def output_columns(self, *args):
+        """Select the output columns for result of query
+
+        :param args: :class:`pyroonga.orm.table.Column`
+        :returns: self. for method chain.
+        """
+        self._output_columns = args
+        return self
+
+    def _makelimit(self):
+        if self._limit:
+            return '%s %d' % (self.__options__['limit'], self._limit)
+        else:
+            return ''
+
+    def _makeoffset(self):
+        if self._offset:
+            return '%s %d' % (self.__options__['offset'], self._offset)
+        else:
+            return ''
+
+    def _makesortby(self):
+        if self._sortby:
+            keys = ['-' * key._desc + key.name for key in self._sortby]
+            return '%s %s' % (self.__options__['sortby'], ','.join(keys))
+        else:
+            return ''
+
+    def _makeoutput_columns(self):
+        if self._output_columns:
+            cols = [col.name for col in self._output_columns]
+            return '%s %s' % (self.__options__['output_columns'],
+                              ','.join(cols))
+        else:
+            return ''
+
+    def _condition(self):
+        return '%(limit)s %(offset)s %(sortby)s %(output_columns)s' % \
+               dict(limit=self._makelimit(),
+                    offset=self._makeoffset(),
+                    sortby=self._makesortby(),
+                    output_columns=self._makeoutput_columns())
+
+
 class GroongaResultBase(object):
     """Base class of query result"""
 
@@ -99,18 +182,18 @@ class GroongaResultBase(object):
         return reversed(self._result)
 
 
-class GroongaResult(GroongaResultBase):
+class GroongaSelectResult(GroongaResultBase):
     """Result class for 'select' query"""
 
     def __init__(self, table, resultstr, maxlen=None):
-        """Construct of GroongaResult
+        """Construct of GroongaSelectResult
 
         :param table: Table class for mappings.
         :param resultstr: result string of 'select' query.
         :param maxlen: maximum length of mapping results. Default is all.
         """
         objs = json.loads(resultstr)
-        super(GroongaResult, self).__init__(table, objs[0], maxlen)
+        super(GroongaSelectResult, self).__init__(table, objs[0], maxlen)
         self._drilldown = self._drilldown_mapping(objs[1:])
         self._table = table
 
@@ -136,13 +219,8 @@ class Drilldown(object):
         self._nsubrecs = _nsubrecs
 
 
-class SelectQueryBase(Query):
+class SelectQueryBase(Query, QueryOptionsMixin):
     """'select' query representation base class"""
-
-    __options__ = {'limit':  '',
-                   'offset': '',
-                   'sortby': '',
-                   'output_columns': ''}
 
     def __init__(self, tbl, *args, **kwargs):
         """Construct of 'select' query
@@ -151,13 +229,10 @@ class SelectQueryBase(Query):
         :param args: :class:`ExpressionTree`\ .
         :param kwargs: search columns and search texts.
         """
-        super(SelectQueryBase, self).__init__(tbl)
+        Query.__init__(self, tbl)
+        QueryOptionsMixin.__init__(self)
         self._expr = args
         self._target = kwargs
-        self._limit = None
-        self._offset = None
-        self._sortby = []
-        self._output_columns = []
         self._cache = True
         self._match_escalation_threshold = None
 
@@ -168,43 +243,7 @@ class SelectQueryBase(Query):
         """
         q = str(self)
         result = self._table.grn.query(q)
-        return GroongaResult(self._table, result)
-
-    def limit(self, lim):
-        """Limit for number of result of query
-
-        :param lim: max number of results.
-        :returns: self. for method chain.
-        """
-        self._limit = int(lim)
-        return self
-
-    def offset(self, off):
-        """Offset for start position of result of query
-
-        :param off: offset. Base is 0.
-        :returns: self. for method chain.
-        """
-        self._offset = int(off)
-        return self
-
-    def sortby(self, *args):
-        """Set the sort order for result of query
-
-        :param args: :class:`pyroonga.orm.table.Column` of sort keys.
-        :returns: self. for method chain.
-        """
-        self._sortby = args
-        return self
-
-    def output_columns(self, *args):
-        """Select the output columns for result of query
-
-        :param args: :class:`pyroonga.orm.table.Column`
-        :returns: self. for method chain.
-        """
-        self._output_columns = args
-        return self
+        return GroongaSelectResult(self._table, result)
 
     def cache(self, iscache):
         """Set the query cache
@@ -224,33 +263,6 @@ class SelectQueryBase(Query):
         self._match_escalation_threshold = int(threshold)
         return self
 
-    def _makelimit(self):
-        if self._limit:
-            return '%s %d' % (self.__options__['limit'], self._limit)
-        else:
-            return ''
-
-    def _makeoffset(self):
-        if self._offset:
-            return '%s %d' % (self.__options__['offset'], self._offset)
-        else:
-            return ''
-
-    def _makesortby(self):
-        if self._sortby:
-            keys = ['-' * key._desc + key.name for key in self._sortby]
-            return '%s %s' % (self.__options__['sortby'], ','.join(keys))
-        else:
-            return ''
-
-    def _makeoutput_columns(self):
-        if self._output_columns:
-            cols = [col.name for col in self._output_columns]
-            return '%s %s' % (self.__options__['output_columns'],
-                              ','.join(cols))
-        else:
-            return ''
-
     def _makecache(self):
         return '' if self._cache else '--cache no'
 
@@ -265,13 +277,10 @@ class SelectQueryBase(Query):
         return ''
 
     def _condition(self):
-        return '%(cache)s %(limit)s %(offset)s %(sortby)s %(output_columns)s ' \
-               '%(match_escalation_threshold)s %(params)s' % \
-               dict(cache=self._makecache(),
-                    limit=self._makelimit(),
-                    offset=self._makeoffset(),
-                    sortby=self._makesortby(),
-                    output_columns=self._makeoutput_columns(),
+        return '%(condition)s %(cache)s %(match_escalation_threshold)s ' \
+               '%(params)s' % \
+               dict(condition=QueryOptionsMixin._condition(self),
+                    cache=self._makecache(),
                     match_escalation_threshold=self._makematch_escalation_threshold(),
                     params=self._makeparams())
 
@@ -283,11 +292,6 @@ class SelectQueryBase(Query):
 
 class SelectQuery(SelectQueryBase):
     """Query representation class for 'select' query"""
-
-    __options__ = {'limit':  '--limit',
-                   'offset': '--offset',
-                   'sortby': '--sortby',
-                   'output_columns': '--output_columns'}
 
     def drilldown(self, *columns):
         """Switch to the drilldown query
@@ -319,7 +323,7 @@ class SelectQuery(SelectQueryBase):
             return str(expr)
 
 
-class DrillDownQuery(SelectQueryBase):
+class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
     """'select' query with drilldown representation class
 
     Instantiate from :meth:`SelectQuery.drilldown`\ .
@@ -339,7 +343,8 @@ class DrillDownQuery(SelectQueryBase):
         """
         if not args:
             raise ValueError("args is must be one or more columns")
-        super(DrillDownQuery, self).__init__(parent._table)
+        SelectQueryBase.__init__(self, parent._table)
+        QueryOptionsMixin.__init__(self)
         self.parent = parent
         self.columns = args
 
