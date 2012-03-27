@@ -14,7 +14,7 @@ def pkgconfig(*packages, **kw):
         kw.setdefault(flag_map.get(token[:2]), []).append(token[2:])
     return kw
 
-version = '0.3'
+version = '0.4'
 
 setup_requires = [
     'nose',

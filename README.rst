@@ -213,6 +213,11 @@ pyroonga is licensed under the BSD license.
 Changelog
 ---------
 
+v0.4 (2012-03-28)
+^^^^^^^^^^^^^^^^^
+
+- Add suggest
+
 v0.3 (2012-02-17)
 ^^^^^^^^^^^^^^^^^
 
