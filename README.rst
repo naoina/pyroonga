@@ -159,6 +159,42 @@ For sortby of drilldown, Please call of ``sortby()`` method after the call of ``
 A ``sortby()`` method in example above, It is query option of ``--drilldown_sortby``\ .
 Of course, As well as ``limit()`` , ``offset()`` and ``output_columns()`` methods.
 
+Suggest
+^^^^^^^
+
+First, Create table if still not created::
+
+   from pyroonga import SuggestTable
+
+   grn = Groonga()
+   SuggestTable.bind(grn)
+   SuggestTable.create_all()
+
+Second, Data loading::
+
+   import time
+   from pyroonga import event_query
+
+   data = [event_query(time=time.time(), sequence=1, item='e'),
+           event_query(time=time.time(), sequence=1, item='en'),
+           event_query(time=time.time(), sequence=1, item='eng'),
+           event_query(time=time.time(), sequence=1, item='engi'),
+           event_query(time=time.time(), sequence=1, item='engin'),
+           event_query(time=time.time(), sequence=1, item='engine', type='submit')]
+   event_query.load(data)
+
+Finally, Querying::
+
+   from pyroonga import item_query, SuggestType
+
+   query = 'en'
+   result = item_query.suggest(query).types(SuggestType.complete). \
+           frequency_threshold(1).all()
+   for r in result.complete:
+       print("key is '%s', score is %s" % (r._key, r._score))
+
+See also http://groonga.org/docs/suggest.html
+
 More information
 ^^^^^^^^^^^^^^^^
 

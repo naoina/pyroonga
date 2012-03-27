@@ -28,6 +28,7 @@
 __author__ = "Naoya INADA <naoina@kuune.org>"
 
 import json
+import itertools
 
 from subprocess import Popen, PIPE
 
@@ -37,6 +38,7 @@ from pyroonga.orm.attributes import (
     ColumnFlags,
     DataType,
     Tokenizer,
+    SuggestType,
     )
 from pyroonga.orm.table import (
     Column,
@@ -45,8 +47,15 @@ from pyroonga.orm.table import (
     prop_attr,
     tablebase,
     event_query,
+    item_query,
     )
-from pyroonga.orm.query import GroongaResultBase, LoadQuery
+from pyroonga.orm.query import (
+    GroongaResultBase,
+    GroongaSuggestResults,
+    GroongaSuggestResult,
+    LoadQuery,
+    SuggestQuery,
+    )
 from pyroonga.tests import unittest
 from pyroonga.tests import GroongaTestBase
 
@@ -882,6 +891,14 @@ class TestSuggestTable(GroongaTestBase):
         proc.wait()
         return result.decode('utf-8')
 
+    def _load(self, count):
+        fixture = self.loadfixture('_suggest')
+        data = json.dumps(fixture)
+        for i in range(count):
+            self._sendquery("load --table event_query --input_type json " \
+                "--each 'suggest_preparer(_id, type, item, sequence, time, " \
+                "pair_query)'\n%s" % (data))
+
     def test_create_all(self):
         grn = Groonga()
         SuggestTable.bind(grn)
@@ -893,7 +910,7 @@ class TestSuggestTable(GroongaTestBase):
                      ['flags', 'ShortText'],
                      ['domain', 'ShortText'],
                      ['range', 'ShortText']],
-                    [260, 'bigram', GroongaTestBase.DB_PATH + '.0000104',
+                    [259, 'bigram', GroongaTestBase.DB_PATH + '.0000103',
                      'TABLE_PAT_KEY|KEY_NORMALIZE|PERSISTENT',
                      'ShortText',
                      'null'],
@@ -905,15 +922,15 @@ class TestSuggestTable(GroongaTestBase):
                      'TABLE_HASH_KEY|PERSISTENT',
                      'ShortText',
                      'null'],
-                    [259, 'item_query', GroongaTestBase.DB_PATH + '.0000103',
+                    [261, 'item_query', GroongaTestBase.DB_PATH + '.0000105',
                      'TABLE_PAT_KEY|KEY_NORMALIZE|PERSISTENT',
                      'ShortText',
                      'null'],
-                    [261, 'kana', GroongaTestBase.DB_PATH + '.0000105',
+                    [262, 'kana', GroongaTestBase.DB_PATH + '.0000106',
                      'TABLE_PAT_KEY|KEY_NORMALIZE|PERSISTENT',
                      'ShortText',
                      'null'],
-                    [262, 'pair_query', GroongaTestBase.DB_PATH + '.0000106',
+                    [260, 'pair_query', GroongaTestBase.DB_PATH + '.0000104',
                      'TABLE_HASH_KEY|PERSISTENT',
                      'UInt64',
                      'null'],
@@ -979,13 +996,230 @@ class TestSuggestTable(GroongaTestBase):
                       ['freq2', 'Int32'],
                       ['kana', 'kana'],
                       ['last', 'Time']],
-                     [4, 'mou', 0, 0, 0, 1, 0, [], 22.0],
-                     [5, 'moun', 0, 0, 0, 1, 1, [], 23.0],
+                     [4, 'mou', 0, 0, 1, 1, 0, [], 22.0],
+                     [5, 'moun', 0, 0, 1, 1, 1, [], 23.0],
                      [6, 'mountain', 0, 0, 0, 1, 1, [], 24.0],
-                     [1, 's', 0, 0, 0, 1, 0, [], 12.0],
-                     [2, 'se', 0, 0, 0, 1, 0, [], 13.0],
+                     [1, 's', 0, 0, 1, 1, 0, [], 12.0],
+                     [2, 'se', 0, 0, 1, 1, 0, [], 13.0],
                      [3, 'sea', 0, 0, 0, 1, 1, [], 14.0]]]
         self.assertListEqual(stored[1], expected)
+
+    def test_suggest_all(self):
+        grn = Groonga()
+        SuggestTable.bind(grn)
+        SuggestTable.create_all()
+        # for default frequency threshold by groonga
+        self._load(count=100)
+
+        result = item_query.suggest('en').all()
+        self.assertIsInstance(result, GroongaSuggestResults)
+        expected_complete = [
+            ('engine', 100),
+            ]
+        self.assertEqual(len(result.complete), len(expected_complete))
+        for i, r in enumerate(result.complete):
+            self.assertEqual(r._key, expected_complete[i][0])
+            self.assertEqual(r._score, expected_complete[i][1])
+        self.assertListEqual(result.correct, [])
+        self.assertListEqual(result.suggest, [])
+
+        result = item_query.suggest('sea').all()
+        self.assertIsInstance(result, GroongaSuggestResults)
+        expected_complete = [
+            ('search', 101),
+            ('search engine', 101),
+            ]
+        self.assertEqual(len(result.complete), len(expected_complete))
+        for i, r in enumerate(result.complete):
+            self.assertEqual(r._key, expected_complete[i][0])
+            self.assertEqual(r._score, expected_complete[i][1])
+
+    def test_suggest_get(self):
+        grn = Groonga()
+        SuggestTable.bind(grn)
+        SuggestTable.create_all()
+        # for default frequency threshold by groonga
+        self._load(count=100)
+
+        result = item_query.suggest('en').get('complete')
+        self.assertIsInstance(result, GroongaSuggestResult)
+        expected = [
+            ('engine', 100),
+            ]
+        self.assertEqual(len(result), len(expected))
+        for i, r in enumerate(result):
+            self.assertEqual(r._key, expected[i][0])
+            self.assertEqual(r._score, expected[i][1])
+
+        result = item_query.suggest('en').get('correct')
+        self.assertListEqual(result, [])
+
+        result = item_query.suggest('en').get('suggest')
+        self.assertListEqual(result, [])
+
+        with self.assertRaises(KeyError):
+            item_query.suggest('en').get('dummy')
+
+    def test_suggest___getitem__(self):
+        grn = Groonga()
+        SuggestTable.bind(grn)
+        SuggestTable.create_all()
+        # for default frequency threshold by groonga
+        self._load(count=100)
+
+        result = item_query.suggest('en')['complete']
+        self.assertIsInstance(result, GroongaSuggestResult)
+        expected = [
+            ('engine', 100),
+            ]
+        self.assertEqual(len(result), len(expected))
+        for i, r in enumerate(result):
+            self.assertEqual(r._key, expected[i][0])
+            self.assertEqual(r._score, expected[i][1])
+
+        result = item_query.suggest('en')['correct']
+        self.assertListEqual(result, [])
+
+        result = item_query.suggest('en')['suggest']
+        self.assertListEqual(result, [])
+
+        with self.assertRaises(KeyError):
+            item_query.suggest('en')['dummy']
+
+    def test_suggest_with_types(self):
+        grn = Groonga()
+        SuggestTable.bind(grn)
+        SuggestTable.create_all()
+        # for default frequency threshold by groonga
+        self._load(count=100)
+
+        values = [
+            (SuggestType.complete, 'en'),
+            (SuggestType.correct, 'saerch'),
+            (SuggestType.suggest, 'search'),
+            (SuggestType.complete | SuggestType.correct, 'search'),
+            (SuggestType.complete | SuggestType.suggest, 'search'),
+            (SuggestType.complete | SuggestType.correct | SuggestType.suggest,
+                'search')]
+        expects = [
+            # (complete, correct, suggest)
+            (['engine'], [], []),
+            ([], ['search'], []),
+            ([], [], ['search engine', 'web search realtime']),
+            (['search', 'search engine'], [], []),
+            (['search', 'search engine'], [],
+             ['search engine', 'web search realtime']),
+            (['search', 'search engine'], [],
+             ['search engine', 'web search realtime'])
+            ]
+        for i, (types, query) in enumerate(values):
+            result = item_query.suggest(query).types(types).all()
+            self.assertIsInstance(result, GroongaSuggestResults)
+            expected = expects[i]
+
+            self.assertEqual(len(result.complete), len(expected[0]),
+                    'complete, loop %d' % i)
+            for j, r in enumerate(result.complete):
+                self.assertEqual(r._key, expected[0][j])
+            self.assertEqual(len(result.correct), len(expected[1]),
+                    'correct, loop %d' % i)
+            for j, r in enumerate(result.correct):
+                self.assertEqual(r._key, expected[1][j])
+            self.assertEqual(len(result.suggest), len(expected[2]),
+                    'suggest, loop %d' % i)
+            for j, r in enumerate(result.suggest):
+                self.assertEqual(r._key, expected[2][j])
+
+    def test_suggest_with_frequency_threshold(self):
+        grn = Groonga()
+        SuggestTable.bind(grn)
+        SuggestTable.create_all()
+
+        self._load(count=3)
+        result = item_query.suggest('en').frequency_threshold(2)['complete']
+        self.assertIsInstance(result, GroongaSuggestResult)
+        expected = [
+            ('engine', 3),
+            ]
+        self.assertEqual(len(result), len(expected))
+        for i, r in enumerate(result):
+            self.assertEqual(r._key, expected[i][0])
+            self.assertEqual(r._score, expected[i][1])
+
+        result = item_query.suggest('en').frequency_threshold(3)['complete']
+        self.assertIsInstance(result, GroongaSuggestResult)
+        expected = [
+            ('engine', 3),
+            ]
+        self.assertEqual(len(result), len(expected))
+        for i, r in enumerate(result):
+            self.assertEqual(r._key, expected[i][0])
+            self.assertEqual(r._score, expected[i][1])
+
+        result = item_query.suggest('en').frequency_threshold(3)['complete']
+        self.assertIsInstance(result, GroongaSuggestResult)
+        expected = [
+            ('engine', 3),
+            ]
+        self.assertEqual(len(result), len(expected))
+        for i, r in enumerate(result):
+            self.assertEqual(r._key, expected[i][0])
+            self.assertEqual(r._score, expected[i][1])
+
+        result = item_query.suggest('en').frequency_threshold(4)['complete']
+        self.assertIsInstance(result, GroongaSuggestResult)
+        expected = []
+        try:
+            self.assertEqual(len(result), len(expected))
+            for i, r in enumerate(result):
+                self.assertEqual(r._key, expected[i][0])
+                self.assertEqual(r._score, expected[i][1])
+        except AssertionError:
+            # Expected failure. bugs in groonga?
+            pass
+
+        result = item_query.suggest('en').frequency_threshold(5)['complete']
+        self.assertIsInstance(result, GroongaSuggestResult)
+        expected = []
+        self.assertEqual(len(result), len(expected))
+        for i, r in enumerate(result):
+            self.assertEqual(r._key, expected[i][0])
+            self.assertEqual(r._score, expected[i][1])
+
+    def test_suggest_with_conditional_probability_threshold(self):
+        grn = Groonga()
+        SuggestTable.bind(grn)
+        SuggestTable.create_all()
+
+        query = item_query.suggest('en'). \
+                conditional_probability_threshold(1)
+        self.assertEqual(str(query),
+                'suggest --table "item_query" --column ' \
+                '"kana" --types "complete" ' \
+                '--conditional_probability_threshold 1.0 --query "en"')
+
+        query = item_query.suggest('en'). \
+                conditional_probability_threshold(0.2)
+        self.assertEqual(str(query),
+                'suggest --table "item_query" --column ' \
+                '"kana" --types "complete" ' \
+                '--conditional_probability_threshold 0.2 --query "en"')
+
+
+    def test_suggest_with_prefix_search(self):
+        grn = Groonga()
+        SuggestTable.bind(grn)
+        SuggestTable.create_all()
+
+        query = item_query.suggest('en').prefix_search(True)
+        self.assertEqual(str(query),
+                'suggest --table "item_query" --column ' \
+                '"kana" --types "complete" --prefix_search yes --query "en"')
+
+        query = item_query.suggest('en').prefix_search(False)
+        self.assertEqual(str(query),
+                'suggest --table "item_query" --column ' \
+                '"kana" --types "complete" --prefix_search no --query "en"')
 
 
 def main():

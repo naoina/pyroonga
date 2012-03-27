@@ -1,0 +1,18 @@
+[
+{"sequence": "1", "time": 1312950803.86057, "item": "e"},
+{"sequence": "1", "time": 1312950803.96857, "item": "en"},
+{"sequence": "1", "time": 1312950804.26057, "item": "eng"},
+{"sequence": "1", "time": 1312950804.56057, "item": "engi"},
+{"sequence": "1", "time": 1312950804.76057, "item": "engin"},
+{"sequence": "1", "time": 1312950805.86057, "item": "engine", "type": "submit"},
+{"sequence": "2", "time": 1312950803.86057, "item": "s"},
+{"sequence": "2", "time": 1312950803.96857, "item": "sa"},
+{"sequence": "2", "time": 1312950804.26057, "item": "sae"},
+{"sequence": "2", "time": 1312950804.56057, "item": "saer"},
+{"sequence": "2", "time": 1312950804.76057, "item": "saerc"},
+{"sequence": "2", "time": 1312950805.76057, "item": "saerch", "type": "submit"},
+{"sequence": "2", "time": 1312950809.76057, "item": "serch"},
+{"sequence": "2", "time": 1312950810.86057, "item": "search", "type": "submit"},
+{"sequence": "3", "time": 1312950803.86057, "item": "search engine", "type": "submit"},
+{"sequence": "3", "time": 1312950808.86057, "item": "web search realtime", "type": "submit"}
+]

@@ -35,6 +35,7 @@ import json
 import logging
 
 from pyroonga import utils
+from pyroonga.orm.attributes import SuggestType
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,7 @@ class GroongaResultBase(object):
         cols = [col[0] for col in results[1]]
         colrange = range(len(cols))
         result = []
+        # TODO: implements by generator
         for v in results[2:maxlen]:
             mapped = dict(zip(cols, [v[i] for i in colrange]))
             result.append(cls(**mapped))
@@ -209,6 +211,33 @@ class GroongaSelectResult(GroongaResultBase):
 
 class GroongaDrilldownResult(GroongaResultBase):
     """Result class for drilldown"""
+
+
+class GroongaSuggestResults(object):
+    """Results of suggestion representation class"""
+
+    __slots__ = ['complete', 'correct', 'suggest']
+
+    def __init__(self, resultstr):
+        result = json.loads(resultstr)
+        complete = result.get('complete', [])
+        correct  = result.get('correct', [])
+        suggest  = result.get('suggest', [])
+        self.complete = complete and GroongaSuggestResult(Suggest, complete)
+        self.correct  = correct  and GroongaSuggestResult(Suggest, correct)
+        self.suggest  = suggest  and GroongaSuggestResult(Suggest, suggest)
+
+
+class GroongaSuggestResult(GroongaResultBase):
+    """Result class for suggest"""
+
+
+class Suggest(object):
+    """Suggest representation class"""
+
+    def __init__(self, _key=None, _score=None):
+        self._key = _key
+        self._score = _score
 
 
 class Drilldown(object):
@@ -465,6 +494,142 @@ class LoadQuery(Query):
         return 'load --table %(table)s --input_type json --values ' \
                '"%(data)s"' % dict(table=self._table.__name__,
                                    data=self._makejson())
+
+
+class SuggestQuery(Query, QueryOptionsMixin):
+    """'suggest' query representation class"""
+
+    __options__ = {'limit':  '--limit',
+                   'offset': '--offset',
+                   'sortby': '--sortby',
+                   'output_columns': '--output_columns',
+                   'frequency_threshold': '--frequency_threshold',
+                   'conditional_probability_threshold':
+                       '--conditional_probability_threshold',
+                   'prefix_search': '--prefix_search'}
+
+    def __init__(self, tbl, query):
+        """Construct of 'suggest' query
+
+        :param tbl: :class:`pyroonga.orm.table.item_query` class.
+            see also :class:`Query`\ .
+        :param query: query string for suggest.
+        """
+        Query.__init__(self, tbl)
+        QueryOptionsMixin.__init__(self)
+        self._query = query
+        self._types = SuggestType.complete
+        self._frequency_threshold = None
+        self._conditional_probability_threshold = None
+        self._prefix_search = None
+        self._result = None
+
+    def all(self):
+        """Get results of suggest
+
+        :returns: :class:`GroongaSuggestResults`
+        """
+        query = str(self)
+        result = self._table.grn.query(query)
+        return GroongaSuggestResults(result)
+
+    def get(self, type_):
+        """Get a result of suggest by type name
+
+        :param type_: type name of suggest. 'complete', 'correct' or 'suggest'.
+        :returns: :class:`GroongaSuggestResult`\ .
+        :raises: KeyError
+        """
+        result = self.all()
+        try:
+            return getattr(result, type_)
+        except AttributeError:
+            raise KeyError(type_)
+
+    def __getitem__(self, key):
+        """Get results of suggest by type name
+
+        Same as :meth:`SuggestQuery.get`
+        """
+        return self.get(key)
+
+    def types(self, types):
+        """Set the suggestion types
+
+        :param types: see :class:`pyroonga.orm.attributes.SuggestType`
+        :returns: self. for method chain.
+        """
+        self._types = types
+        return self
+
+    def frequency_threshold(self, threshold):
+        """Set the frequency threshold
+
+        :param threshold: threshold of frequency
+        :returns: self. for method chain.
+        """
+        self._frequency_threshold = int(threshold)
+        return self
+
+    def conditional_probability_threshold(self, threshold):
+        """Set the conditional probability threshold
+
+        :param threshold: threshold of conditional probability
+        :returns: self. for method chain.
+        """
+        self._conditional_probability_threshold = float(threshold)
+        return self
+
+    def prefix_search(self, isprefixsearch):
+        """Set the prefix search
+
+        :param threshold: threshold of conditional probability
+        :param isprefixsearch: It specifies whether optional prefix search is
+            used or not in completion. 'yes' if True, otherwise 'no'.
+        :returns: self. for method chain.
+        """
+        self._prefix_search = bool(isprefixsearch)
+        return self
+
+    def _makefrequency_threshold(self):
+        if self._frequency_threshold is None:
+            return ''
+        else:
+            return ('%s %d' % (self.__options__['frequency_threshold'],
+                               self._frequency_threshold))
+
+    def _makeconditional_probability_threshold(self):
+        if self._conditional_probability_threshold is None:
+            return ''
+        else:
+            return ('%s %.1f' %
+                    (self.__options__['conditional_probability_threshold'],
+                     self._conditional_probability_threshold))
+
+    def _makeprefix_search(self):
+        if self._prefix_search is None:
+            return ''
+        else:
+            return ('%s %s' % (self.__options__['prefix_search'],
+                               'yes' if self._prefix_search else 'no'))
+
+    def _condition(self):
+        return ('%(condition)s %(frequency_threshold)s ' \
+                '%(conditional_probability_threshold)s %(prefix_search)s' % \
+                dict(condition=QueryOptionsMixin._condition(self),
+                     frequency_threshold=self._makefrequency_threshold(),
+                     conditional_probability_threshold=
+                         self._makeconditional_probability_threshold(),
+                     prefix_search=self._makeprefix_search())).strip()
+
+    def __str__(self):
+        return 'suggest --table "%(table)s" --column "%(column)s" --types ' \
+                '"%(types)s" %(condition)s --query "%(query)s"' % \
+                dict(table=self._table.__tablename__,
+                     column=self._table.kana.name,
+                     types=self._types,
+                     condition=self._condition(),
+                     query=utils.escape(self._query))
 
 
 class SuggestLoadQuery(LoadQuery):

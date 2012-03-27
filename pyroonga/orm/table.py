@@ -48,6 +48,7 @@ from pyroonga.orm.query import (
     Expression,
     ExpressionTree,
     LoadQuery,
+    SuggestQuery,
     SuggestLoadQuery,
     SelectQuery,
     Value,
@@ -349,12 +350,32 @@ class SuggestTableBase(TableBase):
             table_queries.append(str(tbl))
             column_queries.extend([str(col) for col in tbl.columns])
         suggest_query = 'register suggest/suggest'
-        logger.debug(suggest_query)
         cls.grn.query(suggest_query)
         for queries in (table_queries, column_queries):
             for query in queries:
-                logger.debug(query)
                 cls.grn.query(query)
+
+    @classmethod
+    def suggest(cls, query):
+        """Suggest query to the groonga
+
+        e.g.::
+
+            # suggest type is 'complete' by default. Get a 'complete'
+            item_query.suggest('en').get('complete')
+
+            # suggest type is 'correct' and 'complete'. Get a 'correct'
+            item_query.suggest('en').types(SuggestType.correct |
+                                           SuggestType.complete)['correct']
+
+        See also :class:`pyroonga.orm.attributes.SuggestType` and
+            :class:`pyroonga.orm.table.item_query`
+
+        :param query: query string for suggest.
+        :returns: :class:`pyroonga.orm.query.SuggestQuery`\ .
+        """
+        query = SuggestQuery(cls, query)
+        return query
 
     @classmethod
     def _load(cls, data):
@@ -363,9 +384,35 @@ class SuggestTableBase(TableBase):
 SuggestTable = tablebase(name='SuggestTable', cls=SuggestTableBase)
 
 
+##############################################################################
+# NOTE: Do not change class definition order that inherited the SuggestTable.
+#       Because, 'suggest' function will not work.
+#       This is a related to a creation order of INDEX columns.
+##############################################################################
 class event_type(SuggestTable):
     __tableflags__ = TableFlags.TABLE_HASH_KEY
     __key_type__   = DataType.ShortText
+
+
+class bigram(SuggestTable):
+    __tableflags__ = TableFlags.TABLE_PAT_KEY | TableFlags.KEY_NORMALIZE
+    __key_type__   = DataType.ShortText
+    __default_tokenizer__ = Tokenizer.TokenBigram
+
+    item_query_key = Column(flags=(ColumnFlags.COLUMN_INDEX |
+                                   ColumnFlags.WITH_POSITION),
+                                   type='item_query', source='_key')
+
+
+class pair_query(SuggestTable):
+    __tableflags__ = TableFlags.TABLE_HASH_KEY
+    __key_type__   = DataType.UInt64
+
+    pre   = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
+    post  = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
+    freq0 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
+    freq1 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
+    freq2 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
 
 
 # TODO: To allow users to configure name, but name prefix must be 'item_'
@@ -384,33 +431,12 @@ class item_query(SuggestTable):
                    source='pre')
 
 
-class bigram(SuggestTable):
-    __tableflags__ = TableFlags.TABLE_PAT_KEY | TableFlags.KEY_NORMALIZE
-    __key_type__   = DataType.ShortText
-    __default_tokenizer__ = Tokenizer.TokenBigram
-
-    item_query_key = Column(flags=(ColumnFlags.COLUMN_INDEX |
-                                   ColumnFlags.WITH_POSITION),
-                                   type='item_query', source='_key')
-
-
 class kana(SuggestTable):
     __tableflags__ = TableFlags.TABLE_PAT_KEY | TableFlags.KEY_NORMALIZE
     __key_type__   = DataType.ShortText
 
     item_query_kana = Column(flags=ColumnFlags.COLUMN_INDEX, type='item_query',
                              source='kana')
-
-
-class pair_query(SuggestTable):
-    __tableflags__ = TableFlags.TABLE_HASH_KEY
-    __key_type__   = DataType.UInt64
-
-    pre   = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
-    post  = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
-    freq0 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
-    freq1 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
-    freq2 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
 
 
 class sequence_query(SuggestTable):
