@@ -506,7 +506,8 @@ class SuggestQuery(Query, QueryOptionsMixin):
                    'frequency_threshold': '--frequency_threshold',
                    'conditional_probability_threshold':
                        '--conditional_probability_threshold',
-                   'prefix_search': '--prefix_search'}
+                   'prefix_search': '--prefix_search',
+                   'similar_search': '--similar_search'}
 
     def __init__(self, tbl, query):
         """Construct of 'suggest' query
@@ -522,6 +523,7 @@ class SuggestQuery(Query, QueryOptionsMixin):
         self._frequency_threshold = None
         self._conditional_probability_threshold = None
         self._prefix_search = None
+        self._similar_search = None
         self._result = None
 
     def all(self):
@@ -583,12 +585,20 @@ class SuggestQuery(Query, QueryOptionsMixin):
     def prefix_search(self, isprefixsearch):
         """Set the prefix search
 
-        :param threshold: threshold of conditional probability
         :param isprefixsearch: It specifies whether optional prefix search is
             used or not in completion. 'yes' if True, otherwise 'no'.
+        :returns: self. for method chain.  """
+        self._prefix_search = bool(isprefixsearch)
+        return self
+
+    def similar_search(self, issimilar_search):
+        """Set the similar search
+
+        :param issimilar_search: It specifies whether optional similar search
+            is used or not in completion. 'yes' if True, otherwise 'no'.
         :returns: self. for method chain.
         """
-        self._prefix_search = bool(isprefixsearch)
+        self._similar_search = bool(issimilar_search)
         return self
 
     def _makefrequency_threshold(self):
@@ -613,14 +623,23 @@ class SuggestQuery(Query, QueryOptionsMixin):
             return ('%s %s' % (self.__options__['prefix_search'],
                                'yes' if self._prefix_search else 'no'))
 
+    def _makesimilar_search(self):
+        if self._similar_search is None:
+            return ''
+        else:
+            return ('%s %s' % (self.__options__['similar_search'],
+                               'yes' if self._similar_search else 'no'))
+
     def _condition(self):
         return ('%(condition)s %(frequency_threshold)s ' \
-                '%(conditional_probability_threshold)s %(prefix_search)s' % \
+                '%(conditional_probability_threshold)s %(prefix_search)s ' \
+                '%(similar_search)s' % \
                 dict(condition=QueryOptionsMixin._condition(self),
                      frequency_threshold=self._makefrequency_threshold(),
                      conditional_probability_threshold=
                          self._makeconditional_probability_threshold(),
-                     prefix_search=self._makeprefix_search())).strip()
+                     prefix_search=self._makeprefix_search(),
+                     similar_search=self._makesimilar_search())).strip()
 
     def __str__(self):
         return 'suggest --table "%(table)s" --column "%(column)s" --types ' \

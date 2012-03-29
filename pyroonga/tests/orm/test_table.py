@@ -1205,7 +1205,6 @@ class TestSuggestTable(GroongaTestBase):
                 '"kana" --types "complete" ' \
                 '--conditional_probability_threshold 0.2 --query "en"')
 
-
     def test_suggest_with_prefix_search(self):
         grn = Groonga()
         SuggestTable.bind(grn)
@@ -1220,6 +1219,21 @@ class TestSuggestTable(GroongaTestBase):
         self.assertEqual(str(query),
                 'suggest --table "item_query" --column ' \
                 '"kana" --types "complete" --prefix_search no --query "en"')
+
+    def test_suggest_with_similar_search(self):
+        grn = Groonga()
+        SuggestTable.bind(grn)
+        SuggestTable.create_all()
+
+        query = item_query.suggest('en').similar_search(True)
+        self.assertEqual(str(query),
+                'suggest --table "item_query" --column ' \
+                '"kana" --types "complete" --similar_search yes --query "en"')
+
+        query = item_query.suggest('en').similar_search(False)
+        self.assertEqual(str(query),
+                'suggest --table "item_query" --column ' \
+                '"kana" --types "complete" --similar_search no --query "en"')
 
 
 def main():
