@@ -35,7 +35,7 @@ import json
 import logging
 
 from pyroonga import utils
-from pyroonga.orm.attributes import SuggestType
+from pyroonga.odm.attributes import SuggestType
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class Query(object):
         """Construct of query
 
         :param tbl: Table class. It will be created using
-            :func:`pyroonga.orm.table.tablebase`\ .
+            :func:`pyroonga.odm.table.tablebase`\ .
         """
         self._table = tbl
 
@@ -93,7 +93,7 @@ class QueryOptionsMixin(object):
     def sortby(self, *args):
         """Set the sort order for result of query
 
-        :param args: :class:`pyroonga.orm.table.Column` of sort keys.
+        :param args: :class:`pyroonga.odm.table.Column` of sort keys.
         :returns: self. for method chain.
         """
         self._sortby = args
@@ -102,7 +102,7 @@ class QueryOptionsMixin(object):
     def output_columns(self, *args):
         """Select the output columns for result of query
 
-        :param args: :class:`pyroonga.orm.table.Column`
+        :param args: :class:`pyroonga.odm.table.Column`
         :returns: self. for method chain.
         """
         self._output_columns = args
@@ -368,7 +368,7 @@ class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
 
         :param parent: parent :class:`SelectQuery`\ .
         :param args: target columns for drilldown. Type is
-            :class:`pyroonga.orm.table.Column`\ .
+            :class:`pyroonga.odm.table.Column`\ .
         """
         if not args:
             raise ValueError("args is must be one or more columns")
@@ -512,7 +512,7 @@ class SuggestQuery(Query, QueryOptionsMixin):
     def __init__(self, tbl, query):
         """Construct of 'suggest' query
 
-        :param tbl: :class:`pyroonga.orm.table.item_query` class.
+        :param tbl: :class:`pyroonga.odm.table.item_query` class.
             see also :class:`Query`\ .
         :param query: query string for suggest.
         """
@@ -558,7 +558,7 @@ class SuggestQuery(Query, QueryOptionsMixin):
     def types(self, types):
         """Set the suggestion types
 
-        :param types: see :class:`pyroonga.orm.attributes.SuggestType`
+        :param types: see :class:`pyroonga.odm.attributes.SuggestType`
         :returns: self. for method chain.
         """
         self._types = types

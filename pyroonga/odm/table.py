@@ -36,7 +36,7 @@ __all__ = [
 import logging
 
 from pyroonga.groonga import Groonga
-from pyroonga.orm.attributes import (
+from pyroonga.odm.attributes import (
     TableFlags,
     ColumnFlagsFlag,
     ColumnFlags,
@@ -44,7 +44,7 @@ from pyroonga.orm.attributes import (
     TokenizerSymbol,
     Tokenizer,
     )
-from pyroonga.orm.query import (
+from pyroonga.odm.query import (
     Expression,
     ExpressionTree,
     LoadQuery,
@@ -210,10 +210,10 @@ class TableBase(object):
             # returns data that "name" is not "nyarlathotep".
             Table.select(Table.name != 'nyarlathotep').all()
 
-        :param args: :class:`pyroonga.orm.query.ExpressionTree`\ . Created by
+        :param args: :class:`pyroonga.odm.query.ExpressionTree`\ . Created by
             comparison of :class:`Column` and any value.
         :param kwargs: search columns and search texts.
-        :returns: :class:`pyroonga.orm.query.SelectQuery`\ .
+        :returns: :class:`pyroonga.odm.query.SelectQuery`\ .
         """
         query = SelectQuery(cls, *args, **kwargs)
         return query
@@ -224,9 +224,9 @@ class TableBase(object):
 
         :param data: iterable object of instance of Table.
         :param immediate: load data to groonga immediately if True. Otherwise,
-            Must call :meth:`pyroonga.orm.query.LoadQuery.commit` explicitly for data
+            Must call :meth:`pyroonga.odm.query.LoadQuery.commit` explicitly for data
             load.
-        :returns: :class:`pyroonga.orm.query.LoadQuery`\ .
+        :returns: :class:`pyroonga.odm.query.LoadQuery`\ .
         """
         query = cls._load(data)
         return query.commit() if immediate else query
@@ -368,11 +368,11 @@ class SuggestTableBase(TableBase):
             item_query.suggest('en').types(SuggestType.correct |
                                            SuggestType.complete)['correct']
 
-        See also :class:`pyroonga.orm.attributes.SuggestType` and
-            :class:`pyroonga.orm.table.item_query`
+        See also :class:`pyroonga.odm.attributes.SuggestType` and
+            :class:`pyroonga.odm.table.item_query`
 
         :param query: query string for suggest.
-        :returns: :class:`pyroonga.orm.query.SuggestQuery`\ .
+        :returns: :class:`pyroonga.odm.query.SuggestQuery`\ .
         """
         query = SuggestQuery(cls, query)
         return query

@@ -33,14 +33,14 @@ import itertools
 from subprocess import Popen, PIPE
 
 from pyroonga import Groonga
-from pyroonga.orm.attributes import (
+from pyroonga.odm.attributes import (
     TableFlags,
     ColumnFlags,
     DataType,
     Tokenizer,
     SuggestType,
     )
-from pyroonga.orm.table import (
+from pyroonga.odm.table import (
     Column,
     TableMeta,
     SuggestTable,
@@ -49,7 +49,7 @@ from pyroonga.orm.table import (
     event_query,
     item_query,
     )
-from pyroonga.orm.query import (
+from pyroonga.odm.query import (
     GroongaResultBase,
     GroongaSuggestResults,
     GroongaSuggestResult,

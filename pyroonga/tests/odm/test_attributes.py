@@ -30,7 +30,7 @@ __author__ = "Naoya INADA <naoina@kuune.org>"
 __all__ = [
 ]
 
-from pyroonga.orm.attributes import (Symbol, TableFlagsFlag)
+from pyroonga.odm.attributes import (Symbol, TableFlagsFlag)
 from pyroonga.tests import unittest
 
 

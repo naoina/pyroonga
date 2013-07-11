@@ -37,8 +37,8 @@ import logging
 
 from pyroonga.groonga import *
 from pyroonga.exceptions import *
-from pyroonga.orm.attributes import *
-from pyroonga.orm.table import *
+from pyroonga.odm.attributes import *
+from pyroonga.odm.table import *
 
 logger = logging.getLogger(__name__)
 
