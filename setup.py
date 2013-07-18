@@ -1,6 +1,7 @@
 import sys
 
 from setuptools import setup, find_packages, Extension
+from setuptools.command.test import test as TestCommand
 from subprocess import Popen, PIPE
 
 
@@ -16,12 +17,6 @@ def pkgconfig(*packages, **kw):
 
 version = '0.4'
 
-setup_requires = [
-    'nose',
-    ]
-if sys.version_info[:2] < (2, 7):
-    setup_requires.append('unittest2')
-
 setup(name='pyroonga',
       version=version,
       description="Python interface for groonga",
@@ -35,7 +30,7 @@ setup(name='pyroonga',
           'Topic :: Software Development :: Libraries'
           ],
       keywords='groonga fulltext search engine',
-      author='Naoya INADA',
+      author='Naoya Inada',
       author_email='naoina@kuune.org',
       url='https://github.com/naoina/pyroonga',
       license='BSD',
@@ -45,8 +40,6 @@ setup(name='pyroonga',
       install_requires=[
           # -*- Extra requirements: -*-
       ],
-      setup_requires=setup_requires,
-      test_suite='nose.collector',
       ext_modules=[Extension(
           '_groonga',
           sources=['_groonga.c'],
