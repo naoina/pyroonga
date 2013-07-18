@@ -120,7 +120,8 @@ class TestGroonga(GroongaTestBase):
         result = grn.query('table_list')
         self.assertEqual(result, '''[[["id","UInt32"],["name","ShortText"],\
 ["path","ShortText"],["flags","ShortText"],["domain","ShortText"],\
-["range","ShortText"]]]''')
+["range","ShortText"],["default_tokenizer","ShortText"],\
+["normalizer","ShortText"]]]''')
 
         # test the query with after the query of invalid command
         grn = Groonga()
@@ -129,7 +130,7 @@ class TestGroonga(GroongaTestBase):
         result = grn.query('table_list')
         self.assertEqual(result, '''[[["id","UInt32"],["name","ShortText"],\
 ["path","ShortText"],["flags","ShortText"],["domain","ShortText"],\
-["range","ShortText"]]]''')
+["range","ShortText"],["default_tokenizer","ShortText"],["normalizer","ShortText"]]]''')
 
     def test__raise_if_notsuccess(self):
         grn = Groonga()
