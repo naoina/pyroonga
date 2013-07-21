@@ -94,9 +94,7 @@ class TableFlags(object):
     TABLE_PAT_KEY  = TableFlagsFlag(Symbol('TABLE_PAT_KEY'))
     TABLE_DAT_KEY  = TableFlagsFlag(Symbol('TABLE_DAT_KEY'))
     TABLE_NO_KEY   = TableFlagsFlag(Symbol('TABLE_NO_KEY'))
-    TABLE_VIEW     = TableFlagsFlag(Symbol('TABLE_VIEW'))
     KEY_WITH_SIS   = TableFlagsFlag(Symbol('KEY_WITH_SIS'))
-    KEY_NORMALIZE  = TableFlagsFlag(Symbol('KEY_NORMALIZE'))
     PERSISTENT     = TableFlagsFlag(Symbol('PERSISTENT'))
 
 
@@ -149,11 +147,29 @@ class TokenizerSymbol(Symbol):
 class Tokenizer(object):
     """Tokenizer"""
 
+    TokenBigram = TokenizerSymbol('TokenBigram')
+    TokenBigramSplitSymbol = TokenizerSymbol('TokenBigramSplitSymbol')
+    TokenBigramSplitSymbolAlpha = TokenizerSymbol('TokenBigramSplitSymbolAlpha')
+    TokenBigramSplitSymbolAlphaDigit = TokenizerSymbol('TokenBigramSplitSymbolAlphaDigit')
+    TokenBigramIgnoreBlank = TokenizerSymbol('TokenBigramIgnoreBlank')
+    TokenBigramIgnoreBlankSplitSymbol = TokenizerSymbol('TokenBigramIgnoreBlankSplitSymbol')
+    TokenBigramIgnoreBlankSplitAlpha = TokenizerSymbol('TokenBigramIgnoreBlankSplitAlpha')
+    TokenBigramIgnoreBlankSplitAlphaDigit = TokenizerSymbol('TokenBigramIgnoreBlankSplitAlphaDigit')
     TokenDelimit = TokenizerSymbol('TokenDelimit')
-    TokenUnigram = TokenizerSymbol('TokenUnigram')
-    TokenBigram  = TokenizerSymbol('TokenBigram')
+    TokenDelimitNull = TokenizerSymbol('TokenDelimitNull')
     TokenTrigram = TokenizerSymbol('TokenTrigram')
-    TokenMecab   = TokenizerSymbol('TokenMecab')
+    TokenUnigram = TokenizerSymbol('TokenUnigram')
+
+
+class NormalizerSymbol(Symbol):
+    """Normalizer type representation class of groonga"""
+
+
+class Normalizer(object):
+    """Normalizer"""
+
+    NormalizerAuto = NormalizerSymbol('NormalizerAuto')
+    NormalizerNFKC51 = NormalizerSymbol('NormalizerNFKC51')
 
 
 class LogLevelSymbol(Symbol):

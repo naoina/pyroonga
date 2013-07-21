@@ -395,7 +395,7 @@ class event_type(SuggestTable):
 
 
 class bigram(SuggestTable):
-    __tableflags__ = TableFlags.TABLE_PAT_KEY | TableFlags.KEY_NORMALIZE
+    __tableflags__ = TableFlags.TABLE_PAT_KEY
     __key_type__   = DataType.ShortText
     __default_tokenizer__ = Tokenizer.TokenBigram
 
@@ -417,7 +417,7 @@ class pair_query(SuggestTable):
 
 # TODO: To allow users to configure name, but name prefix must be 'item_'
 class item_query(SuggestTable):
-    __tableflags__ = TableFlags.TABLE_PAT_KEY | TableFlags.KEY_NORMALIZE
+    __tableflags__ = TableFlags.TABLE_PAT_KEY
     __key_type__   = DataType.ShortText
     __default_tokenizer__ = Tokenizer.TokenDelimit
 
@@ -432,7 +432,7 @@ class item_query(SuggestTable):
 
 
 class kana(SuggestTable):
-    __tableflags__ = TableFlags.TABLE_PAT_KEY | TableFlags.KEY_NORMALIZE
+    __tableflags__ = TableFlags.TABLE_PAT_KEY
     __key_type__   = DataType.ShortText
 
     item_query_kana = Column(flags=ColumnFlags.COLUMN_INDEX, type='item_query',
