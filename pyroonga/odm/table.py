@@ -44,6 +44,8 @@ from pyroonga.odm.attributes import (
     DataType,
     TokenizerSymbol,
     Tokenizer,
+    NormalizerSymbol,
+    Normalizer,
     )
 from pyroonga.odm.query import (
     Expression,
@@ -111,6 +113,8 @@ class TableMeta(type):
             flags.append('--key_type %s' % cls.__key_type__)
         if isinstance(cls.__default_tokenizer__, TokenizerSymbol):
             flags.append('--default_tokenizer %s' % cls.__default_tokenizer__)
+        if isinstance(cls.__normalizer__, NormalizerSymbol):
+            flags.append('--normalizer %s' % cls.__normalizer__)
         return 'table_create ' + (' '.join(flags))
 
 
@@ -140,6 +144,7 @@ class TableBase(object):
     __tableflags__ = TableFlags.TABLE_HASH_KEY
     __key_type__   = DataType.ShortText
     __default_tokenizer__ = None
+    __normalizer__ = None
     grn = None
 
     @prop_attr

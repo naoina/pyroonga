@@ -37,6 +37,7 @@ from pyroonga.odm.attributes import (
     TableFlags,
     ColumnFlags,
     DataType,
+    Normalizer,
     Tokenizer,
     SuggestType,
     )
@@ -221,6 +222,7 @@ class TestTable(GroongaTestBase):
         self.assertIs(Table.__key_type__, DataType.ShortText)
         self.assertEqual(Table.__tablename__, 'Table')
         self.assertEqual(Table.__default_tokenizer__, None)
+        self.assertIs(Table.__normalizer__, None)
 
     def test_table(self):
         Table = tablebase()
@@ -237,6 +239,7 @@ class TestTable(GroongaTestBase):
         self.assertIs(Tb1.__tableflags__, TableFlags.TABLE_HASH_KEY)
         self.assertIs(Tb1.__key_type__, DataType.ShortText)
         self.assertIs(Tb1.__default_tokenizer__, None)
+        self.assertIs(Tb1.__normalizer__, None)
         self.assertEqual(Tb1.__tablename__, 'Tb1')
         self.assertEqual(str(Tb1), 'table_create --name Tb1 --flags ' \
                 'TABLE_HASH_KEY --key_type ShortText')
@@ -252,6 +255,7 @@ class TestTable(GroongaTestBase):
             __tableflags__ = TableFlags.TABLE_PAT_KEY
             __key_type__ = DataType.UInt32
             __default_tokenizer__ = Tokenizer.TokenBigram
+            __normalizer__ = Normalizer.NormalizerAuto
             site = sitecol
             address = addresscol
 
@@ -260,7 +264,7 @@ class TestTable(GroongaTestBase):
         self.assertEqual(Tb2.__tablename__, 'Tb2')
         self.assertEqual(str(Tb2), 'table_create --name Tb2 --flags ' \
                 'TABLE_PAT_KEY --key_type UInt32 --default_tokenizer ' \
-                'TokenBigram')
+                'TokenBigram --normalizer NormalizerAuto')
         self.assertListEqual(Tb2.columns, [sitecol, addresscol])
         self.assertListEqual(Table._tables, [Tb1, Tb2])
 
