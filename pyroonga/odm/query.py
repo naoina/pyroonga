@@ -153,15 +153,9 @@ class GroongaResultBase(object):
         :param results: query results.
         :param maxlen: maximum length of mapping results. Default is all.
         """
-        cols = [col[0] for col in results[1]]
-        colrange = range(len(cols))
-        result = []
-        # TODO: implements by generator
-        for v in results[2:maxlen]:
-            mapped = dict(zip(cols, [v[i] for i in colrange]))
-            result.append(cls(**mapped))
+        self._result = [cls(**mapped) for mapped in
+                        utils.to_python(results, 1, maxlen)]
         self._all_len = results[0][0]
-        self._result = result
 
     @property
     def all_len(self):

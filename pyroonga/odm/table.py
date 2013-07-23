@@ -33,6 +33,7 @@ __all__ = [
     'event_query',
 ]
 
+import json
 import logging
 
 from pyroonga.groonga import Groonga
@@ -53,6 +54,7 @@ from pyroonga.odm.query import (
     SelectQuery,
     Value,
     )
+from pyroonga import utils
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +192,11 @@ class TableBase(object):
             raise TypeError("%s object is not bind" % Groonga.__name__)
         table_queries  = []
         column_queries = []
-        for tbl in cls._tables:
+        json_results = json.loads(cls.grn.query('table_list'))
+        defined_tables = utils.to_python(json_results, 0)
+        defined_table_names = (v['name'] for v in defined_tables)
+        for tbl in (t for t in cls._tables if t.__name__ not in
+                    defined_table_names):
             table_queries.append(str(tbl))
             column_queries.extend(str(col) for col in tbl.columns)
         for queries in (table_queries, column_queries):

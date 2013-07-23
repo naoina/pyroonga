@@ -361,6 +361,88 @@ class TestTable(GroongaTestBase):
                      []]]
         self.assertListEqual(result[1], expected)
 
+    def test_create_all_with_multiple_calls(self):
+        Table = tablebase()
+
+        class Tb1(Table):
+            name = Column(flags=ColumnFlags.COLUMN_SCALAR,
+                          type=DataType.ShortText)
+
+        class Tb2(Table):
+            word = Column(flags=ColumnFlags.COLUMN_SCALAR,
+                          type=DataType.ShortText)
+
+        grn = Groonga()
+        Table.bind(grn)
+        Table.create_all()
+        result1 = json.loads(self._sendquery('table_list'))
+        expected1 = [[['id', 'UInt32'],
+                     ['name', 'ShortText'],
+                     ['path', 'ShortText'],
+                     ['flags', 'ShortText'],
+                     ['domain', 'ShortText'],
+                     ['range', 'ShortText'],
+                     ['default_tokenizer', 'ShortText'],
+                     ['normalizer', 'ShortText']],
+                    [256, 'Tb1', GroongaTestBase.DB_PATH + '.0000100',
+                     'TABLE_HASH_KEY|PERSISTENT',
+                     'ShortText',
+                     None,
+                     None,
+                     None],
+                    [257, 'Tb2', GroongaTestBase.DB_PATH + '.0000101',
+                     'TABLE_HASH_KEY|PERSISTENT',
+                     'ShortText',
+                     None,
+                     None,
+                     None]]
+        self.assertListEqual(result1[1], expected1)
+
+        result2 = json.loads(self._sendquery('column_list Tb1'))
+        expected2 = [[['id', 'UInt32'],
+                     ['name', 'ShortText'],
+                     ['path', 'ShortText'],
+                     ['type', 'ShortText'],
+                     ['flags', 'ShortText'],
+                     ['domain', 'ShortText'],
+                     ['range', 'ShortText'],
+                     ['source', 'ShortText']],
+                    [256, '_key', '', '', 'COLUMN_SCALAR', 'Tb1', 'ShortText', []],
+                    [258,
+                     'name',
+                     GroongaTestBase.DB_PATH + '.0000102',
+                     'var',
+                     'COLUMN_SCALAR|PERSISTENT',
+                     'Tb1',
+                     'ShortText',
+                     []]]
+        self.assertListEqual(result2[1], expected2)
+
+        result3 = json.loads(self._sendquery('column_list Tb2'))
+        expected3 = [[['id', 'UInt32'],
+                     ['name', 'ShortText'],
+                     ['path', 'ShortText'],
+                     ['type', 'ShortText'],
+                     ['flags', 'ShortText'],
+                     ['domain', 'ShortText'],
+                     ['range', 'ShortText'],
+                     ['source', 'ShortText']],
+                    [257, '_key', '', '', 'COLUMN_SCALAR', 'Tb2', 'ShortText', []],
+                    [259,
+                     'word',
+                     GroongaTestBase.DB_PATH + '.0000103',
+                     'var',
+                     'COLUMN_SCALAR|PERSISTENT',
+                     'Tb2',
+                     'ShortText',
+                     []]]
+        self.assertListEqual(result3[1], expected3)
+        # again
+        Table.create_all()
+        self.assertListEqual(result1[1], expected1)
+        self.assertListEqual(result2[1], expected2)
+        self.assertListEqual(result3[1], expected3)
+
     def test_select_all(self):
         Table = tablebase()
 
