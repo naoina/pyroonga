@@ -1,5 +1,7 @@
-from setuptools import setup, find_packages, Extension
+import os
 from subprocess import Popen, PIPE
+
+from setuptools import setup, find_packages, Extension
 
 
 def pkgconfig(*packages, **kw):
@@ -14,10 +16,15 @@ def pkgconfig(*packages, **kw):
 
 version = '0.4'
 
+here = os.path.abspath(os.path.dirname(__file__))
+
+README = open(os.path.join(here, 'README.rst')).read()
+CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
+
 setup(name='pyroonga',
       version=version,
       description="Python interface for groonga",
-      long_description=open('README.rst').read(),
+      long_description=README + '\n\n' + CHANGES,
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Intended Audience :: Developers',
