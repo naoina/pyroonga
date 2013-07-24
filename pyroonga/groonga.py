@@ -25,7 +25,7 @@
 # SUCH DAMAGE.
 
 
-__author__ = "Naoya INADA <naoina@kuune.org>"
+__author__ = "Naoya Inada <naoina@kuune.org>"
 
 __all__ = [
     'Groonga',
@@ -46,8 +46,7 @@ encodings = {
     'euc-jp': _groonga.ENC_EUC_JP,
     'sjis': _groonga.ENC_SJIS,
     'latin1': _groonga.ENC_LATIN1,
-    'koi8-r': _groonga.ENC_KOI8R,
-    }
+    'koi8-r': _groonga.ENC_KOI8R}
 
 
 class Context(_groonga.Context):

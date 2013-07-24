@@ -28,7 +28,7 @@
 """Python interface for groonga fulltext search engine.
 """
 
-__author__ = "Naoya INADA <naoina@kuune.org>"
+__author__ = "Naoya Inada <naoina@kuune.org>"
 
 __all__ = [
 ]

@@ -1,7 +1,4 @@
-import sys
-
 from setuptools import setup, find_packages, Extension
-from setuptools.command.test import test as TestCommand
 from subprocess import Popen, PIPE
 
 

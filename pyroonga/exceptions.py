@@ -25,7 +25,7 @@
 # SUCH DAMAGE.
 
 
-__author__ = "Naoya INADA <naoina@kuune.org>"
+__author__ = "Naoya Inada <naoina@kuune.org>"
 
 import _groonga
 
@@ -109,7 +109,7 @@ class GroongaError(Exception):
     def __init__(self, err, reason="", cause=""):
         self.errmsg = error_messages.get(err) or err
         self.reason = reason
-        self.cause  = cause
+        self.cause = cause
 
     def __str__(self):
         msg = "%s: %s" % (self.errmsg, self.reason)

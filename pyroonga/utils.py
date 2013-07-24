@@ -25,7 +25,7 @@
 # SUCH DAMAGE.
 
 
-__author__ = "Naoya INADA <naoina@kuune.org>"
+__author__ = "Naoya Inada <naoina@kuune.org>"
 
 __all__ = [
 ]

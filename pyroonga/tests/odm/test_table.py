@@ -1,34 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012 Naoya INADA <naoina@kuune.org>
-# All rights reserved.
-
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in the
-#    documentation and/or other materials provided with the distribution.
-
-# THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED.  IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-# SUCH DAMAGE.
-
-
-__author__ = "Naoya INADA <naoina@kuune.org>"
-
 import json
-import itertools
 
 from subprocess import Popen, PIPE
 
@@ -55,7 +27,6 @@ from pyroonga.odm.query import (
     GroongaSuggestResults,
     GroongaSuggestResult,
     LoadQuery,
-    SuggestQuery,
     )
 from pyroonga.tests import unittest
 from pyroonga.tests import GroongaTestBase
@@ -106,11 +77,13 @@ class TestColumn(unittest.TestCase):
         col = Column(flags=ColumnFlags.COLUMN_VECTOR, type=DataType.ShortText)
         col.tablename = 'tb2'
         col.name = 'name2'
-        self.assertEqual(col.__str__(), 'column_create --table tb2 ' \
-                '--name name2 --flags COLUMN_VECTOR --type ShortText')
-
+        self.assertEqual(
+            col.__str__(),
+            ('column_create --table tb2 --name name2 --flags'
+             ' COLUMN_VECTOR --type ShortText'))
 
         ExampleTableBase = tablebase()
+
         class ExampleTable(ExampleTableBase):
             name = Column()
 
@@ -118,16 +91,19 @@ class TestColumn(unittest.TestCase):
                      source=ExampleTable.name)
         col.tablename = 'tb3'
         col.name = 'name3'
-        self.assertEqual(col.__str__(), 'column_create --table tb3 ' \
-                '--name name3 --flags COLUMN_INDEX --type ExampleTable ' \
-                '--source name')
+        self.assertEqual(
+            col.__str__(),
+            ('column_create --table tb3 --name name3 --flags COLUMN_INDEX'
+             ' --type ExampleTable --source name'))
 
-        col = Column(flags=ColumnFlags.COLUMN_INDEX, type='ExampleTable', source='name')
+        col = Column(flags=ColumnFlags.COLUMN_INDEX, type='ExampleTable',
+                     source='name')
         col.tablename = 'tb4'
         col.name = 'name4'
-        self.assertEqual(col.__str__(), 'column_create --table tb4 ' \
-                '--name name4 --flags COLUMN_INDEX --type ExampleTable ' \
-                '--source name')
+        self.assertEqual(
+            col.__str__(),
+            ('column_create --table tb4 --name name4 --flags COLUMN_INDEX'
+             ' --type ExampleTable --source name'))
 
 
 class TestPropAttr(unittest.TestCase):
@@ -241,8 +217,10 @@ class TestTable(GroongaTestBase):
         self.assertIs(Tb1.__default_tokenizer__, None)
         self.assertIs(Tb1.__normalizer__, None)
         self.assertEqual(Tb1.__tablename__, 'Tb1')
-        self.assertEqual(str(Tb1), 'table_create --name Tb1 --flags ' \
-                'TABLE_HASH_KEY --key_type ShortText')
+        self.assertEqual(
+            str(Tb1),
+            ('table_create --name Tb1 --flags TABLE_HASH_KEY --key_type'
+             ' ShortText'))
         self.assertListEqual(Tb1.columns, [namecol, passwordcol])
         self.assertListEqual(Table._tables, [Tb1])
 
@@ -262,9 +240,10 @@ class TestTable(GroongaTestBase):
         self.assertIs(Tb2.__tableflags__, TableFlags.TABLE_PAT_KEY)
         self.assertIs(Tb2.__key_type__, DataType.UInt32)
         self.assertEqual(Tb2.__tablename__, 'Tb2')
-        self.assertEqual(str(Tb2), 'table_create --name Tb2 --flags ' \
-                'TABLE_PAT_KEY --key_type UInt32 --default_tokenizer ' \
-                'TokenBigram --normalizer NormalizerAuto')
+        self.assertEqual(
+            str(Tb2),
+            ('table_create --name Tb2 --flags TABLE_PAT_KEY --key_type UInt32'
+             ' --default_tokenizer TokenBigram --normalizer NormalizerAuto'))
         self.assertListEqual(Tb2.columns, [sitecol, addresscol])
         self.assertListEqual(Table._tables, [Tb1, Tb2])
 
@@ -275,8 +254,8 @@ class TestTable(GroongaTestBase):
 
         self.assertIs(Tb3.__tableflags__, TableFlags.TABLE_NO_KEY)
         self.assertEqual(Tb3.__tablename__, 'Tb3')
-        self.assertEqual(str(Tb3), 'table_create --name Tb3 --flags ' \
-                         'TABLE_NO_KEY')
+        self.assertEqual(str(Tb3),
+                         'table_create --name Tb3 --flags TABLE_NO_KEY')
         self.assertListEqual(Tb3.columns, [sitecol, addresscol])
         self.assertListEqual(Table._tables, [Tb1, Tb2, Tb3])
 
@@ -334,7 +313,8 @@ class TestTable(GroongaTestBase):
                      ['domain', 'ShortText'],
                      ['range', 'ShortText'],
                      ['source', 'ShortText']],
-                    [256, '_key', '', '', 'COLUMN_SCALAR', 'Tb1', 'ShortText', []],
+                    [256, '_key', '', '', 'COLUMN_SCALAR', 'Tb1', 'ShortText',
+                     []],
                     [258,
                      'name',
                      GroongaTestBase.DB_PATH + '.0000102',
@@ -354,7 +334,8 @@ class TestTable(GroongaTestBase):
                      ['domain', 'ShortText'],
                      ['range', 'ShortText'],
                      ['source', 'ShortText']],
-                    [257, '_key', '', '', 'COLUMN_SCALAR', 'Tb2', 'ShortText', []],
+                    [257, '_key', '', '', 'COLUMN_SCALAR', 'Tb2', 'ShortText',
+                     []],
                     [259,
                      'word',
                      GroongaTestBase.DB_PATH + '.0000103',
@@ -411,7 +392,8 @@ class TestTable(GroongaTestBase):
                      ['domain', 'ShortText'],
                      ['range', 'ShortText'],
                      ['source', 'ShortText']],
-                    [256, '_key', '', '', 'COLUMN_SCALAR', 'Tb1', 'ShortText', []],
+                    [256, '_key', '', '', 'COLUMN_SCALAR', 'Tb1', 'ShortText',
+                     []],
                     [258,
                      'name',
                      GroongaTestBase.DB_PATH + '.0000102',
@@ -431,7 +413,8 @@ class TestTable(GroongaTestBase):
                      ['domain', 'ShortText'],
                      ['range', 'ShortText'],
                      ['source', 'ShortText']],
-                    [257, '_key', '', '', 'COLUMN_SCALAR', 'Tb2', 'ShortText', []],
+                    [257, '_key', '', '', 'COLUMN_SCALAR', 'Tb2', 'ShortText',
+                     []],
                     [259,
                      'word',
                      GroongaTestBase.DB_PATH + '.0000103',
@@ -734,7 +717,7 @@ class TestTable(GroongaTestBase):
         self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category). \
-                    sortby(Tb._nsubrecs, Tb._key).all()
+            sortby(Tb._nsubrecs, Tb._key).all()
         expected = [[{'_key': 'Ghostory', '_nsubrecs': 2},
                      {'_key': 'BLACK LAGOON', '_nsubrecs': 3},
                      {'_key': 'VOCALOID', '_nsubrecs': 3}]]
@@ -752,7 +735,7 @@ class TestTable(GroongaTestBase):
         Tb, fixture = self._maketable2()
 
         result = Tb.select().drilldown(Tb.category). \
-                    output_columns(Tb._key).all()
+            output_columns(Tb._key).all()
         expected = [[{'_key': 'VOCALOID'},
                      {'_key': 'Ghostory'},
                      {'_key': 'BLACK LAGOON'}]]
@@ -760,7 +743,7 @@ class TestTable(GroongaTestBase):
         self.assertGroongaDrilldownResultEqual(result, expected, all_len)
 
         result = Tb.select().drilldown(Tb.category). \
-                    output_columns(Tb._nsubrecs, Tb._key).all()
+            output_columns(Tb._nsubrecs, Tb._key).all()
         expected = [[{'_nsubrecs': 3, '_key': 'VOCALOID'},
                      {'_nsubrecs': 2, '_key': 'Ghostory'},
                      {'_nsubrecs': 3, '_key': 'BLACK LAGOON'}]]
@@ -987,9 +970,9 @@ class TestSuggestTable(GroongaTestBase):
         fixture = self.loadfixture('_suggest')
         data = json.dumps(fixture)
         for i in range(count):
-            self._sendquery("load --table event_query --input_type json " \
-                "--each 'suggest_preparer(_id, type, item, sequence, time, " \
-                "pair_query)'\n%s" % (data))
+            self._sendquery("load --table event_query --input_type json --each"
+                            " 'suggest_preparer(_id, type, item, sequence,"
+                            " time, pair_query)'\n%s" % (data))
 
     def test_create_all(self):
         grn = Groonga()
@@ -1040,7 +1023,8 @@ class TestSuggestTable(GroongaTestBase):
                      None,
                      None,
                      None],
-                    [263, 'sequence_query', GroongaTestBase.DB_PATH + '.0000107',
+                    [263, 'sequence_query',
+                     GroongaTestBase.DB_PATH + '.0000107',
                      'TABLE_HASH_KEY|PERSISTENT',
                      'ShortText',
                      None,
@@ -1297,18 +1281,18 @@ class TestSuggestTable(GroongaTestBase):
         SuggestTable.create_all()
 
         query = item_query.suggest('en'). \
-                conditional_probability_threshold(1)
+            conditional_probability_threshold(1)
         self.assertEqual(str(query),
-                'suggest --table "item_query" --column ' \
-                '"kana" --types "complete" ' \
-                '--conditional_probability_threshold 1.0 --query "en"')
+            'suggest --table "item_query" --column '
+            '"kana" --types "complete" '
+            '--conditional_probability_threshold 1.0 --query "en"')
 
         query = item_query.suggest('en'). \
-                conditional_probability_threshold(0.2)
+            conditional_probability_threshold(0.2)
         self.assertEqual(str(query),
-                'suggest --table "item_query" --column ' \
-                '"kana" --types "complete" ' \
-                '--conditional_probability_threshold 0.2 --query "en"')
+            'suggest --table "item_query" --column '
+            '"kana" --types "complete" '
+            '--conditional_probability_threshold 0.2 --query "en"')
 
     def test_suggest_with_prefix_search(self):
         grn = Groonga()
@@ -1317,13 +1301,13 @@ class TestSuggestTable(GroongaTestBase):
 
         query = item_query.suggest('en').prefix_search(True)
         self.assertEqual(str(query),
-                'suggest --table "item_query" --column ' \
-                '"kana" --types "complete" --prefix_search yes --query "en"')
+            'suggest --table "item_query" --column '
+            '"kana" --types "complete" --prefix_search yes --query "en"')
 
         query = item_query.suggest('en').prefix_search(False)
         self.assertEqual(str(query),
-                'suggest --table "item_query" --column ' \
-                '"kana" --types "complete" --prefix_search no --query "en"')
+            'suggest --table "item_query" --column '
+            '"kana" --types "complete" --prefix_search no --query "en"')
 
     def test_suggest_with_similar_search(self):
         grn = Groonga()
@@ -1332,13 +1316,13 @@ class TestSuggestTable(GroongaTestBase):
 
         query = item_query.suggest('en').similar_search(True)
         self.assertEqual(str(query),
-                'suggest --table "item_query" --column ' \
-                '"kana" --types "complete" --similar_search yes --query "en"')
+            'suggest --table "item_query" --column '
+            '"kana" --types "complete" --similar_search yes --query "en"')
 
         query = item_query.suggest('en').similar_search(False)
         self.assertEqual(str(query),
-                'suggest --table "item_query" --column ' \
-                '"kana" --types "complete" --similar_search no --query "en"')
+            'suggest --table "item_query" --column '
+            '"kana" --types "complete" --similar_search no --query "en"')
 
 
 def main():

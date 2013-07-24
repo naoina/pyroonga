@@ -25,7 +25,7 @@
 # SUCH DAMAGE.
 
 
-__author__ = "Naoya INADA <naoina@kuune.org>"
+__author__ = "Naoya Inada <naoina@kuune.org>"
 
 __all__ = [
 ]
@@ -61,10 +61,11 @@ class Query(object):
 
 
 class QueryOptionsMixin(object):
-    __options__ = {'limit':  '--limit',
-                   'offset': '--offset',
-                   'sortby': '--sortby',
-                   'output_columns': '--output_columns'}
+    __options__ = {
+        'limit': '--limit',
+        'offset': '--offset',
+        'sortby': '--sortby',
+        'output_columns': '--output_columns'}
 
     def __init__(self):
         self._limit = None
@@ -136,11 +137,11 @@ class QueryOptionsMixin(object):
             return ''
 
     def _condition(self):
-        return '%(limit)s %(offset)s %(sortby)s %(output_columns)s' % \
-               dict(limit=self._makelimit(),
-                    offset=self._makeoffset(),
-                    sortby=self._makesortby(),
-                    output_columns=self._makeoutput_columns())
+        return ' '.join((
+            self._makelimit(),
+            self._makeoffset(),
+            self._makesortby(),
+            self._makeoutput_columns()))
 
 
 class GroongaResultBase(object):
@@ -215,11 +216,11 @@ class GroongaSuggestResults(object):
     def __init__(self, resultstr):
         result = json.loads(resultstr)
         complete = result.get('complete', [])
-        correct  = result.get('correct', [])
-        suggest  = result.get('suggest', [])
+        correct = result.get('correct', [])
+        suggest = result.get('suggest', [])
         self.complete = complete and GroongaSuggestResult(Suggest, complete)
-        self.correct  = correct  and GroongaSuggestResult(Suggest, correct)
-        self.suggest  = suggest  and GroongaSuggestResult(Suggest, suggest)
+        self.correct = correct and GroongaSuggestResult(Suggest, correct)
+        self.suggest = suggest and GroongaSuggestResult(Suggest, suggest)
 
 
 class GroongaSuggestResult(GroongaResultBase):
@@ -300,17 +301,16 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         return ''
 
     def _condition(self):
-        return '%(condition)s %(cache)s %(match_escalation_threshold)s ' \
-               '%(params)s' % \
-               dict(condition=QueryOptionsMixin._condition(self),
-                    cache=self._makecache(),
-                    match_escalation_threshold=self._makematch_escalation_threshold(),
-                    params=self._makeparams())
+        return ' '.join((
+            QueryOptionsMixin._condition(self),
+            self._makecache(),
+            self._makematch_escalation_threshold(),
+            self._makeparams()))
 
     def __str__(self):
-        return 'select --table "%(table)s" %(condition)s' % dict(
-                table=self._table.__tablename__,
-                condition=self._condition())
+        return 'select --table "%s" %s' % (
+            self._table.__tablename__,
+            self._condition())
 
 
 class SelectQuery(SelectQueryBase):
@@ -352,10 +352,11 @@ class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
     Instantiate from :meth:`SelectQuery.drilldown`\ .
     """
 
-    __options__ = {'limit':  '--drilldown_limit',
-                   'offset': '--drilldown_offset',
-                   'sortby': '--drilldown_sortby',
-                   'output_columns': '--drilldown_output_columns'}
+    __options__ = {
+        'limit': '--drilldown_limit',
+        'offset': '--drilldown_offset',
+        'sortby': '--drilldown_sortby',
+        'output_columns': '--drilldown_output_columns'}
 
     def __init__(self, parent, *args):
         """Construct of drilldown query
@@ -392,13 +393,13 @@ class Value(object):
 class Expression(object):
     """Expression constants"""
 
-    EQUAL         = ':'
+    EQUAL = ':'
     GREATER_EQUAL = ':>='
-    GREATER_THAN  = ':>'
-    LESS_EQUAL    = ':<='
-    LESS_THAN     = ':<'
-    NOT_EQUAL     = ':!'
-    OR  = ' OR '
+    GREATER_THAN = ':>'
+    LESS_EQUAL = ':<='
+    LESS_THAN = ':<'
+    NOT_EQUAL = ':!'
+    OR = ' OR '
     AND = ' + '
     NOT = ' - '
 
@@ -485,23 +486,26 @@ class LoadQuery(Query):
         return utils.escape(json.dumps([v.asdict() for v in self._data]))
 
     def __str__(self):
-        return 'load --table %(table)s --input_type json --values ' \
-               '"%(data)s"' % dict(table=self._table.__name__,
-                                   data=self._makejson())
+        return ' '.join((
+            'load',
+            '--table', self._table.__name__,
+            '--input-type', 'json',
+            '--values', '"%s"' % self._makejson()))
 
 
 class SuggestQuery(Query, QueryOptionsMixin):
     """'suggest' query representation class"""
 
-    __options__ = {'limit':  '--limit',
-                   'offset': '--offset',
-                   'sortby': '--sortby',
-                   'output_columns': '--output_columns',
-                   'frequency_threshold': '--frequency_threshold',
-                   'conditional_probability_threshold':
-                       '--conditional_probability_threshold',
-                   'prefix_search': '--prefix_search',
-                   'similar_search': '--similar_search'}
+    __options__ = {
+        'limit': '--limit',
+        'offset': '--offset',
+        'sortby': '--sortby',
+        'output_columns': '--output_columns',
+        'frequency_threshold': '--frequency_threshold',
+        'conditional_probability_threshold': (
+            '--conditional_probability_threshold'),
+        'prefix_search': '--prefix_search',
+        'similar_search': '--similar_search'}
 
     def __init__(self, tbl, query):
         """Construct of 'suggest' query
@@ -625,31 +629,31 @@ class SuggestQuery(Query, QueryOptionsMixin):
                                'yes' if self._similar_search else 'no'))
 
     def _condition(self):
-        return ('%(condition)s %(frequency_threshold)s ' \
-                '%(conditional_probability_threshold)s %(prefix_search)s ' \
-                '%(similar_search)s' % \
-                dict(condition=QueryOptionsMixin._condition(self),
-                     frequency_threshold=self._makefrequency_threshold(),
-                     conditional_probability_threshold=
-                         self._makeconditional_probability_threshold(),
-                     prefix_search=self._makeprefix_search(),
-                     similar_search=self._makesimilar_search())).strip()
+        return ' '.join((
+            QueryOptionsMixin._condition(self),
+            self._makefrequency_threshold(),
+            self._makeconditional_probability_threshold(),
+            self._makeprefix_search(),
+            self._makesimilar_search())).strip()
 
     def __str__(self):
-        return 'suggest --table "%(table)s" --column "%(column)s" --types ' \
-                '"%(types)s" %(condition)s --query "%(query)s"' % \
-                dict(table=self._table.__tablename__,
-                     column=self._table.kana.name,
-                     types=self._types,
-                     condition=self._condition(),
-                     query=utils.escape(self._query))
+        return ' '.join((
+            'suggest',
+            '--table', '"%s"' % self._table.__tablename__,
+            '--column', '"%s"' % self._table.kana.name,
+            '--types', '"%s"' % self._types,
+            self._condition(),
+            '--query', '"%s"' % utils.escape(self._query)))
 
 
 class SuggestLoadQuery(LoadQuery):
     """'load' query for suggestion representation class"""
 
     def __str__(self):
-        return 'load --table %(table)s --input_type json --each ' \
-               '\'suggest_preparer(_id, type, item, sequence, time, ' \
-               'pair_query)\' "%(data)s"' % dict(table=self._table.__name__,
-                                                 data=self._makejson())
+        return ' '.join((
+            'load',
+            '--table', self._table.__name__,
+            '--input_type', 'json',
+            '--each',
+            "'suggest_preparer(_id, type, item, sequence, time, pair_query)'",
+            '"%s"' % self._makejson()))

@@ -27,7 +27,7 @@
 
 """Attributes of groonga"""
 
-__author__ = "Naoya INADA <naoina@kuune.org>"
+__author__ = "Naoya Inada <naoina@kuune.org>"
 
 __all__ = [
     'Symbol', 'TableFlags', 'ColumnFlagsFlag', 'ColumnFlags', 'DataType',
@@ -91,11 +91,11 @@ class TableFlags(object):
     "Table flags"
 
     TABLE_HASH_KEY = TableFlagsFlag(Symbol('TABLE_HASH_KEY'))
-    TABLE_PAT_KEY  = TableFlagsFlag(Symbol('TABLE_PAT_KEY'))
-    TABLE_DAT_KEY  = TableFlagsFlag(Symbol('TABLE_DAT_KEY'))
-    TABLE_NO_KEY   = TableFlagsFlag(Symbol('TABLE_NO_KEY'))
-    KEY_WITH_SIS   = TableFlagsFlag(Symbol('KEY_WITH_SIS'))
-    PERSISTENT     = TableFlagsFlag(Symbol('PERSISTENT'))
+    TABLE_PAT_KEY = TableFlagsFlag(Symbol('TABLE_PAT_KEY'))
+    TABLE_DAT_KEY = TableFlagsFlag(Symbol('TABLE_DAT_KEY'))
+    TABLE_NO_KEY = TableFlagsFlag(Symbol('TABLE_NO_KEY'))
+    KEY_WITH_SIS = TableFlagsFlag(Symbol('KEY_WITH_SIS'))
+    PERSISTENT = TableFlagsFlag(Symbol('PERSISTENT'))
 
 
 class ColumnFlagsFlag(Flags):
@@ -107,11 +107,11 @@ class ColumnFlags(object):
 
     COLUMN_SCALAR = ColumnFlagsFlag(Symbol('COLUMN_SCALAR'))
     COLUMN_VECTOR = ColumnFlagsFlag(Symbol('COLUMN_VECTOR'))
-    COLUMN_INDEX  = ColumnFlagsFlag(Symbol('COLUMN_INDEX'))
-    WITH_SECTION  = ColumnFlagsFlag(Symbol('WITH_SECTION'))
-    WITH_WEIGHT   = ColumnFlagsFlag(Symbol('WITH_WEIGHT'))
+    COLUMN_INDEX = ColumnFlagsFlag(Symbol('COLUMN_INDEX'))
+    WITH_SECTION = ColumnFlagsFlag(Symbol('WITH_SECTION'))
+    WITH_WEIGHT = ColumnFlagsFlag(Symbol('WITH_WEIGHT'))
     WITH_POSITION = ColumnFlagsFlag(Symbol('WITH_POSITION'))
-    RING_BUFFER   = ColumnFlagsFlag(Symbol('RING_BUFFER'))
+    RING_BUFFER = ColumnFlagsFlag(Symbol('RING_BUFFER'))
 
 
 class DataTypeSymbol(Symbol):
@@ -121,21 +121,21 @@ class DataTypeSymbol(Symbol):
 class DataType(object):
     """Builtin types"""
 
-    Object    = DataTypeSymbol('Object')
-    Bool      = DataTypeSymbol('Bool')
-    Int8      = DataTypeSymbol('Int8')
-    UInt8     = DataTypeSymbol('UInt8')
-    Int16     = DataTypeSymbol('Int16')
-    UInt16    = DataTypeSymbol('UInt16')
-    Int32     = DataTypeSymbol('Int32')
-    UInt32    = DataTypeSymbol('UInt32')
-    Int64     = DataTypeSymbol('Int64')
-    UInt64    = DataTypeSymbol('UInt64')
-    Float     = DataTypeSymbol('Float')
-    Time      = DataTypeSymbol('Time')
+    Object = DataTypeSymbol('Object')
+    Bool = DataTypeSymbol('Bool')
+    Int8 = DataTypeSymbol('Int8')
+    UInt8 = DataTypeSymbol('UInt8')
+    Int16 = DataTypeSymbol('Int16')
+    UInt16 = DataTypeSymbol('UInt16')
+    Int32 = DataTypeSymbol('Int32')
+    UInt32 = DataTypeSymbol('UInt32')
+    Int64 = DataTypeSymbol('Int64')
+    UInt64 = DataTypeSymbol('UInt64')
+    Float = DataTypeSymbol('Float')
+    Time = DataTypeSymbol('Time')
     ShortText = DataTypeSymbol('ShortText')
-    Text      = DataTypeSymbol('Text')
-    LongText  = DataTypeSymbol('LongText')
+    Text = DataTypeSymbol('Text')
+    LongText = DataTypeSymbol('LongText')
     TokyoGeoPoint = DataTypeSymbol('TokyoGeoPoint')
     WGS84GeoPoint = DataTypeSymbol('WGS84GeoPoint')
 
@@ -179,20 +179,20 @@ class LogLevelSymbol(Symbol):
 class LogLevel(object):
     """Log level"""
 
-    EMERG     = LogLevelSymbol('EMERG')
-    ALERT     = LogLevelSymbol('ALERT')
-    CRIT      = LogLevelSymbol('CRIT')
-    error     = LogLevelSymbol('error')
-    warning   = LogLevelSymbol('warning')
-    notice    = LogLevelSymbol('notice')
-    info      = LogLevelSymbol('info')
-    debug     = LogLevelSymbol('debug')
-    EMERGENCY = EMERG   # alias
-    CRITICAL  = CRIT    # alias
-    WARNING   = warning # alias
-    NOTICE    = notice  # alias
-    INFO      = info    # alias
-    DEBUG     = debug   # alias
+    EMERG = LogLevelSymbol('EMERG')
+    ALERT = LogLevelSymbol('ALERT')
+    CRIT = LogLevelSymbol('CRIT')
+    error = LogLevelSymbol('error')
+    warning = LogLevelSymbol('warning')
+    notice = LogLevelSymbol('notice')
+    info = LogLevelSymbol('info')
+    debug = LogLevelSymbol('debug')
+    EMERGENCY = EMERG  # alias
+    CRITICAL = CRIT  # alias
+    WARNING = warning  # alias
+    NOTICE = notice  # alias
+    INFO = info  # alias
+    DEBUG = debug  # alias
 
 
 class SuggestTypeFlag(Flags):
@@ -203,8 +203,8 @@ class SuggestType(object):
     """Suggest types"""
 
     complete = SuggestTypeFlag(Symbol('complete'))
-    correct  = SuggestTypeFlag(Symbol('correct'))
-    suggest  = SuggestTypeFlag(Symbol('suggest'))
+    correct = SuggestTypeFlag(Symbol('correct'))
+    suggest = SuggestTypeFlag(Symbol('suggest'))
     COMPLETE = complete  # alias
-    CORRECT  = correct   # alias
-    SUGGEST  = suggest   # alias
+    CORRECT = correct  # alias
+    SUGGEST = suggest  # alias

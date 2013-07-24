@@ -25,7 +25,7 @@
 # SUCH DAMAGE.
 
 
-__author__ = "Naoya INADA <naoina@kuune.org>"
+__author__ = "Naoya Inada <naoina@kuune.org>"
 
 __all__ = [
     'Column', 'prop_attr', 'tablebase', 'SuggestTable', 'event_type',
@@ -44,8 +44,7 @@ from pyroonga.odm.attributes import (
     DataType,
     TokenizerSymbol,
     Tokenizer,
-    NormalizerSymbol,
-    Normalizer,
+    NormalizerSymbol
     )
 from pyroonga.odm.query import (
     Expression,
@@ -66,10 +65,10 @@ class prop_attr(property):
 
     Like @property decorator, but it can applicable to the class method::
 
-        class Example(object):
-            @prop_attr
-            def __tablename__(cls):
-                return cls.__name__.lower()
+       class Example(object):
+           @prop_attr
+           def __tablename__(cls):
+               return cls.__name__.lower()
     """
 
     def __get__(self, instance, owner):
@@ -96,7 +95,8 @@ class TableMeta(type):
             setattr(cls, attr, col)
             cls._setcolumn(name, col)
         if not cls._has_table_no_key():
-            cls._key = Column(flags=ColumnFlags.COLUMN_SCALAR, type=cls.__key_type__)
+            cls._key = Column(flags=ColumnFlags.COLUMN_SCALAR,
+                              type=cls.__key_type__)
             cls._setcolumn('_key', cls._key)
 
     def _has_table_no_key(cls):
@@ -130,19 +130,19 @@ class TableBase(object):
 
     e.g. ::
 
-        Table = tablebase()
+       Table = tablebase()
 
-        class ExampleTable(Table):
-            pass
+       class ExampleTable(Table):
+           pass
 
     The above example is equivalent to the table that will be create in the
     following query::
 
-        table_create --name ExampleTable --flags TABLE_HASH_KEY --key_type ShortText
+       table_create --name ExampleTable --flags TABLE_HASH_KEY --key_type ShortText
     """
 
     __tableflags__ = TableFlags.TABLE_HASH_KEY
-    __key_type__   = DataType.ShortText
+    __key_type__ = DataType.ShortText
     __default_tokenizer__ = None
     __normalizer__ = None
     grn = None
@@ -195,7 +195,7 @@ class TableBase(object):
         """
         if not isinstance(cls.grn, Groonga):
             raise TypeError("%s object is not bind" % Groonga.__name__)
-        table_queries  = []
+        table_queries = []
         column_queries = []
         json_results = json.loads(cls.grn.query('table_list'))
         defined_tables = utils.to_python(json_results, 0)
@@ -215,11 +215,11 @@ class TableBase(object):
 
         e.g.::
 
-            # returns data that contains "cthulhu" in the title
-            Table.select(title='cthulhu').all()
+           # returns data that contains "cthulhu" in the title
+           Table.select(title='cthulhu').all()
 
-            # returns data that "name" is not "nyarlathotep".
-            Table.select(Table.name != 'nyarlathotep').all()
+           # returns data that "name" is not "nyarlathotep".
+           Table.select(Table.name != 'nyarlathotep').all()
 
         :param args: :class:`pyroonga.odm.query.ExpressionTree`\ . Created by
             comparison of :class:`Column` and any value.
@@ -235,8 +235,8 @@ class TableBase(object):
 
         :param data: iterable object of instance of Table.
         :param immediate: load data to groonga immediately if True. Otherwise,
-            Must call :meth:`pyroonga.odm.query.LoadQuery.commit` explicitly for data
-            load.
+            Must call :meth:`pyroonga.odm.query.LoadQuery.commit` explicitly
+            for data load.
         :returns: :class:`pyroonga.odm.query.LoadQuery`\ .
         """
         query = cls._load(data)
@@ -256,16 +256,16 @@ class Column(object):
 
     e.g. ::
 
-        class ExampleTable(Table):
-            name = Column()
-            age  = Column(flags=COLUMN_SCALAR, type=UInt8)
+       class ExampleTable(Table):
+           name = Column()
+           age  = Column(flags=COLUMN_SCALAR, type=UInt8)
 
     The above example is equivalent to the table that will be create in the
     following query::
 
-        table_create --name ExampleTable --flags TABLE_HASH_KEY --key_type ShortText
-        column_create --table ExampleTable --name name --flags COLUMN_SCALAR --type ShortText
-        column_create --table ExampleTable --name age --flags COLUMN_SCALAR --type UInt8
+       table_create --name ExampleTable --flags TABLE_HASH_KEY --key_type ShortText
+       column_create --table ExampleTable --name name --flags COLUMN_SCALAR --type ShortText
+       column_create --table ExampleTable --name age --flags COLUMN_SCALAR --type UInt8
     """
 
     __tablemeta__ = TableMeta
@@ -355,7 +355,7 @@ class SuggestTableBase(TableBase):
         """
         if not isinstance(cls.grn, Groonga):
             raise TypeError("%s object is not bind" % Groonga.__name__)
-        table_queries  = []
+        table_queries = []
         column_queries = []
         for tbl in cls._tables:
             table_queries.append(str(tbl))
@@ -372,12 +372,12 @@ class SuggestTableBase(TableBase):
 
         e.g.::
 
-            # suggest type is 'complete' by default. Get a 'complete'
-            item_query.suggest('en').get('complete')
+           # suggest type is 'complete' by default. Get a 'complete'
+           item_query.suggest('en').get('complete')
 
-            # suggest type is 'correct' and 'complete'. Get a 'correct'
-            item_query.suggest('en').types(SuggestType.correct |
-                                           SuggestType.complete)['correct']
+           # suggest type is 'correct' and 'complete'. Get a 'correct'
+           item_query.suggest('en').types(SuggestType.correct |
+                                          SuggestType.complete)['correct']
 
         See also :class:`pyroonga.odm.attributes.SuggestType` and
             :class:`pyroonga.odm.table.item_query`
@@ -402,25 +402,25 @@ SuggestTable = tablebase(name='SuggestTable', cls=SuggestTableBase)
 ##############################################################################
 class event_type(SuggestTable):
     __tableflags__ = TableFlags.TABLE_HASH_KEY
-    __key_type__   = DataType.ShortText
+    __key_type__ = DataType.ShortText
 
 
 class bigram(SuggestTable):
     __tableflags__ = TableFlags.TABLE_PAT_KEY
-    __key_type__   = DataType.ShortText
+    __key_type__ = DataType.ShortText
     __default_tokenizer__ = Tokenizer.TokenBigram
 
     item_query_key = Column(flags=(ColumnFlags.COLUMN_INDEX |
                                    ColumnFlags.WITH_POSITION),
-                                   type='item_query', source='_key')
+                            type='item_query', source='_key')
 
 
 class pair_query(SuggestTable):
     __tableflags__ = TableFlags.TABLE_HASH_KEY
-    __key_type__   = DataType.UInt64
+    __key_type__ = DataType.UInt64
 
-    pre   = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
-    post  = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
+    pre = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
+    post = Column(flags=ColumnFlags.COLUMN_SCALAR, type='item_query')
     freq0 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
     freq1 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
     freq2 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
@@ -429,22 +429,22 @@ class pair_query(SuggestTable):
 # TODO: To allow users to configure name, but name prefix must be 'item_'
 class item_query(SuggestTable):
     __tableflags__ = TableFlags.TABLE_PAT_KEY
-    __key_type__   = DataType.ShortText
+    __key_type__ = DataType.ShortText
     __default_tokenizer__ = Tokenizer.TokenDelimit
 
-    kana  = Column(flags=ColumnFlags.COLUMN_VECTOR, type='kana')
-    freq  = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
-    last  = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Time)
+    kana = Column(flags=ColumnFlags.COLUMN_VECTOR, type='kana')
+    freq = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
+    last = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Time)
     boost = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
     freq2 = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
-    buzz  = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
-    co    = Column(flags=ColumnFlags.COLUMN_INDEX,  type='pair_query',
-                   source='pre')
+    buzz = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.Int32)
+    co = Column(flags=ColumnFlags.COLUMN_INDEX, type='pair_query',
+                source='pre')
 
 
 class kana(SuggestTable):
     __tableflags__ = TableFlags.TABLE_PAT_KEY
-    __key_type__   = DataType.ShortText
+    __key_type__ = DataType.ShortText
 
     item_query_kana = Column(flags=ColumnFlags.COLUMN_INDEX, type='item_query',
                              source='kana')
@@ -452,7 +452,7 @@ class kana(SuggestTable):
 
 class sequence_query(SuggestTable):
     __tableflags__ = TableFlags.TABLE_HASH_KEY
-    __key_type__   = DataType.ShortText
+    __key_type__ = DataType.ShortText
 
     events = Column(flags=(ColumnFlags.COLUMN_VECTOR |
                            ColumnFlags.RING_BUFFER), type='event_query')
