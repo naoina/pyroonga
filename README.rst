@@ -208,7 +208,7 @@ http://groonga.org/ (Japanese: http://groonga.org/ja/ )
 LICENSE
 -------
 
-pyroonga is licensed under the BSD license.
+pyroonga is licensed under the MIT license.
 
 Changelog
 ---------
