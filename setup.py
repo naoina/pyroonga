@@ -17,20 +17,22 @@ def pkgconfig(*packages, **kw):
     return kw
 
 
-class PyTest(TestCommand):
-    def initialize_options(self):
-        TestCommand.initialize_options(self)
+def gen_pytest_class(args):
+    class PyTest(TestCommand):
+        def initialize_options(self):
+            TestCommand.initialize_options(self)
 
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_suite = True
-        self.test_args = ['pyroonga/tests']
+        def finalize_options(self):
+            TestCommand.finalize_options(self)
+            self.test_suite = True
+            self.test_args = args
 
-    def run_tests(self):
-        #import here, cause outside the eggs aren't loaded
-        import pytest
-        errno = pytest.main(self.test_args)
-        sys.exit(errno)
+        def run_tests(self):
+            #import here, cause outside the eggs aren't loaded
+            import pytest
+            errno = pytest.main(self.test_args)
+            sys.exit(errno)
+    return PyTest
 
 version = '0.4'
 
@@ -79,5 +81,9 @@ setup(name='pyroonga',
           define_macros=[],
           **pkgconfig('groonga')
           )],
-      cmdclass={'test': PyTest},
+      cmdclass={
+          'test': gen_pytest_class(['pyroonga/tests/unit']),
+          'testfunctional': gen_pytest_class(['pyroonga/tests/functional']),
+          'testall': gen_pytest_class(['pyroonga/tests']),
+      },
       )

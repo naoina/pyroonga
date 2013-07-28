@@ -31,8 +31,8 @@ from pyroonga.odm.query import (
     MatchColumn,
     MatchColumnsTree,
     )
-from pyroonga.tests import unittest
-from pyroonga.tests import GroongaTestBase
+from pyroonga.tests.functional import unittest
+from pyroonga.tests.functional import GroongaTestBase
 
 
 class TestColumn(unittest.TestCase):

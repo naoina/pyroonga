@@ -4,7 +4,7 @@ import _groonga
 
 from pyroonga.exceptions import GroongaError
 from pyroonga.groonga import Groonga
-from pyroonga.tests import (unittest, GroongaTestBase)
+from pyroonga.tests.functional import (unittest, GroongaTestBase)
 
 
 class TestGroongaWithNotConnected(unittest.TestCase):

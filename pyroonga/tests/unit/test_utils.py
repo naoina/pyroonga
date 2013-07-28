@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import unittest
+import pytest
 
 from pyroonga import utils
 
 
-class TestEscape(unittest.TestCase):
-    def test_escape(self):
-        result = utils.escape('https://github.com/naoina/pyroonga')
-        self.assertEqual(result, 'https://github.com/naoina/pyroonga')
+@pytest.mark.parametrize(('value', 'expected'), (
+    ('https://github.com/naoina/pyroonga',
+     'https://github.com/naoina/pyroonga'),
+    ('left "center" right\nhello \\yen',
+     r'left \"center\" right\nhello \\yen'),
+))
+def test_escape(value, expected):
+    result = utils.escape(value)
+    assert result == expected
 
-        result = utils.escape('left "center" right\nhello \\yen')
-        self.assertEqual(result, r'left \"center\" right\nhello \\yen')
 
-
-class TestToPython(unittest.TestCase):
+class TestToPython(object):
     def test_with_base_idx_is_zero(self):
         values = [[
             ["id", "UInt32"],
@@ -44,7 +46,7 @@ class TestToPython(unittest.TestCase):
             'normalizer': None,
             }]
         result = utils.to_python(values, 0)
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_with_base_idx_is_one(self):
         values = [[6],
@@ -73,7 +75,7 @@ class TestToPython(unittest.TestCase):
              'time': 14.0,
              'type': 'submit'}]
         result = utils.to_python(values, 1)
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_with_maxlen(self):
         values = [[['_id', 'UInt32'],
@@ -96,11 +98,4 @@ class TestToPython(unittest.TestCase):
              'time': 13.0,
              'type': ''}]
         result = utils.to_python(values, 0, maxlen=2)
-        self.assertEqual(result, expected)
-
-
-def main():
-    unittest.main()
-
-if __name__ == '__main__':
-    main()
+        assert result == expected
