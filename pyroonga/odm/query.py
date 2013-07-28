@@ -11,6 +11,8 @@ __all__ = [
 import itertools
 import json
 import logging
+import operator
+from functools import reduce
 
 from pyroonga import utils
 from pyroonga.odm.attributes import SuggestType
@@ -235,6 +237,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         QueryOptionsMixin.__init__(self)
         self._expr = args
         self._target = kwargs
+        self._match_columns = []
         self._cache = True
         self._match_escalation_threshold = None
 
@@ -246,6 +249,18 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         q = str(self)
         result = self._table.grn.query(q)
         return GroongaSelectResult(self._table, result)
+
+    def match_columns(self, *args):
+        """Set the match columns
+
+        :param args: iterable of columns
+        :returns: self. for method chain
+        """
+        from pyroonga.odm.table import Column  # avoid Circular reference
+        columns = (MatchColumn(c) if isinstance(c, Column) else c
+                   for c in args)
+        self._match_columns.extend(columns)
+        return self
 
     def cache(self, iscache):
         """Set the query cache
@@ -265,6 +280,13 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         self._match_escalation_threshold = int(threshold)
         return self
 
+    def _make_match_columns(self):
+        if self._match_columns:
+            return "--match_columns '%s'" % reduce(operator.or_,
+                                                   self._match_columns)
+        else:
+            return ''
+
     def _makecache(self):
         return '' if self._cache else '--cache no'
 
@@ -280,10 +302,11 @@ class SelectQueryBase(Query, QueryOptionsMixin):
 
     def _condition(self):
         return ' '.join((
+            self._make_match_columns(),
             QueryOptionsMixin._condition(self),
             self._makecache(),
             self._makematch_escalation_threshold(),
-            self._makeparams()))
+            self._makeparams())).strip()
 
     def __str__(self):
         return 'select --table "%s" %s' % (
@@ -366,6 +389,56 @@ class Value(object):
 
     def __str__(self):
         return str(self.value)
+
+
+class MatchColumn(object):
+    """match column representation class
+    """
+    INITIAL_WEIGHT = 1
+
+    def __init__(self, column, weight=INITIAL_WEIGHT):
+        self.column = column
+        self.weight = weight
+
+    def __mul__(self, other):
+        return MatchColumn(self.column, int(other))
+
+    def __or__(self, other):
+        return MatchColumnsTree(self, other)
+
+    def __str__(self):
+        result = self.column.name
+        if self.weight > MatchColumn.INITIAL_WEIGHT:
+            result += ' * %s' % self.weight
+        return result
+
+
+class MatchColumnsTree(object):
+    """Match columns tree"""
+
+    __slots__ = ['left', 'right']
+
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+    def __or__(self, other):
+        return MatchColumnsTree(self, other)
+
+    def _extract_tree(self, inst):
+        if isinstance(inst, MatchColumnsTree):
+            return '%s || %s' % (
+                self._extract_tree(inst.left),
+                self._extract_tree(inst.right))
+        elif isinstance(inst, MatchColumn):
+            return str(inst)
+        else:
+            raise ValueError(
+                "instance takes only the `MatchColumn` and `MatchColumnsTree`."
+                " but `%s` given." % repr(inst))
+
+    def __str__(self):
+        return self._extract_tree(self)
 
 
 class Expression(object):

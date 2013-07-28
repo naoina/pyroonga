@@ -29,6 +29,7 @@ from pyroonga.odm.query import (
     Expression,
     ExpressionTree,
     LoadQuery,
+    MatchColumn,
     SuggestQuery,
     SuggestLoadQuery,
     SelectQuery,
@@ -299,6 +300,12 @@ class Column(object):
     def __neg__(self):
         self._desc = True
         return self
+
+    def __mul__(self, other):
+        return MatchColumn(self).__mul__(other)
+
+    def __or__(self, other):
+        return MatchColumn(self).__or__(other)
 
     def __str__(self):
         if not (self.tablename and self.name):

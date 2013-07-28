@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+import random
 
 from subprocess import Popen, PIPE
 
@@ -27,6 +28,8 @@ from pyroonga.odm.query import (
     GroongaSuggestResults,
     GroongaSuggestResult,
     LoadQuery,
+    MatchColumn,
+    MatchColumnsTree,
     )
 from pyroonga.tests import unittest
 from pyroonga.tests import GroongaTestBase
@@ -61,6 +64,36 @@ class TestColumn(unittest.TestCase):
             self.assertIs(col.type, TableMeta)
         except TypeError:
             self.fail("TypeError has been raised")
+
+    def test___mul__(self):
+        col = Column()
+        expected = random.randrange(1000)
+        result = col.__mul__(expected)
+        assert isinstance(result, MatchColumn)
+        assert result.column is col
+        assert result.weight == expected
+
+    def test___mul__with_implicit_calls(self):
+        col = Column()
+        expected = random.randrange(1000)
+        result = col * expected
+        assert isinstance(result, MatchColumn)
+        assert result.column is col
+        assert result.weight == expected
+
+    def test___or__(self):
+        col1, col2 = Column(), Column()
+        result = col1.__or__(col2)
+        assert isinstance(result, MatchColumnsTree)
+        assert result.left.column is col1
+        assert result.right is col2
+
+    def test___or__with_implicit_calls(self):
+        col1, col2 = Column(), Column()
+        result = col1 | col2
+        assert isinstance(result, MatchColumnsTree)
+        assert result.left.column is col1
+        assert result.right is col2
 
     def test___str__(self):
         col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
