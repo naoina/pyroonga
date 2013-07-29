@@ -164,3 +164,111 @@ class TestMatchColumnsTree(object):
     def test___str__with_invalid_value(self, left, right):
         with pytest.raises(ValueError):
             query.MatchColumnsTree(left, right).__str__()
+
+
+class TestExpression(object):
+    @pytest.mark.parametrize(('attr', 'expected'), (
+        ('EQUAL', ':'),
+        ('GREATER_EQUAL', ':>='),
+        ('GREATER_THAN', ':>'),
+        ('LESS_EQUAL', ':<='),
+        ('LESS_THAN', ':<'),
+        ('NOT_EQUAL', ':!'),
+        ('OR', ' OR '),
+        ('AND', ' + '),
+        ('NOT', ' - '),
+    ))
+    def test_constant(self, attr, expected):
+        assert object.__getattribute__(query.Expression, attr) == expected
+
+
+class TestExpressionTree(object):
+    def test___init__(self):
+        et = query.ExpressionTree('testexpr')
+        assert et.expr == 'testexpr'
+        assert et.left is None
+        assert et.right is None
+
+    def test___init__with_default_value(self):
+        et = query.ExpressionTree('testexpr', 'testleft', 'testright')
+        assert et.expr == 'testexpr'
+        assert et.left == 'testleft'
+        assert et.right == 'testright'
+
+    def test___eq__(self):
+        et = query.ExpressionTree('expr1')
+        et2 = (et == 'expr2')
+        assert et2.expr == query.Expression.EQUAL
+        assert et2.left is et
+        assert et2.right == 'expr2'
+
+    def test___ge__(self):
+        et = query.ExpressionTree('expr1')
+        et2 = (et >= 'expr2')
+        assert et2.expr == query.Expression.GREATER_EQUAL
+        assert et2.left is et
+        assert et2.right == 'expr2'
+
+    def test___gt__(self):
+        et = query.ExpressionTree('expr1')
+        et2 = (et > 'expr2')
+        assert et2.expr == query.Expression.GREATER_THAN
+        assert et2.left is et
+        assert et2.right == 'expr2'
+
+    def test___le__(self):
+        et = query.ExpressionTree('expr1')
+        et2 = (et <= 'expr2')
+        assert et2.expr == query.Expression.LESS_EQUAL
+        assert et2.left is et
+        assert et2.right == 'expr2'
+
+    def test___lt__(self):
+        et = query.ExpressionTree('expr1')
+        et2 = (et < 'expr2')
+        assert et2.expr == query.Expression.LESS_THAN
+        assert et2.left is et
+        assert et2.right == 'expr2'
+
+    def test___ne__(self):
+        et = query.ExpressionTree('expr1')
+        et2 = (et != 'expr2')
+        assert et2.expr == query.Expression.NOT_EQUAL
+        assert et2.left is et
+        assert et2.right == 'expr2'
+
+    def test___and__(self):
+        et = query.ExpressionTree('expr1')
+        et2 = (et & 'expr2')
+        assert et2.expr == query.Expression.AND
+        assert et2.left is et
+        assert et2.right == 'expr2'
+
+    def test___or__(self):
+        et = query.ExpressionTree('expr1')
+        et2 = (et | 'expr2')
+        assert et2.expr == query.Expression.OR
+        assert et2.left is et
+        assert et2.right == 'expr2'
+
+    def test___sub__(self):
+        et = query.ExpressionTree('expr1')
+        et2 = (et - 'expr2')
+        assert et2.expr == query.Expression.NOT
+        assert et2.left is et
+        assert et2.right == 'expr2'
+
+    def test___str__without_nested(self):
+        et = query.ExpressionTree('expr1', 'left1', 'right1')
+        assert str(et) == '(left1expr1right1)'
+
+    def test___str__with_nested(self):
+        et1 = query.ExpressionTree('|', 'left1', 'right1')
+        et2 = query.ExpressionTree('&', et1, 'right2')
+        et3 = query.ExpressionTree('+', 'left3', et2)
+        assert str(et3) == '(left3+((left1|right1)&right2))'
+
+    def test___str__with_Value_instance(self):
+        left, right = query.Value('leftvalue'), query.Value('rightvalue')
+        et = query.ExpressionTree('expr', left, right)
+        assert str(et) == '("leftvalue"expr"rightvalue")'

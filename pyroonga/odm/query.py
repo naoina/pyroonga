@@ -329,22 +329,13 @@ class SelectQuery(SelectQueryBase):
         params = [utils.escape('%s:@"%s"' % target) for target in
                   self._target.items()]
         param = Expression.OR.join(params)
-        exprs = [utils.escape(self._makeexpr(expr)) for expr in self._expr]
-        expr = Expression.OR.join(exprs)
+        expr = Expression.OR.join(utils.escape(str(expr)) for expr in
+                                  self._expr)
         result = param and '(%s)' % param
         if result and expr:
             result += Expression.AND
         result += expr
         return '--query "%s"' % result if result else ''
-
-    def _makeexpr(self, expr):
-        if isinstance(expr, ExpressionTree):
-            return '(%s%s%s)' % (self._makeexpr(expr.left), expr.expr,
-                    self._makeexpr(expr.right))
-        elif isinstance(expr, Value):
-            return '"%s"' % expr
-        else:
-            return str(expr)
 
 
 class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
@@ -382,7 +373,7 @@ class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
 
 
 class Value(object):
-    slots = ['value']
+    __slots__ = ['value']
 
     def __init__(self, value):
         self.value = value
@@ -458,7 +449,7 @@ class Expression(object):
 class ExpressionTree(object):
     """Query conditional expression tree class"""
 
-    slots = ['expr', 'left', 'right']
+    __slots__ = ['expr', 'left', 'right']
 
     def __init__(self, expr, left=None, right=None):
         self.expr = expr
@@ -491,6 +482,20 @@ class ExpressionTree(object):
 
     def __sub__(self, other):
         return ExpressionTree(Expression.NOT, self, other)
+
+    def __str__(self):
+        return self._extract_tree(self)
+
+    def _extract_tree(self, expr):
+        if isinstance(expr, ExpressionTree):
+            return '(%s%s%s)' % (
+                self._extract_tree(expr.left), expr.expr,
+                self._extract_tree(expr.right),
+                )
+        elif isinstance(expr, Value):
+            return '"%s"' % expr
+        else:
+            return str(expr)
 
 
 class LoadQuery(Query):
