@@ -3,7 +3,8 @@ pyroonga
 
 What's this?
 ------------
-Python interface for `groonga`_ fulltext search engine.
+
+Python interface for `groonga <http://groonga.org/>`_ fulltext search engine.
 
 Requirements
 ------------
@@ -105,14 +106,35 @@ And print the data::
    for row in data:
        print(row._id, row._key, row.title)
 
-Fulltext search query::
+Fulltext search queries::
+
+   Site.select().match_columns(Site.title).query('foo').all()
+   Site.select().match_columns(Site.title, Site.name).query('bar').all()
+
+The above example is same as following queries::
+
+   select --table Site --match_columns 'title' --query "foo"
+   select --table Site --match_columns 'title OR name' --query "bar"
+
+For more complex queries using `pyroonga.odm.GE`::
+
+   from pyroonga.odm import GE
+
+   Site.select().match_columns(Site.title).query(GE('foo') | GE('bar')).all()
+
+The above example is same as following query::
+
+   select --table Site --match_columns 'title' --query "(foo OR bar)"
+
+And also not use `match_columns`::
 
    Site.select(title='foo').all()
    Site.select(title='foo', name='bar').all()  # "or" search
 
-The above is the same as a following groonga query::
+The above example is same as following queries::
 
-   select --table Site --query "title:@\"foo\""
+   select --table Site --query "(title:@\"foo\")"
+   select --table Site --query "(title:@\"foo\" OR name:@\"bar\")"
 
 Conditional search query::
 
@@ -208,30 +230,4 @@ http://groonga.org/ (Japanese: http://groonga.org/ja/ )
 LICENSE
 -------
 
-pyroonga is licensed under the BSD license.
-
-Changelog
----------
-
-v0.4 (2012-03-28)
-^^^^^^^^^^^^^^^^^
-
-- Add suggest
-
-v0.3 (2012-02-17)
-^^^^^^^^^^^^^^^^^
-
-- Add load the data to groonga
-
-v0.2 (2012-02-17)
-^^^^^^^^^^^^^^^^^
-
-- Add ORM
-- Add documentation of basic usage
-
-v0.1 (2012-02-05)
-^^^^^^^^^^^^^^^^^
-
-- First release
-
-.. _`groonga`: http://groonga.org/
+pyroonga is licensed under the MIT license.

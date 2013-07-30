@@ -1,31 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012 Naoya INADA <naoina@kuune.org>
-# All rights reserved.
+# Copyright (c) 2013 Naoya Inada <naoina@kuune.org>
+# Licensed under the MIT License.
 
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in the
-#    documentation and/or other materials provided with the distribution.
-
-# THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED.  IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-# SUCH DAMAGE.
-
-
-__author__ = "Naoya INADA <naoina@kuune.org>"
+__author__ = "Naoya Inada <naoina@kuune.org>"
 
 __all__ = [
 ]
@@ -33,9 +11,11 @@ __all__ = [
 import itertools
 import json
 import logging
+import operator
+from functools import reduce
 
 from pyroonga import utils
-from pyroonga.orm.attributes import SuggestType
+from pyroonga.odm.attributes import SuggestType
 
 logger = logging.getLogger(__name__)
 
@@ -55,16 +35,17 @@ class Query(object):
         """Construct of query
 
         :param tbl: Table class. It will be created using
-            :func:`pyroonga.orm.table.tablebase`\ .
+            :func:`pyroonga.odm.table.tablebase`\ .
         """
         self._table = tbl
 
 
 class QueryOptionsMixin(object):
-    __options__ = {'limit':  '--limit',
-                   'offset': '--offset',
-                   'sortby': '--sortby',
-                   'output_columns': '--output_columns'}
+    __options__ = {
+        'limit': '--limit',
+        'offset': '--offset',
+        'sortby': '--sortby',
+        'output_columns': '--output_columns'}
 
     def __init__(self):
         self._limit = None
@@ -93,7 +74,7 @@ class QueryOptionsMixin(object):
     def sortby(self, *args):
         """Set the sort order for result of query
 
-        :param args: :class:`pyroonga.orm.table.Column` of sort keys.
+        :param args: :class:`pyroonga.odm.table.Column` of sort keys.
         :returns: self. for method chain.
         """
         self._sortby = args
@@ -102,7 +83,7 @@ class QueryOptionsMixin(object):
     def output_columns(self, *args):
         """Select the output columns for result of query
 
-        :param args: :class:`pyroonga.orm.table.Column`
+        :param args: :class:`pyroonga.odm.table.Column`
         :returns: self. for method chain.
         """
         self._output_columns = args
@@ -136,11 +117,11 @@ class QueryOptionsMixin(object):
             return ''
 
     def _condition(self):
-        return '%(limit)s %(offset)s %(sortby)s %(output_columns)s' % \
-               dict(limit=self._makelimit(),
-                    offset=self._makeoffset(),
-                    sortby=self._makesortby(),
-                    output_columns=self._makeoutput_columns())
+        return ' '.join((
+            self._makelimit(),
+            self._makeoffset(),
+            self._makesortby(),
+            self._makeoutput_columns()))
 
 
 class GroongaResultBase(object):
@@ -153,15 +134,9 @@ class GroongaResultBase(object):
         :param results: query results.
         :param maxlen: maximum length of mapping results. Default is all.
         """
-        cols = [col[0] for col in results[1]]
-        colrange = range(len(cols))
-        result = []
-        # TODO: implements by generator
-        for v in results[2:maxlen]:
-            mapped = dict(zip(cols, [v[i] for i in colrange]))
-            result.append(cls(**mapped))
+        self._result = [cls(**mapped) for mapped in
+                        utils.to_python(results, 1, maxlen)]
         self._all_len = results[0][0]
-        self._result = result
 
     @property
     def all_len(self):
@@ -221,11 +196,11 @@ class GroongaSuggestResults(object):
     def __init__(self, resultstr):
         result = json.loads(resultstr)
         complete = result.get('complete', [])
-        correct  = result.get('correct', [])
-        suggest  = result.get('suggest', [])
+        correct = result.get('correct', [])
+        suggest = result.get('suggest', [])
         self.complete = complete and GroongaSuggestResult(Suggest, complete)
-        self.correct  = correct  and GroongaSuggestResult(Suggest, correct)
-        self.suggest  = suggest  and GroongaSuggestResult(Suggest, suggest)
+        self.correct = correct and GroongaSuggestResult(Suggest, correct)
+        self.suggest = suggest and GroongaSuggestResult(Suggest, suggest)
 
 
 class GroongaSuggestResult(GroongaResultBase):
@@ -260,8 +235,9 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         """
         Query.__init__(self, tbl)
         QueryOptionsMixin.__init__(self)
-        self._expr = args
+        self._exprs = list(Expression.wrap_expr(*args))
         self._target = kwargs
+        self._match_columns = []
         self._cache = True
         self._match_escalation_threshold = None
 
@@ -273,6 +249,29 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         q = str(self)
         result = self._table.grn.query(q)
         return GroongaSelectResult(self._table, result)
+
+    def match_columns(self, *args):
+        """Set the match columns
+
+        :param args: iterable of columns
+        :returns: self. for method chain
+        """
+        from pyroonga.odm.table import Column  # avoid Circular reference
+        columns = (MatchColumn(c) if isinstance(c, Column) else c
+                   for c in args)
+        self._match_columns.extend(columns)
+        return self
+
+    def query(self, *args, **kwargs):
+        """Set the query strings
+
+        :param args: strings of query
+        :param kwargs: search columns and search texts
+        :returns: self. for method chain
+        """
+        self._exprs.extend(Expression.wrap_expr(*args))
+        self._target.update(kwargs)
+        return self
 
     def cache(self, iscache):
         """Set the query cache
@@ -292,6 +291,13 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         self._match_escalation_threshold = int(threshold)
         return self
 
+    def _make_match_columns(self):
+        if self._match_columns:
+            return "--match_columns '%s'" % reduce(operator.or_,
+                                                   self._match_columns)
+        else:
+            return ''
+
     def _makecache(self):
         return '' if self._cache else '--cache no'
 
@@ -306,17 +312,17 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         return ''
 
     def _condition(self):
-        return '%(condition)s %(cache)s %(match_escalation_threshold)s ' \
-               '%(params)s' % \
-               dict(condition=QueryOptionsMixin._condition(self),
-                    cache=self._makecache(),
-                    match_escalation_threshold=self._makematch_escalation_threshold(),
-                    params=self._makeparams())
+        return ' '.join((
+            self._make_match_columns(),
+            QueryOptionsMixin._condition(self),
+            self._makecache(),
+            self._makematch_escalation_threshold(),
+            self._makeparams())).strip()
 
     def __str__(self):
-        return 'select --table "%(table)s" %(condition)s' % dict(
-                table=self._table.__tablename__,
-                condition=self._condition())
+        return ('select --table "%s" %s' % (
+            self._table.__tablename__,
+            self._condition())).strip()
 
 
 class SelectQuery(SelectQueryBase):
@@ -334,22 +340,13 @@ class SelectQuery(SelectQueryBase):
         params = [utils.escape('%s:@"%s"' % target) for target in
                   self._target.items()]
         param = Expression.OR.join(params)
-        exprs = [utils.escape(self._makeexpr(expr)) for expr in self._expr]
-        expr = Expression.OR.join(exprs)
+        expr = Expression.OR.join(utils.escape(str(expr)) for expr in
+                                  self._exprs)
         result = param and '(%s)' % param
         if result and expr:
             result += Expression.AND
         result += expr
         return '--query "%s"' % result if result else ''
-
-    def _makeexpr(self, expr):
-        if isinstance(expr, ExpressionTree):
-            return '(%s%s%s)' % (self._makeexpr(expr.left), expr.expr,
-                    self._makeexpr(expr.right))
-        elif isinstance(expr, Value):
-            return '"%s"' % expr
-        else:
-            return str(expr)
 
 
 class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
@@ -358,17 +355,18 @@ class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
     Instantiate from :meth:`SelectQuery.drilldown`\ .
     """
 
-    __options__ = {'limit':  '--drilldown_limit',
-                   'offset': '--drilldown_offset',
-                   'sortby': '--drilldown_sortby',
-                   'output_columns': '--drilldown_output_columns'}
+    __options__ = {
+        'limit': '--drilldown_limit',
+        'offset': '--drilldown_offset',
+        'sortby': '--drilldown_sortby',
+        'output_columns': '--drilldown_output_columns'}
 
     def __init__(self, parent, *args):
         """Construct of drilldown query
 
         :param parent: parent :class:`SelectQuery`\ .
         :param args: target columns for drilldown. Type is
-            :class:`pyroonga.orm.table.Column`\ .
+            :class:`pyroonga.odm.table.Column`\ .
         """
         if not args:
             raise ValueError("args is must be one or more columns")
@@ -385,40 +383,57 @@ class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
         return str(self.parent) + (' %s' % self._condition())
 
 
-class Value(object):
-    slots = ['value']
+class MatchColumn(object):
+    """match column representation class
+    """
+    INITIAL_WEIGHT = 1
 
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, column, weight=INITIAL_WEIGHT):
+        self.column = column
+        self.weight = weight
+
+    def __mul__(self, other):
+        return MatchColumn(self.column, int(other))
+
+    def __or__(self, other):
+        return MatchColumnsTree(self, other)
 
     def __str__(self):
-        return str(self.value)
+        result = self.column.name
+        if self.weight > MatchColumn.INITIAL_WEIGHT:
+            result += ' * %s' % self.weight
+        return result
 
 
-class Expression(object):
-    """Expression constants"""
+class MatchColumnsTree(object):
+    """Match columns tree"""
 
-    EQUAL         = ':'
-    GREATER_EQUAL = ':>='
-    GREATER_THAN  = ':>'
-    LESS_EQUAL    = ':<='
-    LESS_THAN     = ':<'
-    NOT_EQUAL     = ':!'
-    OR  = ' OR '
-    AND = ' + '
-    NOT = ' - '
+    __slots__ = ['left', 'right']
 
-
-class ExpressionTree(object):
-    """Query conditional expression tree class"""
-
-    slots = ['expr', 'left', 'right']
-
-    def __init__(self, expr, left=None, right=None):
-        self.expr = expr
+    def __init__(self, left, right):
         self.left = left
         self.right = right
 
+    def __or__(self, other):
+        return MatchColumnsTree(self, other)
+
+    def _extract_tree(self, inst):
+        if isinstance(inst, MatchColumnsTree):
+            return '%s || %s' % (
+                self._extract_tree(inst.left),
+                self._extract_tree(inst.right))
+        elif isinstance(inst, MatchColumn):
+            return str(inst)
+        else:
+            raise ValueError(
+                "instance takes only the `MatchColumn` and `MatchColumnsTree`."
+                " but `%s` given." % repr(inst))
+
+    def __str__(self):
+        return self._extract_tree(self)
+
+
+class BaseExpression(object):
     def __eq__(self, other):
         return ExpressionTree(Expression.EQUAL, self, other)
 
@@ -445,6 +460,59 @@ class ExpressionTree(object):
 
     def __sub__(self, other):
         return ExpressionTree(Expression.NOT, self, other)
+
+
+class Expression(BaseExpression):
+    """Expression constants"""
+
+    __slots__ = ['value']
+
+    EQUAL = ':'
+    GREATER_EQUAL = ':>='
+    GREATER_THAN = ':>'
+    LESS_EQUAL = ':<='
+    LESS_THAN = ':<'
+    NOT_EQUAL = ':!'
+    OR = ' OR '
+    AND = ' + '
+    NOT = ' - '
+
+    def __init__(self, value):
+        self.value = value
+
+    @classmethod
+    def wrap_expr(cls, *args):
+        return (Expression(arg) if
+                not isinstance(arg, (Expression, ExpressionTree))
+                else arg for arg in args)
+
+    def __str__(self):
+        expr_str = str(self.value)
+        return '"%s"' % expr_str if ' ' in expr_str else expr_str
+
+GE = Expression
+
+
+class ExpressionTree(BaseExpression):
+    """Query conditional expression tree class"""
+
+    __slots__ = ['expr', 'left', 'right']
+
+    def __init__(self, expr, left, right):
+        self.expr = expr
+        self.left, self.right = tuple(Expression.wrap_expr(left, right))
+
+    def __str__(self):
+        return self._extract_tree(self)
+
+    def _extract_tree(self, expr):
+        if isinstance(expr, ExpressionTree):
+            return '(%s%s%s)' % (
+                self._extract_tree(expr.left), expr.expr,
+                self._extract_tree(expr.right),
+                )
+        else:
+            return str(expr)
 
 
 class LoadQuery(Query):
@@ -491,27 +559,31 @@ class LoadQuery(Query):
         return utils.escape(json.dumps([v.asdict() for v in self._data]))
 
     def __str__(self):
-        return 'load --table %(table)s --input_type json --values ' \
-               '"%(data)s"' % dict(table=self._table.__name__,
-                                   data=self._makejson())
+        return ' '.join((
+            'load',
+            '--table', self._table.__name__,
+            '--input-type', 'json',
+            '--values', '"%s"' % self._makejson()))
 
 
 class SuggestQuery(Query, QueryOptionsMixin):
     """'suggest' query representation class"""
 
-    __options__ = {'limit':  '--limit',
-                   'offset': '--offset',
-                   'sortby': '--sortby',
-                   'output_columns': '--output_columns',
-                   'frequency_threshold': '--frequency_threshold',
-                   'conditional_probability_threshold':
-                       '--conditional_probability_threshold',
-                   'prefix_search': '--prefix_search'}
+    __options__ = {
+        'limit': '--limit',
+        'offset': '--offset',
+        'sortby': '--sortby',
+        'output_columns': '--output_columns',
+        'frequency_threshold': '--frequency_threshold',
+        'conditional_probability_threshold': (
+            '--conditional_probability_threshold'),
+        'prefix_search': '--prefix_search',
+        'similar_search': '--similar_search'}
 
     def __init__(self, tbl, query):
         """Construct of 'suggest' query
 
-        :param tbl: :class:`pyroonga.orm.table.item_query` class.
+        :param tbl: :class:`pyroonga.odm.table.item_query` class.
             see also :class:`Query`\ .
         :param query: query string for suggest.
         """
@@ -522,6 +594,7 @@ class SuggestQuery(Query, QueryOptionsMixin):
         self._frequency_threshold = None
         self._conditional_probability_threshold = None
         self._prefix_search = None
+        self._similar_search = None
         self._result = None
 
     def all(self):
@@ -556,7 +629,7 @@ class SuggestQuery(Query, QueryOptionsMixin):
     def types(self, types):
         """Set the suggestion types
 
-        :param types: see :class:`pyroonga.orm.attributes.SuggestType`
+        :param types: see :class:`pyroonga.odm.attributes.SuggestType`
         :returns: self. for method chain.
         """
         self._types = types
@@ -583,12 +656,20 @@ class SuggestQuery(Query, QueryOptionsMixin):
     def prefix_search(self, isprefixsearch):
         """Set the prefix search
 
-        :param threshold: threshold of conditional probability
         :param isprefixsearch: It specifies whether optional prefix search is
             used or not in completion. 'yes' if True, otherwise 'no'.
+        :returns: self. for method chain.  """
+        self._prefix_search = bool(isprefixsearch)
+        return self
+
+    def similar_search(self, issimilar_search):
+        """Set the similar search
+
+        :param issimilar_search: It specifies whether optional similar search
+            is used or not in completion. 'yes' if True, otherwise 'no'.
         :returns: self. for method chain.
         """
-        self._prefix_search = bool(isprefixsearch)
+        self._similar_search = bool(issimilar_search)
         return self
 
     def _makefrequency_threshold(self):
@@ -613,30 +694,39 @@ class SuggestQuery(Query, QueryOptionsMixin):
             return ('%s %s' % (self.__options__['prefix_search'],
                                'yes' if self._prefix_search else 'no'))
 
+    def _makesimilar_search(self):
+        if self._similar_search is None:
+            return ''
+        else:
+            return ('%s %s' % (self.__options__['similar_search'],
+                               'yes' if self._similar_search else 'no'))
+
     def _condition(self):
-        return ('%(condition)s %(frequency_threshold)s ' \
-                '%(conditional_probability_threshold)s %(prefix_search)s' % \
-                dict(condition=QueryOptionsMixin._condition(self),
-                     frequency_threshold=self._makefrequency_threshold(),
-                     conditional_probability_threshold=
-                         self._makeconditional_probability_threshold(),
-                     prefix_search=self._makeprefix_search())).strip()
+        return ' '.join((
+            QueryOptionsMixin._condition(self),
+            self._makefrequency_threshold(),
+            self._makeconditional_probability_threshold(),
+            self._makeprefix_search(),
+            self._makesimilar_search())).strip()
 
     def __str__(self):
-        return 'suggest --table "%(table)s" --column "%(column)s" --types ' \
-                '"%(types)s" %(condition)s --query "%(query)s"' % \
-                dict(table=self._table.__tablename__,
-                     column=self._table.kana.name,
-                     types=self._types,
-                     condition=self._condition(),
-                     query=utils.escape(self._query))
+        return ' '.join((
+            'suggest',
+            '--table', '"%s"' % self._table.__tablename__,
+            '--column', '"%s"' % self._table.kana.name,
+            '--types', '"%s"' % self._types,
+            self._condition(),
+            '--query', '"%s"' % utils.escape(self._query)))
 
 
 class SuggestLoadQuery(LoadQuery):
     """'load' query for suggestion representation class"""
 
     def __str__(self):
-        return 'load --table %(table)s --input_type json --each ' \
-               '\'suggest_preparer(_id, type, item, sequence, time, ' \
-               'pair_query)\' "%(data)s"' % dict(table=self._table.__name__,
-                                                 data=self._makejson())
+        return ' '.join((
+            'load',
+            '--table', self._table.__name__,
+            '--input_type', 'json',
+            '--each',
+            "'suggest_preparer(_id, type, item, sequence, time, pair_query)'",
+            '"%s"' % self._makejson()))
