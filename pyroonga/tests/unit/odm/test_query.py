@@ -61,6 +61,9 @@ class TestSelectQuery(object):
         (('q1', 'q2', 'q3'), r'q1 OR q2 OR q3'),
         (('q1 q2',), r'\"q1 q2\"'),
         (('q1 q2', 'q3 q4'), r'\"q1 q2\" OR \"q3 q4\"'),
+        ((query.GE('q1') | query.GE('q2'),), r'(q1 OR q2)'),
+        ((query.GE('q1 q2') | query.GE('q3 q4'),),
+         r'(\"q1 q2\" OR \"q3 q4\")'),
     ))
     def test___str__with_query_and_args(self, queries, expected):
         m = mock.MagicMock()

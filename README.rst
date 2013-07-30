@@ -116,6 +116,16 @@ The above example is same as following queries::
    select --table Site --match_columns 'title' --query "foo"
    select --table Site --match_columns 'title OR name' --query "bar"
 
+For more complex queries using `pyroonga.odm.GE`::
+
+   from pyroonga.odm import GE
+
+   Site.select().match_columns(Site.title).query(GE('foo') | GE('bar')).all()
+
+The above example is same as following query::
+
+   select --table Site --match_columns 'title' --query "(foo OR bar)"
+
 And also not use `match_columns`::
 
    Site.select(title='foo').all()
