@@ -1,5 +1,5 @@
-pyroonga
-========
+pyroonga |travis-ci-status|_
+============================
 
 What's this?
 ------------
@@ -231,3 +231,6 @@ LICENSE
 -------
 
 pyroonga is licensed under the MIT license.
+
+.. |travis-ci-status| image:: https://travis-ci.org/naoina/pyroonga.png?branch=master
+.. _`travis-ci-status`: https://travis-ci.org/naoina/pyroonga
