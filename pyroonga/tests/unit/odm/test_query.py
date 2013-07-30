@@ -55,19 +55,21 @@ class TestSelectQuery(object):
         assert result is q
         assert q.__str__() == ('select --table "test_table"')
 
-    @pytest.mark.parametrize('queries', (
-        ('query1',),
-        ('query1', 'query2'),
-        ('query1', 'query2', 'query3'),
+    @pytest.mark.parametrize(('queries', 'expected'), (
+        (('q1',), r'q1'),
+        (('q1', 'q2'), r'q1 OR q2'),
+        (('q1', 'q2', 'q3'), r'q1 OR q2 OR q3'),
+        (('q1 q2',), r'\"q1 q2\"'),
+        (('q1 q2', 'q3 q4'), r'\"q1 q2\" OR \"q3 q4\"'),
     ))
-    def test___str__with_query_and_args(self, queries):
+    def test___str__with_query_and_args(self, queries, expected):
         m = mock.MagicMock()
         m.__tablename__ = 'test_table'
         q = query.SelectQuery(m)
         result = q.query(*queries)
         assert result is q
-        assert q.__str__() == ('select --table "test_table" --query'
-                               ' "%s"' % ' OR '.join(queries))
+        assert q.__str__() == ('select --table "test_table" --query "%s"' %
+                               expected)
 
     def test___str__with_query_and_kwargs(self):
         m = mock.MagicMock()
@@ -215,84 +217,186 @@ class TestExpression(object):
         ('NOT', ' - '),
     ))
     def test_constant(self, attr, expected):
-        assert object.__getattribute__(query.Expression, attr) == expected
+        result = object.__getattribute__(query.Expression, attr)
+        assert (result == expected) is True
+
+    def test___init__(self):
+        expr = query.Expression('testvalue')
+        assert (expr.value == 'testvalue') is True
+
+    def test_wrap_expr_with_Expression_instances(self):
+        expr1, expr2 = query.Expression('v1'), query.Expression('v2')
+        exprs = tuple(query.Expression.wrap_expr(expr1, expr2))
+        assert len(exprs) == 2
+        assert exprs[0] is expr1
+        assert exprs[1] is expr2
+
+    def test_wrap_expr_with_ExpressionTree_instances(self):
+        et1, et2 = (query.ExpressionTree('e1', 'l1', 'r1'),
+                    query.ExpressionTree('e2', 'l2', 'r2'))
+        exprs = tuple(query.Expression.wrap_expr(et1, et2))
+        assert len(exprs) == 2
+        assert exprs[0] is et1
+        assert exprs[1] is et2
+
+    def test_wrap_expr(self):
+        exprs = tuple(query.Expression.wrap_expr('v1', 'v2', 10))
+        assert len(exprs) == 3
+        assert isinstance(exprs[0], query.Expression)
+        assert isinstance(exprs[1], query.Expression)
+        assert isinstance(exprs[2], query.Expression)
+        assert (exprs[0].value == 'v1') is True
+        assert (exprs[1].value == 'v2') is True
+        assert (exprs[2].value == 10) is True
+
+    @pytest.mark.parametrize(('value', 'expected'), (
+        ('', ''),
+        ('testvalue', 'testvalue'),
+        ('foo bar', '"foo bar"'),
+        ('foo bar baz', '"foo bar baz"'),
+        (10, '10'),
+    ))
+    def test___str__(self, value, expected):
+        expr = query.Expression(value)
+        assert str(expr) == expected
+
+    def test___eq__(self):
+        expr = query.Expression('v1')
+        et = (expr == 'v2')
+        assert (et.expr == query.Expression.EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+
+    def test___ge__(self):
+        expr = query.Expression('v1')
+        et = (expr >= 'expr2')
+        assert (et.expr == query.Expression.GREATER_EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+
+    def test___gt__(self):
+        expr = query.Expression('v1')
+        et = (expr > 'expr2')
+        assert (et.expr == query.Expression.GREATER_THAN) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+
+    def test___le__(self):
+        expr = query.Expression('v1')
+        et = (expr <= 'expr2')
+        assert (et.expr == query.Expression.LESS_EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+
+    def test___lt__(self):
+        expr = query.Expression('v1')
+        et = (expr < 'expr2')
+        assert (et.expr == query.Expression.LESS_THAN) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+
+    def test___ne__(self):
+        expr = query.Expression('v1')
+        et = (expr != 'expr2')
+        assert (et.expr == query.Expression.NOT_EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+
+    def test___and__(self):
+        expr = query.Expression('v1')
+        et = (expr & 'expr2')
+        assert (et.expr == query.Expression.AND) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+
+    def test___or__(self):
+        expr = query.Expression('v1')
+        et = (expr | 'expr2')
+        assert (et.expr == query.Expression.OR) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+
+    def test___sub__(self):
+        expr = query.Expression('v1')
+        et = (expr - 'expr2')
+        assert (et.expr == query.Expression.NOT) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+
+
+def test_GE():
+    assert query.GE is query.Expression
 
 
 class TestExpressionTree(object):
     def test___init__(self):
-        et = query.ExpressionTree('testexpr')
-        assert et.expr == 'testexpr'
-        assert et.left is None
-        assert et.right is None
-
-    def test___init__with_default_value(self):
         et = query.ExpressionTree('testexpr', 'testleft', 'testright')
-        assert et.expr == 'testexpr'
-        assert et.left == 'testleft'
-        assert et.right == 'testright'
+        assert (et.expr == 'testexpr') is True
+        assert isinstance(et.left, query.Expression)
+        assert isinstance(et.right, query.Expression)
 
     def test___eq__(self):
-        et = query.ExpressionTree('expr1')
+        et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et == 'expr2')
-        assert et2.expr == query.Expression.EQUAL
+        assert (et2.expr == query.Expression.EQUAL) is True
         assert et2.left is et
-        assert et2.right == 'expr2'
+        assert isinstance(et2.right, query.Expression)
 
     def test___ge__(self):
-        et = query.ExpressionTree('expr1')
+        et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et >= 'expr2')
-        assert et2.expr == query.Expression.GREATER_EQUAL
+        assert (et2.expr == query.Expression.GREATER_EQUAL) is True
         assert et2.left is et
-        assert et2.right == 'expr2'
+        assert isinstance(et2.right, query.Expression)
 
     def test___gt__(self):
-        et = query.ExpressionTree('expr1')
+        et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et > 'expr2')
-        assert et2.expr == query.Expression.GREATER_THAN
+        assert (et2.expr == query.Expression.GREATER_THAN) is True
         assert et2.left is et
-        assert et2.right == 'expr2'
+        assert isinstance(et2.right, query.Expression)
 
     def test___le__(self):
-        et = query.ExpressionTree('expr1')
+        et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et <= 'expr2')
-        assert et2.expr == query.Expression.LESS_EQUAL
+        assert (et2.expr == query.Expression.LESS_EQUAL) is True
         assert et2.left is et
-        assert et2.right == 'expr2'
+        assert isinstance(et2.right, query.Expression)
 
     def test___lt__(self):
-        et = query.ExpressionTree('expr1')
+        et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et < 'expr2')
-        assert et2.expr == query.Expression.LESS_THAN
+        assert (et2.expr == query.Expression.LESS_THAN) is True
         assert et2.left is et
-        assert et2.right == 'expr2'
+        assert isinstance(et2.right, query.Expression)
 
     def test___ne__(self):
-        et = query.ExpressionTree('expr1')
+        et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et != 'expr2')
-        assert et2.expr == query.Expression.NOT_EQUAL
+        assert (et2.expr == query.Expression.NOT_EQUAL) is True
         assert et2.left is et
-        assert et2.right == 'expr2'
+        assert isinstance(et2.right, query.Expression)
 
     def test___and__(self):
-        et = query.ExpressionTree('expr1')
+        et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et & 'expr2')
-        assert et2.expr == query.Expression.AND
+        assert (et2.expr == query.Expression.AND) is True
         assert et2.left is et
-        assert et2.right == 'expr2'
+        assert isinstance(et2.right, query.Expression)
 
     def test___or__(self):
-        et = query.ExpressionTree('expr1')
+        et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et | 'expr2')
-        assert et2.expr == query.Expression.OR
+        assert (et2.expr == query.Expression.OR) is True
         assert et2.left is et
-        assert et2.right == 'expr2'
+        assert isinstance(et2.right, query.Expression)
 
     def test___sub__(self):
-        et = query.ExpressionTree('expr1')
+        et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et - 'expr2')
-        assert et2.expr == query.Expression.NOT
+        assert (et2.expr == query.Expression.NOT) is True
         assert et2.left is et
-        assert et2.right == 'expr2'
+        assert isinstance(et2.right, query.Expression)
 
     def test___str__without_nested(self):
         et = query.ExpressionTree('expr1', 'left1', 'right1')
@@ -303,8 +407,3 @@ class TestExpressionTree(object):
         et2 = query.ExpressionTree('&', et1, 'right2')
         et3 = query.ExpressionTree('+', 'left3', et2)
         assert str(et3) == '(left3+((left1|right1)&right2))'
-
-    def test___str__with_Value_instance(self):
-        left, right = query.Value('leftvalue'), query.Value('rightvalue')
-        et = query.ExpressionTree('expr', left, right)
-        assert str(et) == '("leftvalue"expr"rightvalue")'

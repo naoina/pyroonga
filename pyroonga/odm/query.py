@@ -235,7 +235,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         """
         Query.__init__(self, tbl)
         QueryOptionsMixin.__init__(self)
-        self._exprs = list(args)
+        self._exprs = list(Expression.wrap_expr(*args))
         self._target = kwargs
         self._match_columns = []
         self._cache = True
@@ -269,7 +269,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         :param kwargs: search columns and search texts
         :returns: self. for method chain
         """
-        self._exprs.extend(args)
+        self._exprs.extend(Expression.wrap_expr(*args))
         self._target.update(kwargs)
         return self
 
@@ -383,16 +383,6 @@ class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
         return str(self.parent) + (' %s' % self._condition())
 
 
-class Value(object):
-    __slots__ = ['value']
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return str(self.value)
-
-
 class MatchColumn(object):
     """match column representation class
     """
@@ -443,30 +433,7 @@ class MatchColumnsTree(object):
         return self._extract_tree(self)
 
 
-class Expression(object):
-    """Expression constants"""
-
-    EQUAL = ':'
-    GREATER_EQUAL = ':>='
-    GREATER_THAN = ':>'
-    LESS_EQUAL = ':<='
-    LESS_THAN = ':<'
-    NOT_EQUAL = ':!'
-    OR = ' OR '
-    AND = ' + '
-    NOT = ' - '
-
-
-class ExpressionTree(object):
-    """Query conditional expression tree class"""
-
-    __slots__ = ['expr', 'left', 'right']
-
-    def __init__(self, expr, left=None, right=None):
-        self.expr = expr
-        self.left = left
-        self.right = right
-
+class BaseExpression(object):
     def __eq__(self, other):
         return ExpressionTree(Expression.EQUAL, self, other)
 
@@ -494,6 +461,47 @@ class ExpressionTree(object):
     def __sub__(self, other):
         return ExpressionTree(Expression.NOT, self, other)
 
+
+class Expression(BaseExpression):
+    """Expression constants"""
+
+    __slots__ = ['value']
+
+    EQUAL = ':'
+    GREATER_EQUAL = ':>='
+    GREATER_THAN = ':>'
+    LESS_EQUAL = ':<='
+    LESS_THAN = ':<'
+    NOT_EQUAL = ':!'
+    OR = ' OR '
+    AND = ' + '
+    NOT = ' - '
+
+    def __init__(self, value):
+        self.value = value
+
+    @classmethod
+    def wrap_expr(cls, *args):
+        return (Expression(arg) if
+                not isinstance(arg, (Expression, ExpressionTree))
+                else arg for arg in args)
+
+    def __str__(self):
+        expr_str = str(self.value)
+        return '"%s"' % expr_str if ' ' in expr_str else expr_str
+
+GE = Expression
+
+
+class ExpressionTree(BaseExpression):
+    """Query conditional expression tree class"""
+
+    __slots__ = ['expr', 'left', 'right']
+
+    def __init__(self, expr, left, right):
+        self.expr = expr
+        self.left, self.right = tuple(Expression.wrap_expr(left, right))
+
     def __str__(self):
         return self._extract_tree(self)
 
@@ -503,8 +511,6 @@ class ExpressionTree(object):
                 self._extract_tree(expr.left), expr.expr,
                 self._extract_tree(expr.right),
                 )
-        elif isinstance(expr, Value):
-            return '"%s"' % expr
         else:
             return str(expr)
 

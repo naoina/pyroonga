@@ -33,7 +33,6 @@ from pyroonga.odm.query import (
     SuggestQuery,
     SuggestLoadQuery,
     SelectQuery,
-    Value,
     )
 from pyroonga import utils
 
@@ -274,28 +273,22 @@ class Column(object):
         self._desc = False
 
     def __eq__(self, other):
-        return ExpressionTree(Expression.EQUAL, self.name,
-                Value(other))
+        return ExpressionTree(Expression.EQUAL, self.name, other)
 
     def __ge__(self, other):
-        return ExpressionTree(Expression.GREATER_EQUAL, self.name,
-                Value(other))
+        return ExpressionTree(Expression.GREATER_EQUAL, self.name, other)
 
     def __gt__(self, other):
-        return ExpressionTree(Expression.GREATER_THAN, self.name,
-                Value(other))
+        return ExpressionTree(Expression.GREATER_THAN, self.name, other)
 
     def __le__(self, other):
-        return ExpressionTree(Expression.LESS_EQUAL, self.name,
-                Value(other))
+        return ExpressionTree(Expression.LESS_EQUAL, self.name, other)
 
     def __lt__(self, other):
-        return ExpressionTree(Expression.LESS_THAN, self.name,
-                Value(other))
+        return ExpressionTree(Expression.LESS_THAN, self.name, other)
 
     def __ne__(self, other):
-        return ExpressionTree(Expression.NOT_EQUAL, self.name,
-                Value(other))
+        return ExpressionTree(Expression.NOT_EQUAL, self.name, other)
 
     def __neg__(self):
         self._desc = True
