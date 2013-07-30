@@ -338,7 +338,7 @@ class SelectQuery(SelectQueryBase):
 
     def _makeparams(self):
         params = [utils.escape('%s:@"%s"' % target) for target in
-                  self._target.items()]
+                  sorted(self._target.items())]
         param = Expression.OR.join(params)
         expr = Expression.OR.join(utils.escape(str(expr)) for expr in
                                   self._exprs)
