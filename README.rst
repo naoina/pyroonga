@@ -106,14 +106,25 @@ And print the data::
    for row in data:
        print(row._id, row._key, row.title)
 
-Fulltext search query::
+Fulltext search queries::
+
+   Site.select().match_columns(Site.title).query('foo').all()
+   Site.select().match_columns(Site.title, Site.name).query('bar').all()
+
+The above example is same as following queries::
+
+   select --table Site --match_columns 'title' --query "foo"
+   select --table Site --match_columns 'title OR name' --query "bar"
+
+And also not use `match_columns`::
 
    Site.select(title='foo').all()
    Site.select(title='foo', name='bar').all()  # "or" search
 
-The above is the same as a following groonga query::
+The above example is same as following queries::
 
-   select --table Site --query "title:@\"foo\""
+   select --table Site --query "(title:@\"foo\")"
+   select --table Site --query "(title:@\"foo\" OR name:@\"bar\")"
 
 Conditional search query::
 

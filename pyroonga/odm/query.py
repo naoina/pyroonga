@@ -235,7 +235,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         """
         Query.__init__(self, tbl)
         QueryOptionsMixin.__init__(self)
-        self._expr = args
+        self._exprs = list(args)
         self._target = kwargs
         self._match_columns = []
         self._cache = True
@@ -260,6 +260,17 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         columns = (MatchColumn(c) if isinstance(c, Column) else c
                    for c in args)
         self._match_columns.extend(columns)
+        return self
+
+    def query(self, *args, **kwargs):
+        """Set the query strings
+
+        :param args: strings of query
+        :param kwargs: search columns and search texts
+        :returns: self. for method chain
+        """
+        self._exprs.extend(args)
+        self._target.update(kwargs)
         return self
 
     def cache(self, iscache):
@@ -309,9 +320,9 @@ class SelectQueryBase(Query, QueryOptionsMixin):
             self._makeparams())).strip()
 
     def __str__(self):
-        return 'select --table "%s" %s' % (
+        return ('select --table "%s" %s' % (
             self._table.__tablename__,
-            self._condition())
+            self._condition())).strip()
 
 
 class SelectQuery(SelectQueryBase):
@@ -330,7 +341,7 @@ class SelectQuery(SelectQueryBase):
                   self._target.items()]
         param = Expression.OR.join(params)
         expr = Expression.OR.join(utils.escape(str(expr)) for expr in
-                                  self._expr)
+                                  self._exprs)
         result = param and '(%s)' % param
         if result and expr:
             result += Expression.AND

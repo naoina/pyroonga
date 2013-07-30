@@ -23,6 +23,11 @@ class TestSelectQuery(object):
         result = q.match_columns()
         assert result is q
 
+    def test_query(self):
+        q = query.SelectQuery(mock.MagicMock())
+        result = q.query()
+        assert result is q
+
     def test___str__with_match_columns(self):
         m = mock.MagicMock()
         m.__tablename__ = 'test_table'
@@ -41,6 +46,37 @@ class TestSelectQuery(object):
         assert result is q
         assert q.__str__() == ('select --table "test_table" --match_columns'
                                " 'c1 || c2'")
+
+    def test___str__with_query_and_no_args(self):
+        m = mock.MagicMock()
+        m.__tablename__ = 'test_table'
+        q = query.SelectQuery(m)
+        result = q.query()
+        assert result is q
+        assert q.__str__() == ('select --table "test_table"')
+
+    @pytest.mark.parametrize('queries', (
+        ('query1',),
+        ('query1', 'query2'),
+        ('query1', 'query2', 'query3'),
+    ))
+    def test___str__with_query_and_args(self, queries):
+        m = mock.MagicMock()
+        m.__tablename__ = 'test_table'
+        q = query.SelectQuery(m)
+        result = q.query(*queries)
+        assert result is q
+        assert q.__str__() == ('select --table "test_table" --query'
+                               ' "%s"' % ' OR '.join(queries))
+
+    def test___str__with_query_and_kwargs(self):
+        m = mock.MagicMock()
+        m.__tablename__ = 'test_table'
+        q = query.SelectQuery(m)
+        result = q.query(query1='q1', q1='query1')
+        assert result is q
+        assert q.__str__() == ('select --table "test_table" --query'
+                               r' "(q1:@\"query1\" OR query1:@\"q1\")"')
 
 
 class TestMatchColumn(object):
