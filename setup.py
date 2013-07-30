@@ -34,7 +34,7 @@ def gen_pytest_class(args):
             sys.exit(errno)
     return PyTest
 
-version = '0.4'
+version = '0.5'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
