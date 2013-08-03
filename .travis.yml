@@ -8,5 +8,4 @@ before_install:
 before_script:
   - groonga -n /tmp/test.db quit
   - groonga -i localhost -d /tmp/test.db
-  - sleep 3
 script: python setup.py testall
