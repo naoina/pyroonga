@@ -561,7 +561,7 @@ class LoadQuery(Query):
     def __str__(self):
         return ' '.join((
             'load',
-            '--table', self._table.__name__,
+            '--table', self._table.__tablename__,
             '--input-type', 'json',
             '--values', '"%s"' % self._makejson()))
 
@@ -725,7 +725,7 @@ class SuggestLoadQuery(LoadQuery):
     def __str__(self):
         return ' '.join((
             'load',
-            '--table', self._table.__name__,
+            '--table', self._table.__tablename__,
             '--input_type', 'json',
             '--each',
             "'suggest_preparer(_id, type, item, sequence, time, pair_query)'",

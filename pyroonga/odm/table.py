@@ -59,7 +59,7 @@ class TableMeta(type):
         if '_tables' not in dict_:
             cls._tables.append(cls)
             cls.columns = []
-            for k, v in cls.__dict__.items():
+            for k, v in cls.__dict__.copy().items():
                 if isinstance(v, Column):
                     cls._setcolumn(k, v)
                     cls.columns.append(v)
@@ -178,8 +178,8 @@ class TableBase(object):
         column_queries = []
         json_results = json.loads(cls.grn.query('table_list'))
         defined_tables = utils.to_python(json_results, 0)
-        defined_table_names = (v['name'] for v in defined_tables)
-        for tbl in (t for t in cls._tables if t.__name__ not in
+        defined_table_names = tuple(v['name'] for v in defined_tables)
+        for tbl in (t for t in cls._tables if t.__tablename__ not in
                     defined_table_names):
             table_queries.append(str(tbl))
             column_queries.extend(str(col) for col in tbl.columns)

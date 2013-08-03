@@ -5,4 +5,8 @@ python:
   - "3.3"
 before_install:
   - curl https://raw.github.com/groonga/groonga/master/data/travis/setup.sh | sh
+before_script:
+  - groonga -n /tmp/test.db quit
+  - groonga -i localhost -d /tmp/test.db
+  - sleep 3
 script: python setup.py testall
