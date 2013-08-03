@@ -4,8 +4,6 @@ import json
 import operator
 import random
 
-from subprocess import Popen, PIPE
-
 import pytest
 
 from pyroonga import Groonga
@@ -36,39 +34,39 @@ from pyroonga.odm.query import (
     )
 from pyroonga import utils
 from pyroonga.tests import utils as test_utils
-from pyroonga.tests.functional import unittest
-from pyroonga.tests.functional import GroongaTestBase
 
 
-class TestColumn(unittest.TestCase):
-    def test___init__with_default_value(self):
+class TestColumn(object):
+    def test___init___with_default_value(self):
         col = Column()
-        self.assertIs(col.flags, ColumnFlags.COLUMN_SCALAR)
-        self.assertIs(col.type, DataType.ShortText)
-        self.assertIs(col.__tablemeta__, TableMeta)
-        self.assertIsNone(col.tablename)
-        self.assertIsNone(col.name)
-        self.assertIsNone(col.value)
+        assert col.flags is ColumnFlags.COLUMN_SCALAR
+        assert col.type is DataType.ShortText
+        assert col.__tablemeta__ is TableMeta
+        assert col.tablename is None
+        assert col.name is None
+        assert col.value is None
 
-    def test___init__(self):
-        self.assertRaises(TypeError, Column, flags='')
+    def test___init___with_invalid_flags(self):
+        with pytest.raises(TypeError):
+            Column(flags='')
+
+    def test___init___with_flags(self):
         try:
             col = Column(flags=ColumnFlags.COLUMN_VECTOR)
-            self.assertIs(col.flags, ColumnFlags.COLUMN_VECTOR)
+            assert col.flags is ColumnFlags.COLUMN_VECTOR
         except TypeError:
-            self.fail("TypeError has been raised")
+            assert False, "TypeError should not be raised"
 
+    @pytest.mark.parametrize('type_', (
+        DataType.UInt32,
+        TableMeta,
+    ))
+    def test___init___with_type(self, type_):
         try:
-            col = Column(type=DataType.UInt32)
-            self.assertIs(col.type, DataType.UInt32)
+            col = Column(type=type_)
+            assert col.type is type_
         except TypeError:
-            self.fail("TypeError has been raised")
-
-        try:
-            col = Column(type=TableMeta)
-            self.assertIs(col.type, TableMeta)
-        except TypeError:
-            self.fail("TypeError has been raised")
+            assert False, "TypeError should not be raised"
 
     def test___mul__(self):
         col = Column()
@@ -78,7 +76,7 @@ class TestColumn(unittest.TestCase):
         assert result.column is col
         assert result.weight == expected
 
-    def test___mul__with_implicit_calls(self):
+    def test___mul___with_implicit_calls(self):
         col = Column()
         expected = random.randrange(1000)
         result = col * expected
@@ -93,33 +91,38 @@ class TestColumn(unittest.TestCase):
         assert result.left.column is col1
         assert result.right is col2
 
-    def test___or__with_implicit_calls(self):
+    def test___or___with_implicit_calls(self):
         col1, col2 = Column(), Column()
         result = col1 | col2
         assert isinstance(result, MatchColumnsTree)
         assert result.left.column is col1
         assert result.right is col2
 
-    def test___str__(self):
+    def test___str___without_attributes(self):
         col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
-        self.assertRaises(TypeError, col.__str__)
+        with pytest.raises(TypeError):
+            str(col)
 
+    def test___str___without_name(self):
         col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
         col.tablename = 'tb1'
-        self.assertRaises(TypeError, col.__str__)
+        with pytest.raises(TypeError):
+            str(col)
 
+    def test___str___without_tablename(self):
         col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
         col.name = 'name1'
-        self.assertRaises(TypeError, col.__str__)
+        with pytest.raises(TypeError):
+            str(col)
 
+    def test___str___without_table(self):
         col = Column(flags=ColumnFlags.COLUMN_VECTOR, type=DataType.ShortText)
         col.tablename = 'tb2'
         col.name = 'name2'
-        self.assertEqual(
-            col.__str__(),
-            ('column_create --table tb2 --name name2 --flags'
-             ' COLUMN_VECTOR --type ShortText'))
+        assert str(col) == ('column_create --table tb2 --name name2 --flags'
+                            ' COLUMN_VECTOR --type ShortText')
 
+    def test___str___with_class(self):
         ExampleTableBase = tablebase()
 
         class ExampleTable(ExampleTableBase):
@@ -129,22 +132,24 @@ class TestColumn(unittest.TestCase):
                      source=ExampleTable.name)
         col.tablename = 'tb3'
         col.name = 'name3'
-        self.assertEqual(
-            col.__str__(),
-            ('column_create --table tb3 --name name3 --flags COLUMN_INDEX'
-             ' --type ExampleTable --source name'))
+        assert str(col) == ('column_create --table tb3 --name name3 --flags'
+                            ' COLUMN_INDEX --type ExampleTable --source name')
+
+    def test___str___with_class_string(self):
+        ExampleTableBase = tablebase()
+
+        class ExampleTable(ExampleTableBase):
+            name = Column()
 
         col = Column(flags=ColumnFlags.COLUMN_INDEX, type='ExampleTable',
                      source='name')
         col.tablename = 'tb4'
         col.name = 'name4'
-        self.assertEqual(
-            col.__str__(),
-            ('column_create --table tb4 --name name4 --flags COLUMN_INDEX'
-             ' --type ExampleTable --source name'))
+        assert str(col) == ('column_create --table tb4 --name name4 --flags'
+                            ' COLUMN_INDEX --type ExampleTable --source name')
 
 
-class TestPropAttr(unittest.TestCase):
+class TestPropAttr(object):
     def test_prop_attr(self):
         class TestClass(object):
             name = 'dummy'
@@ -153,12 +158,12 @@ class TestPropAttr(unittest.TestCase):
             def __tablename__(cls):
                 return cls.name
 
-        self.assertEqual(TestClass.__tablename__, 'dummy')
+        assert (TestClass.__tablename__ == 'dummy') is True
         TestClass.name = 'tbname1'
-        self.assertEqual(TestClass.__tablename__, 'tbname1')
+        assert (TestClass.__tablename__ == 'tbname1') is True
 
 
-class TestTable(GroongaTestBase):
+class TestTable(object):
     def get_tableinfo(self, *args):
         result = utils.to_python(
             json.loads(test_utils.sendquery('table_list'))[1], 0)
@@ -188,14 +193,6 @@ class TestTable(GroongaTestBase):
         data = json.dumps(data)
         test_utils.sendquery('load --table %s --input_type json --values\n%s' %
                 (tbl, data))
-
-    @pytest.fixture
-    def fixture1(self):
-        return self.loadfixture(1)
-
-    @pytest.fixture
-    def fixture2(self):
-        return self.loadfixture(2)
 
     @pytest.fixture
     def Table1(self, Table, fixture1):
@@ -990,7 +987,7 @@ class TestTable(GroongaTestBase):
     "failed to parallel tests due to fixed table names."
     " It will failed on at least travis-ci."
 ))
-class TestSuggestTable(GroongaTestBase):
+class TestSuggestTable(object):
     def _load(self, count):
         fixture = self.loadfixture('_suggest')
         data = json.dumps(fixture)
@@ -1349,10 +1346,3 @@ class TestSuggestTable(GroongaTestBase):
         self.assertEqual(str(query),
             'suggest --table "item_query" --column '
             '"kana" --types "complete" --similar_search no --query "en"')
-
-
-def main():
-    unittest.main()
-
-if __name__ == '__main__':
-    main()

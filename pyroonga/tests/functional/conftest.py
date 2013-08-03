@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import json
+import os
+
 import pytest
 
 from pyroonga.odm.table import tablebase, TableBase
 
 from pyroonga.tests import utils
+
+FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'fixture')
+FIXTURE_PATH = os.path.join(FIXTURE_DIR, 'dbfixture%s.json')
 
 
 @pytest.fixture
@@ -21,3 +27,15 @@ def Table(request):
         utils.sendquery('table_remove %s' % Tbl.__tablename__)
     request.addfinalizer(remove_table)
     return Tbl
+
+
+@pytest.fixture
+def fixture1():
+    with open(FIXTURE_PATH % 1) as f:
+        return json.load(f)
+
+
+@pytest.fixture
+def fixture2():
+    with open(FIXTURE_PATH % 2) as f:
+        return json.load(f)

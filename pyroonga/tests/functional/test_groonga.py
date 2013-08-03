@@ -4,12 +4,11 @@ import pytest
 
 import _groonga
 
-from pyroonga.exceptions import GroongaError
+from pyroonga.exceptions import GroongaError, error_messages
 from pyroonga.groonga import Groonga
-from pyroonga.tests.functional import (unittest, GroongaTestBase)
 
 
-class TestGroongaWithNotConnected(unittest.TestCase):
+class TestGroongaWithNotConnected(object):
     def test___init__(self):
         # test with default encoding
         grn = Groonga()
@@ -18,29 +17,16 @@ class TestGroongaWithNotConnected(unittest.TestCase):
         assert grn.host is None
         assert grn.port is None
 
-        # test with all encodings
-        grn = Groonga(encoding='utf-8')
-        assert grn.encoding == 'utf-8'
-        assert grn.connected is False
-        assert grn.host is None
-        assert grn.port is None
-        grn = Groonga(encoding='euc-jp')
-        assert grn.encoding == 'euc-jp'
-        assert grn.connected is False
-        assert grn.host is None
-        assert grn.port is None
-        grn = Groonga(encoding='sjis')
-        assert grn.encoding == 'sjis'
-        assert grn.connected is False
-        assert grn.host is None
-        assert grn.port is None
-        grn = Groonga(encoding='latin1')
-        assert grn.encoding == 'latin1'
-        assert grn.connected is False
-        assert grn.host is None
-        assert grn.port is None
-        grn = Groonga(encoding='koi8-r')
-        assert grn.encoding == 'koi8-r'
+    @pytest.mark.parametrize('encoding', (
+        'utf-8',
+        'euc-jp',
+        'sjis',
+        'latin1',
+        'koi8-r',
+    ))
+    def test___init__with_encoding(self, encoding):
+        grn = Groonga(encoding=encoding)
+        assert grn.encoding == encoding
         assert grn.connected is False
         assert grn.host is None
         assert grn.port is None
@@ -51,7 +37,7 @@ class TestGroongaWithNotConnected(unittest.TestCase):
             grn.connect(host='dummy', port=1)
 
 
-class TestGroonga(GroongaTestBase):
+class TestGroonga(object):
     def test_connect(self):
         # test the connect
         grn = Groonga()
@@ -60,8 +46,7 @@ class TestGroonga(GroongaTestBase):
         assert grn.host == 'localhost'
         assert grn.port == 10041
 
-    def test_reconnect(self):
-        # test the reconnect with not connected
+    def test_reconnect_with_not_connected(self):
         grn = Groonga()
         ctx = grn._ctx
         with pytest.raises(GroongaError):
@@ -69,34 +54,35 @@ class TestGroonga(GroongaTestBase):
         assert grn._ctx is ctx
         assert grn.connected is False
 
-        # test the reconnect
+    def test_reconnect_with_connected(self):
         grn = Groonga()
         ctx = grn._ctx
         grn.host = 'localhost'
         grn.port = 10041
+        assert grn._ctx is ctx
+        assert grn.connected is False
         grn.reconnect()
         assert grn._ctx is not ctx
         assert grn.connected is True
 
-    def test_query(self):
-        # test with not connected
+    def test_query_with_not_connected(self):
         grn = Groonga()
         with pytest.raises(GroongaError):
             grn.query('a')
 
-        # test with invalid command
+    def test_query_with_invalid_command(self):
         grn = Groonga()
         grn.connect('localhost', 10041)
         with pytest.raises(GroongaError):
             grn.query('a')
 
-        # test the query
+    def test_query(self):
         grn = Groonga()
         grn.connect('localhost', 10041)
         result = grn.query('cache_limit')
         assert result == '100'
 
-        # test the query with after the query of invalid command
+    def test_query_with_after_invalid_command(self):
         grn = Groonga()
         grn.connect('localhost', 10041)
         with pytest.raises(GroongaError):
@@ -104,20 +90,17 @@ class TestGroonga(GroongaTestBase):
         result = grn.query('cache_limit')
         assert result == '100'
 
-    def test__raise_if_notsuccess(self):
+    def test__raise_if_notsuccess_with_success(self):
         grn = Groonga()
         try:
             grn._raise_if_notsuccess(_groonga.SUCCESS, "", "")
         except GroongaError:
             assert False, "GroongaError has been raised"
-        from pyroonga.exceptions import error_messages
-        for rc in [rc for rc in error_messages if rc != _groonga.SUCCESS]:
-            with pytest.raises(GroongaError):
-                grn._raise_if_notsuccess(rc, "", "")
 
-
-def main():
-    unittest.main()
-
-if __name__ == '__main__':
-    main()
+    @pytest.mark.parametrize('rc', (
+        rc for rc in error_messages if rc != _groonga.SUCCESS
+    ))
+    def test__raise_if_notsuccess_with_not_success(self, rc):
+        grn = Groonga()
+        with pytest.raises(GroongaError):
+            grn._raise_if_notsuccess(rc, "", "")
