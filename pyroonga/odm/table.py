@@ -227,6 +227,18 @@ class TableBase(object):
         query = SimpleQuery(cls).delete(*args, **kwargs)
         return query.execute() if immediate else query
 
+    @classmethod
+    def truncate(cls, immediate=True):
+        """Truncate the all records in table
+
+        :param immediate: Truncate records immediately if True
+        :returns: If ``immediate`` argument is True, True if successful,
+            otherwise False. If ``immediate`` argument is False, It returns
+            :class:`pyroonga.odm.query.SimpleQuery` object for lazy execution
+        """
+        query = SimpleQuery(cls).truncate()
+        return query.execute() if immediate else query
+
     def asdict(self):
         return self.__dict__.copy()
 

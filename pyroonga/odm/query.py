@@ -633,6 +633,14 @@ class SimpleQuery(Query):
         self._query.extend(query)
         return self
 
+    def truncate(self):
+        """Get the 'truncate' query
+
+        :returns: :class:`SimpleQuery` object
+        """
+        self._query = ['truncate', self._table.__tablename__]
+        return self
+
     def execute(self):
         """execute a query
 

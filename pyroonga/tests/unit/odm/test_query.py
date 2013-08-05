@@ -553,6 +553,16 @@ class TestSimpleQuery(object):
         assert result is query
         assert str(result) == expected
 
+    def test_truncate(self):
+        expected = utils.random_string()
+
+        class A(object):
+            __tablename__ = expected
+        q = query.SimpleQuery(A)
+        result = q.truncate()
+        assert result is q
+        assert str(result) == 'truncate %s' % expected
+
     @pytest.mark.parametrize(('ret', 'expected'), (
         ('[true]', [True]),
         ('[false]', [False]),

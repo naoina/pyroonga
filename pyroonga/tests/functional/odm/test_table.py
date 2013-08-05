@@ -1229,6 +1229,73 @@ class TestTable(object):
             'select --table %s' % Table3.__tablename__))
         assert stored[1] == expected[1]
 
+    def test_truncate_with_default_param(self, Table1, Table2, Table3):
+        def get_items_num(table):
+            stored = json.loads(test_utils.sendquery(
+                'select %s --limit 0' % table.__tablename__))
+            return stored[1][0][0][0]
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 8
+        assert get_items_num(Table3) == 3
+
+        assert Table2.truncate() is True
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 0
+        assert get_items_num(Table3) == 3
+
+        assert Table3.truncate() is True
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 0
+        assert get_items_num(Table3) == 0
+
+    def test_truncate_with_immediate(self, Table1, Table2, Table3):
+        def get_items_num(table):
+            stored = json.loads(test_utils.sendquery(
+                'select %s --limit 0' % table.__tablename__))
+            return stored[1][0][0][0]
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 8
+        assert get_items_num(Table3) == 3
+
+        assert Table2.truncate(immediate=True) is True
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 0
+        assert get_items_num(Table3) == 3
+
+        assert Table3.truncate(immediate=True) is True
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 0
+        assert get_items_num(Table3) == 0
+
+    def test_truncate_with_not_immediate(self, Table1, Table2, Table3):
+        def get_items_num(table):
+            stored = json.loads(test_utils.sendquery(
+                'select %s --limit 0' % table.__tablename__))
+            return stored[1][0][0][0]
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 8
+        assert get_items_num(Table3) == 3
+
+        q = Table2.truncate(immediate=False)
+        assert isinstance(q, query.SimpleQuery)
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 8
+        assert get_items_num(Table3) == 3
+        assert q.execute() is True
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 0
+        assert get_items_num(Table3) == 3
+
+        q = Table3.truncate(immediate=False)
+        assert isinstance(q, query.SimpleQuery)
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 0
+        assert get_items_num(Table3) == 3
+        assert q.execute() is True
+        assert get_items_num(Table1) == 5
+        assert get_items_num(Table2) == 0
+        assert get_items_num(Table3) == 0
+
 
 @pytest.mark.xfail(reason=(
     "failed to parallel tests due to fixed table names."
