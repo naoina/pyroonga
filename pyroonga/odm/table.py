@@ -28,6 +28,7 @@ from pyroonga.odm.attributes import (
 from pyroonga.odm.query import (
     Expression,
     ExpressionTree,
+    GroongaRecord,
     LoadQuery,
     MatchColumn,
     SuggestQuery,
@@ -126,33 +127,17 @@ class TableBase(object):
     __normalizer__ = None
     grn = None
 
-    @prop_attr
-    def __tablename__(cls):
-        return cls.__name__
-
     def __init__(self, **kwargs):
         """Construct of TableBase
 
-        :param kwargs: name and value of columns
+        :param kwargs: It will be passed to
+            :meth:`pyroonga.odm.query.GroongaRecord.__init__`
         """
-        for k, v in kwargs.items():
-            try:
-                object.__getattribute__(self.__class__, k)
-            except AttributeError:
-                raise AttributeError('key "%s" is not defined in %s' % (k,
-                    self.__class__.__name__))
-            else:
-                setattr(self, TableBase._attrname(k), v)
+        self.__dict__.update(GroongaRecord(self.__class__, **kwargs).asdict())
 
-    @classmethod
-    def _attrname(self, base):
-        return '%s_' % base
-
-    def __getattribute__(self, name):
-        try:
-            return object.__getattribute__(self, TableBase._attrname(name))
-        except AttributeError:
-            return object.__getattribute__(self, name)
+    @prop_attr
+    def __tablename__(cls):
+        return cls.__name__
 
     @classmethod
     def bind(cls, grn):
@@ -226,8 +211,7 @@ class TableBase(object):
         return LoadQuery(cls, data)
 
     def asdict(self):
-        return dict((k[:-1], v) for k, v in self.__dict__.items()
-                    if v and k.endswith('_'))
+        return self.__dict__.copy()
 
 
 class Column(object):

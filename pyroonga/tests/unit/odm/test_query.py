@@ -11,6 +11,72 @@ except ImportError:
 
 from pyroonga.odm import query, table
 
+from pyroonga.tests import utils
+
+
+class TestGroongaRecord(object):
+    def test___init___without_kwargs(self):
+        record = query.GroongaRecord(None)
+        assert isinstance(record, query.GroongaRecord)
+
+    def test___init___with_class(self):
+        class A(object):
+            pass
+        record = query.GroongaRecord(A)
+        assert isinstance(record, query.GroongaRecord)
+
+    def test___init___with_class_and_kwargs(self):
+        class A(object):
+            pass
+        expected_attr = utils.random_string()
+        setattr(A, expected_attr, 'test')
+        record = query.GroongaRecord(A, **{expected_attr: 'test'})
+        assert getattr(record, expected_attr) == 'test'
+
+    def test___init___with_class_and_different_kwargs(self):
+        class A(object):
+            foo = None
+            bar = None
+        with pytest.raises(AttributeError):
+            query.GroongaRecord(A, foo='bar', baz='baz')
+        with pytest.raises(AttributeError):
+            query.GroongaRecord(A, fo='bar', bar='baz')
+
+    def test_asdict_with_no_attrs(self):
+        record = query.GroongaRecord(None)
+        assert record.asdict() == {}
+
+    def test_asdict(self):
+        record = query.GroongaRecord(None)
+        expected_attr = utils.random_string()
+        expected_value = utils.random_string()
+        setattr(record, expected_attr, expected_value)
+        assert record.asdict() == {expected_attr: expected_value}
+
+    def test_asdict_with_class(self):
+        class A(object):
+            foo = None
+        record = query.GroongaRecord(A)
+        assert record.asdict() == {}
+
+    def test_asdict_with_class_and_kwargs(self):
+        class A(object):
+            foo = None
+            bar = None
+        record = query.GroongaRecord(A, foo='bar', bar='baz')
+        assert record.asdict() == {'foo': 'bar', 'bar': 'baz'}
+
+
+class TestDrilldown(object):
+    def test_default_class_attr(self):
+        assert query.Drilldown._key is None
+        assert query.Drilldown._nsubrecs is None
+
+    def test___init___(self):
+        drilldown = query.Drilldown('test1', 'test2')
+        assert drilldown._key == 'test1'
+        assert drilldown._nsubrecs == 'test2'
+
 
 class TestSelectQuery(object):
     def make_match_column(self, name):

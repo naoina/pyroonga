@@ -124,6 +124,28 @@ class QueryOptionsMixin(object):
             self._makeoutput_columns()))
 
 
+class GroongaRecord(object):
+    def __init__(self, cls, **kwargs):
+        """Construct of GroongaRecord
+
+        :param kwargs: name and value of columns
+        """
+        self.__cls = cls
+        for k, v in kwargs.items():
+            try:
+                object.__getattribute__(cls, k)
+            except AttributeError:
+                raise AttributeError('key "%s" is not defined in %s' %
+                                     (k, cls.__name__))
+            else:
+                setattr(self, k, v)
+
+    def asdict(self):
+        result = self.__dict__.copy()
+        result.pop('_GroongaRecord__cls', None)
+        return result
+
+
 class GroongaResultBase(object):
     """Base class of query result"""
 
@@ -134,7 +156,7 @@ class GroongaResultBase(object):
         :param results: query results.
         :param maxlen: maximum length of mapping results. Default is all.
         """
-        self._result = [cls(**mapped) for mapped in
+        self._result = [GroongaRecord(cls, **mapped) for mapped in
                         utils.to_python(results, 1, maxlen)]
         self._all_len = results[0][0]
 
@@ -217,6 +239,9 @@ class Suggest(object):
 
 class Drilldown(object):
     """Drilldown representation class"""
+
+    _key = None
+    _nsubrecs = None
 
     def __init__(self, _key=None, _nsubrecs=None):
         self._key = _key
