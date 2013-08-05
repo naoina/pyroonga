@@ -42,6 +42,38 @@ class TestGroongaRecord(object):
         with pytest.raises(AttributeError):
             query.GroongaRecord(A, fo='bar', bar='baz')
 
+    @pytest.mark.parametrize(('rv', 'expected'), (
+        ('true', True),
+        ('false', False),
+    ))
+    def test_delete_with_default(self, rv, expected):
+        class A(object):
+            __tablename__ = 'test_table_name'
+            _id = None
+            grn = mock.Mock()
+        A.grn.query.return_value = rv
+        record = query.GroongaRecord(A, _id='test_id')
+        result = record.delete()
+        assert result is expected
+
+    def test_delete_with_immediate_is_True(self):
+        class A(object):
+            __tablename__ = 'test_table_name'
+            _id = None
+            grn = mock.Mock()
+        A.grn.query.return_value = 'true'
+        record = query.GroongaRecord(A, _id='test_id')
+        result = record.delete(immediate=True)
+        assert result is True
+
+    def test_delete_with_immediate_is_False(self):
+        class A(object):
+            __tablename__ = 'test_table_name'
+            _id = None
+        record = query.GroongaRecord(A, _id='test_id')
+        result = record.delete(immediate=False)
+        assert isinstance(result, query.SimpleQuery)
+
     def test_asdict_with_no_attrs(self):
         record = query.GroongaRecord(None)
         assert record.asdict() == {}
@@ -476,3 +508,60 @@ class TestExpressionTree(object):
         et2 = query.ExpressionTree('&', et1, 'right2')
         et3 = query.ExpressionTree('+', 'left3', et2)
         assert str(et3) == '(left3+((left1|right1)&right2))'
+
+
+class TestSimpleQuery(object):
+    @pytest.fixture
+    def query(self):
+        class A(object):
+            __tablename__ = 'test_tablename'
+        return query.SimpleQuery(A)
+
+    def test___init__(self):
+        class A(object):
+            pass
+        result = query.SimpleQuery(A)
+        assert isinstance(result, query.SimpleQuery)
+
+    @pytest.mark.parametrize(('key', 'id', 'filter', 'expected'), (
+        ('test_key', 12, 'test_filter',
+         'delete --table test_tablename --key test_key --id 12 --filter'
+         ' "test_filter"',
+         ),
+        ('test_key', 'test_id', None,
+         'delete --table test_tablename --key test_key --id test_id',
+         ),
+        ('test_key', None, 'test_filter',
+         'delete --table test_tablename --key test_key --filter "test_filter"',
+         ),
+        (None, 'test_id', 'test_filter',
+         'delete --table test_tablename --id test_id --filter "test_filter"',
+         ),
+        (None, None, 'test_filter',
+         'delete --table test_tablename --filter "test_filter"',
+         ),
+        (None, 'test_id', None,
+         'delete --table test_tablename --id test_id',
+         ),
+        ('test_key', None, None,
+         'delete --table test_tablename --key test_key',
+         ),
+        (None, None, None, 'delete --table test_tablename'),
+    ))
+    def test_delete(self, query, key, id, filter, expected):
+        result = query.delete(key=key, id=id, filter=filter)
+        assert result is query
+        assert str(result) == expected
+
+    @pytest.mark.parametrize(('ret', 'expected'), (
+        ('[true]', [True]),
+        ('[false]', [False]),
+    ))
+    def test_execute(self, ret, expected):
+        class A(object):
+            grn = mock.MagicMock()
+        A.grn.query = mock.MagicMock(return_value=ret)
+        record = query.SimpleQuery(A)
+        result = record.execute()
+        assert result == expected
+        assert A.grn.query.mock_calls == [mock.call('')]

@@ -34,6 +34,7 @@ from pyroonga.odm.query import (
     SuggestQuery,
     SuggestLoadQuery,
     SelectQuery,
+    SimpleQuery,
     )
 from pyroonga import utils
 
@@ -209,6 +210,22 @@ class TableBase(object):
     @classmethod
     def _load(cls, data):
         return LoadQuery(cls, data)
+
+    @classmethod
+    def delete(cls, immediate=True, *args, **kwargs):
+        """Delete the record
+
+        :param immediate: Delete the record immediately if True
+        :param args: It will be a passed to
+            :meth:`pyroonga.odm.query.SimpleQuery.delete`
+        :param kwargs: It will be a passed to
+            :meth:`pyroonga.odm.query.SimpleQuery.delete`
+        :returns: If ``immediate`` argument is True, True if successful,
+            otherwise False. If ``immediate`` argument is False, It returns
+            :class:`pyroonga.odm.query.SimpleQuery` object for lazy execution
+        """
+        query = SimpleQuery(cls).delete(*args, **kwargs)
+        return query.execute() if immediate else query
 
     def asdict(self):
         return self.__dict__.copy()

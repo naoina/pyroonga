@@ -6,7 +6,7 @@ import random
 
 import pytest
 
-from pyroonga import Groonga
+from pyroonga import Groonga, exceptions
 from pyroonga.odm.attributes import (
     TableFlags,
     ColumnFlags,
@@ -24,6 +24,7 @@ from pyroonga.odm.table import (
     event_query,
     item_query,
     )
+from pyroonga.odm import query
 from pyroonga.odm.query import (
     GroongaResultBase,
     GroongaSuggestResults,
@@ -229,6 +230,24 @@ class TestTable(object):
                              ' COLUMN_SCALAR --type ShortText' %
                              Tb.__tablename__)
         self._insert(Tb.__tablename__, fixture2)
+        return Tb
+
+    @pytest.fixture
+    def Table3(self, Table):
+        class Tb(Table):
+            name = Column()
+        grn = Groonga()
+        Table.bind(grn)
+        test_utils.sendquery('table_create --name %s --flags TABLE_HASH_KEY'
+                             ' --key_type ShortText' % Tb.__tablename__)
+        test_utils.sendquery('column_create --table %s --name name --flags'
+                             ' COLUMN_SCALAR --type ShortText' %
+                             Tb.__tablename__)
+        self._insert(Tb.__tablename__, [
+            {'_key': 'key1', 'name': 'foo'},
+            {'_key': 'key2', 'name': 'bar'},
+            {'_key': 'key3', 'name': 'baz'},
+            ])
         return Tb
 
     def test_default_value(self):
@@ -981,6 +1000,234 @@ class TestTable(object):
                      [['_id', 'UInt32'], ['_key', 'ShortText'],
                       ['name', 'ShortText']]]]
         assert stored[1] == expected
+
+    def test_delete_with_mapped_object_immediate(self, Table):
+        class Tb(Table):
+            name = Column()
+
+        grn = Groonga()
+        Table.bind(grn)
+        test_utils.sendquery('table_create --name %s --flags TABLE_HASH_KEY'
+                             ' --key_type ShortText' % Tb.__tablename__)
+        test_utils.sendquery('column_create --table %s --name name --flags'
+                             ' COLUMN_SCALAR --type ShortText' %
+                             Tb.__tablename__)
+        test_utils.sendquery(r'load --table %s --input_type json --values'
+                             r' [{\"_key\":\"foo\",\"name\":\"bar\"},'
+                             r'{\"_key\":\"bar\",\"name\":\"baz\"}]' %
+                             Tb.__tablename__)
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[2],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [1, 'foo', 'bar'], [2, 'bar', 'baz']]]
+        assert stored[1] == expected
+        results = Tb.select().all()
+        assert len(results) == 2
+        result = results[0]
+        assert result.delete() is True
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[1],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [2, 'bar', 'baz']]]
+        assert stored[1] == expected
+        assert result.delete() is False
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[1],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [2, 'bar', 'baz']]]
+        assert stored[1] == expected
+        result = results[1]
+        assert result.delete() is True
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[0],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']]]]
+        assert stored[1] == expected
+        assert result.delete() is False
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[0],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']]]]
+        assert stored[1] == expected
+
+    def test_delete_with_mapped_object_and_not_immediate(self, Table):
+        class Tb(Table):
+            name = Column()
+
+        grn = Groonga()
+        Table.bind(grn)
+        test_utils.sendquery('table_create --name %s --flags TABLE_HASH_KEY'
+                             ' --key_type ShortText' % Tb.__tablename__)
+        test_utils.sendquery('column_create --table %s --name name --flags'
+                             ' COLUMN_SCALAR --type ShortText' %
+                             Tb.__tablename__)
+        test_utils.sendquery(r'load --table %s --input_type json --values'
+                             r' [{\"_key\":\"foo\",\"name\":\"bar\"},'
+                             r'{\"_key\":\"bar\",\"name\":\"baz\"}]' %
+                             Tb.__tablename__)
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[2],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [1, 'foo', 'bar'], [2, 'bar', 'baz']]]
+        assert stored[1] == expected
+        results = Tb.select().all()
+        assert len(results) == 2
+        result = results[0].delete(immediate=False)
+        assert isinstance(result, query.SimpleQuery)
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[2],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [1, 'foo', 'bar'], [2, 'bar', 'baz']]]
+        assert stored[1] == expected
+        assert result.execute() is True
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[1],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [2, 'bar', 'baz']]]
+        assert stored[1] == expected
+        assert result.execute() is False
+        result = results[1].delete(immediate=False)
+        assert isinstance(result, query.SimpleQuery)
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[1],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']],
+                     [2, 'bar', 'baz']]]
+        assert stored[1] == expected
+        assert result.execute() is True
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[0],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']]]]
+        assert stored[1] == expected
+        assert result.execute() is False
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Tb.__tablename__))
+        expected = [[[0],
+                     [['_id', 'UInt32'], ['_key', 'ShortText'],
+                      ['name', 'ShortText']]]]
+        assert stored[1] == expected
+
+    delete_params_for_valid = (
+        ({'key': 'key2'}, [
+            True,
+            [[[2], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                    ['name', 'ShortText']],
+            [1, 'key1', 'foo'], [3, 'key3', 'baz']]]]),
+        ({'key': 'key1'}, [
+            True,
+            [[[2], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                    ['name', 'ShortText']],
+            [2, 'key2', 'bar'], [3, 'key3', 'baz']]]]),
+        ({'key': 'key4'}, [
+            False,
+            [[[3], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                    ['name', 'ShortText']],
+            [1, 'key1', 'foo'], [2, 'key2', 'bar'],
+            [3, 'key3', 'baz']]]]),
+        ({'id': '1'}, [
+            True,
+            [[[2], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                    ['name', 'ShortText']],
+            [2, 'key2', 'bar'], [3, 'key3', 'baz']]]]),
+        ({'id': 3}, [
+            True,
+            [[[2], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                    ['name', 'ShortText']],
+            [1, 'key1', 'foo'], [2, 'key2', 'bar']]]]),
+        ({'filter': 'name@"baz"'}, [
+            True,
+            [[[2], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                    ['name', 'ShortText']],
+            [1, 'key1', 'foo'], [2, 'key2', 'bar']]]]),
+        )
+
+    delete_params_for_invalid = (
+        ({'key': 'key1', 'id': 1}, [
+            False,
+            [[[3], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                    ['name', 'ShortText']],
+              [1, 'key1', 'foo'], [2, 'key2', 'bar'],
+              [3, 'key3', 'baz']]]]),
+        ({'key': 'key2', 'filter': 'name@"bar"'}, [
+            False,
+            [[[3], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                    ['name', 'ShortText']],
+              [1, 'key1', 'foo'], [2, 'key2', 'bar'],
+              [3, 'key3', 'baz']]]]),
+        ({'id': '1', 'filter': 'name@"bar"'}, [
+            False,
+            [[[3], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                    ['name', 'ShortText']],
+              [1, 'key1', 'foo'], [2, 'key2', 'bar'],
+              [3, 'key3', 'baz']]]]),
+        )
+
+    @pytest.mark.parametrize(('cond', 'expected'), delete_params_for_valid)
+    def test_delete_with_immediate(self, Table3, cond, expected):
+        assert Table3.delete(**cond) is expected[0]
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Table3.__tablename__))
+        assert stored[1] == expected[1]
+
+    @pytest.mark.parametrize(('cond', 'expected'), delete_params_for_invalid)
+    def test_delete_with_immediate_and_invalid_params(
+            self, Table3, cond, expected):
+        with pytest.raises(exceptions.GroongaError):
+            Table3.delete(**cond)
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Table3.__tablename__))
+        assert stored[1] == expected[1]
+
+    @pytest.mark.parametrize(('cond', 'expected'), delete_params_for_valid)
+    def test_delete_with_not_immediate(self, Table3, cond, expected):
+        q = Table3.delete(immediate=False, **cond)
+        assert isinstance(q, query.SimpleQuery)
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Table3.__tablename__))
+        noeffect_expected = [[[3], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                                    ['name', 'ShortText']],
+                              [1, 'key1', 'foo'], [2, 'key2', 'bar'],
+                              [3, 'key3', 'baz']]]
+        assert stored[1] == noeffect_expected
+        assert q.execute() is expected[0]
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Table3.__tablename__))
+        assert stored[1] == expected[1]
+
+    @pytest.mark.parametrize(('cond', 'expected'), delete_params_for_invalid)
+    def test_delete_with_not_immediate_and_invalid_params(
+            self, Table3, cond, expected):
+        q = Table3.delete(immediate=False, **cond)
+        assert isinstance(q, query.SimpleQuery)
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Table3.__tablename__))
+        noeffect_expected = [[[3], [['_id', 'UInt32'], ['_key', 'ShortText'],
+                                    ['name', 'ShortText']],
+                              [1, 'key1', 'foo'], [2, 'key2', 'bar'],
+                              [3, 'key3', 'baz']]]
+        assert stored[1] == noeffect_expected
+        with pytest.raises(exceptions.GroongaError):
+            q.execute()
+        stored = json.loads(test_utils.sendquery(
+            'select --table %s' % Table3.__tablename__))
+        assert stored[1] == expected[1]
 
 
 @pytest.mark.xfail(reason=(

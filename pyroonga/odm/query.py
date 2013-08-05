@@ -140,6 +140,17 @@ class GroongaRecord(object):
             else:
                 setattr(self, k, v)
 
+    def delete(self, immediate=True):
+        """Delete the record
+
+        :param immediate: Delete the record immediately if True
+        :returns: If ``immediate`` argument is True, True if successful,
+            otherwise False. If ``immediate`` argument is False, It returns
+            :class:`SimpleQuery` object for lazy execution
+        """
+        query = SimpleQuery(self.__cls).delete(id=self._id)
+        return query.execute() if immediate else query
+
     def asdict(self):
         result = self.__dict__.copy()
         result.pop('_GroongaRecord__cls', None)
@@ -589,6 +600,48 @@ class LoadQuery(Query):
             '--table', self._table.__tablename__,
             '--input-type', 'json',
             '--values', '"%s"' % self._makejson()))
+
+
+class SimpleQuery(Query):
+    """simple true or false returning query representation class"""
+
+    def __init__(self, table_cls):
+        """Constructor of SimpleQuery
+
+        :param table_cls: Class of Table
+        """
+        super(SimpleQuery, self).__init__(table_cls)
+        self._query = []
+
+    def delete(self, key=None, id=None, filter=None):
+        """Get the 'delete' query
+
+        :param table: Table class
+        :param key: string of key of record, default is None
+        :param id: string of id of record, default is None
+        :param filter: instance of ExpressionTree or string of filter,
+            default is None
+        :returns: :class:`SimpleQuery` object
+        """
+        query = ['delete', '--table', self._table.__tablename__]
+        if key is not None:
+            query.extend(('--key', key))
+        if id is not None:
+            query.extend(('--id', str(id)))
+        if filter is not None:
+            query.extend(('--filter', '"%s"' % utils.escape(filter)))
+        self._query.extend(query)
+        return self
+
+    def execute(self):
+        """execute a query
+
+        :returns: True if query is successful, otherwise False
+        """
+        return json.loads(self._table.grn.query(str(self)))
+
+    def __str__(self):
+        return ' '.join(self._query)
 
 
 class SuggestQuery(Query, QueryOptionsMixin):
