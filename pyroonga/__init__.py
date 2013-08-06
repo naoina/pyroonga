@@ -21,7 +21,7 @@ from pyroonga.odm.table import *
 logger = logging.getLogger(__name__)
 
 
-def connect(host=None, port=None):
+def connect(host='0.0.0.0', port=10041):
     """Convenience function of pyroonga.Groonga.connect
 
     Create the Groonga object and connect to groonga server with default
@@ -31,6 +31,6 @@ def connect(host=None, port=None):
     :param port: Integer of server port. Default is 10041.
     :returns: :class:`pyroonga.groonga.Groonga`
     """
-    grn = Groonga()
-    grn.connect(host, port)
+    grn = Groonga(host, port)
+    grn.connect()
     return grn

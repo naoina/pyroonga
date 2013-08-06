@@ -41,38 +41,40 @@ class Context(_groonga.Context):
 
 
 class Groonga(object):
-    def __init__(self, encoding='utf-8'):
-        """Construct a Groonga.
+    def __init__(self, host='0.0.0.0', port=10041, encoding='utf-8'):
+        """Constructor a Groonga.
 
-        :param encoding: Encoding of groonga. Supported value is 'utf-8',
+        :param host: String of host for connect to groonga server,
+            default is '0.0.0.0'
+        :param port: Port number for connect to groonga server,
+            default is 10041
+        :param encoding: Encoding of groonga. Supported values are 'utf-8',
             'euc-jp', 'sjis', 'latin1' and 'koi8-r'. Default is 'utf-8'.
         """
-        self._ctx = Context(encoding)
+        self.host = host
+        self.port = port
         self.encoding = encoding
+        self._ctx = Context(encoding)
         self.connected = False
-        self.host = self.port = None
 
     def connect(self, host=None, port=None):
         """Connect to the groonga server
 
-        :param host: String of server hostname.
-        :param port: Integer of server port number.
+        :param host: String of server hostname, If temporarily needed
+        :param port: Integer of server port number, If temporarily needed
         """
-        self.host = host or '0.0.0.0'
-        self.port = port or 10041
-        rc = self._ctx.connect(self.host, self.port, flags=0)
+        host = host or self.host
+        port = port or self.port
+        rc = self._ctx.connect(host, port, flags=0)
         self._raise_if_notsuccess(rc, "", "")
         self.connected = True
 
     def reconnect(self):
         """Reconnect to the groonga server
         """
-        if self.host is None or self.port is None:
-            raise GroongaError(_groonga.SOCKET_IS_NOT_CONNECTED)
         del self._ctx
         self._ctx = Context(self.encoding)
         self.connect(self.host, self.port)
-        self.connected = True
 
     def query(self, qstr):
         """Send and receive the query string to the groonga server
