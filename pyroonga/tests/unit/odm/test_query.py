@@ -563,6 +563,23 @@ class TestSimpleQuery(object):
         assert result is q
         assert str(result) == 'truncate %s' % expected
 
+    def test_cache_limit_with_param(self):
+        class A(object):
+            pass
+        limit = random.randrange(2000)
+        q = query.SimpleQuery(A)
+        result = q.cache_limit(limit)
+        assert result is q
+        assert str(result) == 'cache_limit %s' % limit
+
+    def test_cache_limit_without_param(self):
+        class A(object):
+            pass
+        q = query.SimpleQuery(A)
+        result = q.cache_limit()
+        assert result is q
+        assert str(result) == 'cache_limit'
+
     @pytest.mark.parametrize(('ret', 'expected'), (
         ('[true]', [True]),
         ('[false]', [False]),

@@ -239,6 +239,20 @@ class TableBase(object):
         query = SimpleQuery(cls).truncate()
         return query.execute() if immediate else query
 
+    @classmethod
+    def cache_limit(cls, max_limit=None, immediate=True):
+        """Get or set the limit of cache
+
+        :param max_limit: max number of cache limit to set.
+            If ``None``, this method will get the current value of cache limit
+        :param immediate: execute query immediately if True
+        :returns: result of 'cache_limit' query if ``immediate`` argument is
+            True, otherwise :class:`pyroonga.odm.query.SimpleQuery` object for
+            lazy execution
+        """
+        query = SimpleQuery(cls).cache_limit(max_limit=max_limit)
+        return query.execute() if immediate else query
+
     def asdict(self):
         return self.__dict__.copy()
 

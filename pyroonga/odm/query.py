@@ -641,6 +641,19 @@ class SimpleQuery(Query):
         self._query = ['truncate', self._table.__tablename__]
         return self
 
+    def cache_limit(self, max_limit=None):
+        """Get the 'cache_limit' query
+
+        :param max_limit: max number of cache limit to set.
+            If None, It returns query of returns current value of cache limit.
+            this behavior is same as Groonga
+        :returns: :class:`SimpleQuery` object
+        """
+        self._query = ['cache_limit']
+        if max_limit is not None:
+            self._query.append(str(max_limit))
+        return self
+
     def execute(self):
         """execute a query
 

@@ -1296,6 +1296,71 @@ class TestTable(object):
         assert get_items_num(Table2) == 0
         assert get_items_num(Table3) == 0
 
+    def test_cache_limit_with_default_and_no_param(self, Table):
+        Table.bind(Groonga())
+        lim = json.loads(test_utils.sendquery('cache_limit'))[1]
+        assert lim == 100
+        result = Table.cache_limit()
+        assert result == lim
+
+    def test_cache_limit_with_immediate_and_no_param(self, Table):
+        Table.bind(Groonga())
+        lim = json.loads(test_utils.sendquery('cache_limit'))[1]
+        assert lim == 100
+        result = Table.cache_limit(immediate=True)
+        assert result == lim
+
+    def test_cache_limit_with_not_immediate_and_no_param(self, Table):
+        Table.bind(Groonga())
+        lim = json.loads(test_utils.sendquery('cache_limit'))[1]
+        assert lim == 100
+        q = Table.cache_limit(immediate=False)
+        assert isinstance(q, query.SimpleQuery)
+        result = q.execute()
+        assert result == lim
+
+    def test_cache_limit_with_default_and_param(self, request, Table):
+        request.addfinalizer(lambda: test_utils.sendquery('cache_limit 100'))
+
+        def get_limit():
+            return json.loads(test_utils.sendquery('cache_limit'))[1]
+        Table.bind(Groonga())
+        lim = get_limit()
+        assert lim == 100
+        expected_limit = random.randint(101, 500)
+        result = Table.cache_limit(expected_limit)
+        assert result == lim
+        assert get_limit() == expected_limit
+
+    def test_cache_limit_with_immediate_and_param(self, request, Table):
+        request.addfinalizer(lambda: test_utils.sendquery('cache_limit 100'))
+
+        def get_limit():
+            return json.loads(test_utils.sendquery('cache_limit'))[1]
+        Table.bind(Groonga())
+        lim = get_limit()
+        assert lim == 100
+        expected_limit = random.randint(101, 500)
+        result = Table.cache_limit(expected_limit, immediate=True)
+        assert result == lim
+        assert get_limit() == expected_limit
+
+    def test_cache_limit_with_not_immediate_and_param(self, request, Table):
+        request.addfinalizer(lambda: test_utils.sendquery('cache_limit 100'))
+
+        def get_limit():
+            return json.loads(test_utils.sendquery('cache_limit'))[1]
+        Table.bind(Groonga())
+        lim = get_limit()
+        assert lim == 100
+        expected_limit = random.randint(101, 500)
+        q = Table.cache_limit(expected_limit, immediate=False)
+        assert isinstance(q, query.SimpleQuery)
+        assert get_limit() == lim
+        result = q.execute()
+        assert result == lim
+        assert get_limit() == expected_limit
+
 
 @pytest.mark.xfail(reason=(
     "failed to parallel tests due to fixed table names."
