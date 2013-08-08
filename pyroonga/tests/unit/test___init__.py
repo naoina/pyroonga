@@ -2,10 +2,8 @@
 
 import random
 
-import mock
-
 import pyroonga
-from pyroonga.tests import utils
+from pyroonga.tests import utils, mock
 
 
 def test_connect_with_default():

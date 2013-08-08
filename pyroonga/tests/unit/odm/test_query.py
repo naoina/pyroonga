@@ -4,14 +4,9 @@ import random
 
 import pytest
 
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 from pyroonga.odm import attributes, query, table
 
-from pyroonga.tests import utils
+from pyroonga.tests import utils, mock
 
 
 class TestGroongaRecord(object):

@@ -2,7 +2,6 @@
 
 import random
 
-import mock
 import pytest
 
 import _groonga
@@ -10,7 +9,7 @@ import _groonga
 from pyroonga.exceptions import GroongaError, error_messages
 from pyroonga.groonga import Groonga
 
-from pyroonga.tests import utils
+from pyroonga.tests import utils, mock
 
 
 class TestGroonga(object):
