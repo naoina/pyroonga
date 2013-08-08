@@ -253,6 +253,20 @@ class TableBase(object):
         query = SimpleQuery(cls).cache_limit(max_limit=max_limit)
         return query.execute() if immediate else query
 
+    @classmethod
+    def log_level(cls, level, immediate=True):
+        """Set the log output level
+
+        :param level: Log output level to set. Values are defined in
+            :class:`pyroonga.odm.attributes.LogLevel`
+        :param immediate: execute query immediately if True
+        :returns: result of 'log_level' query if ``immediate`` argument is
+            True, otherwise :class:`pyroonga.odm.query.SimpleQuery` object for
+            lazy execution
+        """
+        query = SimpleQuery(cls).log_level(level)
+        return query.execute() if immediate else query
+
     def asdict(self):
         return self.__dict__.copy()
 

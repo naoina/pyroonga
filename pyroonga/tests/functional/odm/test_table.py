@@ -7,6 +7,7 @@ import random
 import pytest
 
 from pyroonga import Groonga, exceptions
+from pyroonga.odm import attributes, query
 from pyroonga.odm.attributes import (
     TableFlags,
     ColumnFlags,
@@ -24,7 +25,6 @@ from pyroonga.odm.table import (
     event_query,
     item_query,
     )
-from pyroonga.odm import query
 from pyroonga.odm.query import (
     GroongaResultBase,
     GroongaSuggestResults,
@@ -1360,6 +1360,29 @@ class TestTable(object):
         result = q.execute()
         assert result == lim
         assert get_limit() == expected_limit
+
+    log_level_params = [v for v in attributes.LogLevel.__dict__.values()
+                        if isinstance(v, attributes.LogLevelSymbol)]
+
+    @pytest.mark.parametrize('level', log_level_params)
+    def test_log_level_with_default(self, Table, level):
+        Table.bind(Groonga())
+        result = Table.log_level(level)
+        assert result is True
+
+    @pytest.mark.parametrize('level', log_level_params)
+    def test_log_level_with_immediate(self, Table, level):
+        Table.bind(Groonga())
+        result = Table.log_level(level, immediate=True)
+        assert result is True
+
+    @pytest.mark.parametrize('level', log_level_params)
+    def test_log_level_with_not_immediate(self, Table, level):
+        Table.bind(Groonga())
+        q = Table.log_level(level, immediate=False)
+        assert isinstance(q, query.SimpleQuery)
+        result = q.execute()
+        assert result is True
 
 
 @pytest.mark.xfail(reason=(

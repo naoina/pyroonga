@@ -9,7 +9,7 @@ try:
 except ImportError:
     import mock
 
-from pyroonga.odm import query, table
+from pyroonga.odm import attributes, query, table
 
 from pyroonga.tests import utils
 
@@ -579,6 +579,18 @@ class TestSimpleQuery(object):
         result = q.cache_limit()
         assert result is q
         assert str(result) == 'cache_limit'
+
+    @pytest.mark.parametrize('level', [
+        v for v in attributes.LogLevel.__dict__.values()
+        if isinstance(v, attributes.LogLevelSymbol)
+    ])
+    def test_log_level(self, level):
+        class A(object):
+            pass
+        q = query.SimpleQuery(A)
+        result = q.log_level(level)
+        assert result is q
+        assert str(result) == 'log_level %s' % level
 
     @pytest.mark.parametrize(('ret', 'expected'), (
         ('[true]', [True]),

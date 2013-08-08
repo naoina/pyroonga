@@ -654,6 +654,16 @@ class SimpleQuery(Query):
             self._query.append(str(max_limit))
         return self
 
+    def log_level(self, level):
+        """Get the 'log_level' query
+
+        :param level: Log output level. Values are defined in
+            :class:`pyroonga.odm.attributes.LogLevel`
+        :returns: :class:`SimpleQuery` object
+        """
+        self._query = ['log_level', str(level)]
+        return self
+
     def execute(self):
         """execute a query
 
