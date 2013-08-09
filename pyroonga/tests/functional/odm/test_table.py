@@ -1384,6 +1384,32 @@ class TestTable(object):
         result = q.execute()
         assert result is True
 
+    @pytest.mark.parametrize('level', log_level_params)
+    def test_log_put_with_default(self, Table, level):
+        Table.bind(Groonga())
+        expected = test_utils.random_string()
+        result = Table.log_put(level, expected)
+        assert result is True
+        # TODO: log output check actually
+
+    @pytest.mark.parametrize('level', log_level_params)
+    def test_log_put_with_immediate(self, Table, level):
+        Table.bind(Groonga())
+        expected = test_utils.random_string()
+        result = Table.log_put(level, expected, immediate=True)
+        assert result is True
+        # TODO: log output check actually
+
+    @pytest.mark.parametrize('level', log_level_params)
+    def test_log_put_with_not_immediate(self, Table, level):
+        Table.bind(Groonga())
+        expected = test_utils.random_string()
+        q = Table.log_put(level, expected, immediate=False)
+        assert isinstance(q, query.SimpleQuery)
+        result = q.execute()
+        assert result is True
+        # TODO: log output check actually
+
 
 @pytest.mark.xfail(reason=(
     "failed to parallel tests due to fixed table names."

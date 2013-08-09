@@ -664,6 +664,17 @@ class SimpleQuery(Query):
         self._query = ['log_level', str(level)]
         return self
 
+    def log_put(self, level, message):
+        """Get the 'log_put' query
+
+        :param level: Log output level. Values are defined in
+            :class:`pyroonga.odm.attributes.LogLevel`
+        :param message: string of log for output
+        :returns: :class:`SimpleQuery` object
+        """
+        self._query = ['log_level', str(level), message]
+        return self
+
     def execute(self):
         """execute a query
 

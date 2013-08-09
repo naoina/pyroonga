@@ -575,10 +575,10 @@ class TestSimpleQuery(object):
         assert result is q
         assert str(result) == 'cache_limit'
 
-    @pytest.mark.parametrize('level', [
-        v for v in attributes.LogLevel.__dict__.values()
-        if isinstance(v, attributes.LogLevelSymbol)
-    ])
+    log_levels = [v for v in attributes.LogLevel.__dict__.values()
+                  if isinstance(v, attributes.LogLevelSymbol)]
+
+    @pytest.mark.parametrize('level', log_levels)
     def test_log_level(self, level):
         class A(object):
             pass
@@ -586,6 +586,16 @@ class TestSimpleQuery(object):
         result = q.log_level(level)
         assert result is q
         assert str(result) == 'log_level %s' % level
+
+    @pytest.mark.parametrize('level', log_levels)
+    def test_log_put(self, level):
+        class A(object):
+            pass
+        msg = utils.random_string()
+        q = query.SimpleQuery(A)
+        result = q.log_put(level, msg)
+        assert result is q
+        assert str(result) == 'log_level %s %s' % (level, msg)
 
     @pytest.mark.parametrize(('ret', 'expected'), (
         ('[true]', [True]),

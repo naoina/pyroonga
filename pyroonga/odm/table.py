@@ -267,6 +267,20 @@ class TableBase(object):
         query = SimpleQuery(cls).log_level(level)
         return query.execute() if immediate else query
 
+    @classmethod
+    def log_put(cls, level, message, immediate=True):
+        """Output the log
+
+        :param level: Log level of log output. Values are defined in
+            :class:`pyroonga.odm.attributes.LogLevel`
+        :param immediate: execute query immediately if True
+        :returns: result of 'log_put' query if ``immediate`` argument is
+            True, otherwise :class:`pyroonga.odm.query.SimpleQuery` object for
+            lazy execution
+        """
+        query = SimpleQuery(cls).log_put(level, message)
+        return query.execute() if immediate else query
+
     def asdict(self):
         return self.__dict__.copy()
 
