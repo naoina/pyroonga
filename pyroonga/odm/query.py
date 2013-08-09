@@ -675,6 +675,14 @@ class SimpleQuery(Query):
         self._query = ['log_level', str(level), message]
         return self
 
+    def log_reopen(self):
+        """Get the 'log_reopen' query
+
+        :returns: :class:`SimpleQuery` object
+        """
+        self._query = ['log_reopen']
+        return self
+
     def execute(self):
         """execute a query
 

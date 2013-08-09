@@ -597,6 +597,14 @@ class TestSimpleQuery(object):
         assert result is q
         assert str(result) == 'log_level %s %s' % (level, msg)
 
+    def test_log_reopen(self):
+        class A(object):
+            pass
+        q = query.SimpleQuery(A)
+        result = q.log_reopen()
+        assert result is q
+        assert str(result) == 'log_reopen'
+
     @pytest.mark.parametrize(('ret', 'expected'), (
         ('[true]', [True]),
         ('[false]', [False]),

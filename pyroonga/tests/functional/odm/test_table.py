@@ -1410,6 +1410,23 @@ class TestTable(object):
         assert result is True
         # TODO: log output check actually
 
+    def test_log_reopen_with_default(self, Table):
+        Table.bind(Groonga())
+        result = Table.log_reopen()
+        assert result is True
+
+    def test_log_reopen_with_immediate(self, Table):
+        Table.bind(Groonga())
+        result = Table.log_reopen(immediate=True)
+        assert result is True
+
+    def test_log_reopen_with_not_immediate(self, Table):
+        Table.bind(Groonga())
+        q = Table.log_reopen(immediate=False)
+        assert isinstance(q, query.SimpleQuery)
+        result = q.execute()
+        assert result is True
+
 
 @pytest.mark.xfail(reason=(
     "failed to parallel tests due to fixed table names."
