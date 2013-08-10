@@ -20,12 +20,12 @@ def Table(request):
         def __tablename__(cls):
             if not getattr(cls, '_tablename', None):
                 cls._tablename = utils.gen_unique_tablename()
+
+                def remove_table():
+                    utils.sendquery('table_remove %s' % cls._tablename)
+                request.addfinalizer(remove_table)
             return cls._tablename
     Tbl = tablebase(cls=TableBaseForTest)
-
-    def remove_table():
-        utils.sendquery('table_remove %s' % Tbl.__tablename__)
-    request.addfinalizer(remove_table)
     return Tbl
 
 
