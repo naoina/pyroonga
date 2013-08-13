@@ -169,10 +169,11 @@ class TestTable(object):
         result = utils.to_python(
             json.loads(test_utils.sendquery('table_list'))[1], 0)
         tableinfo = []
-        for t in result:
-            if t['name'] in args:
-                tableinfo.append(t)
-        return sorted(tableinfo, key=operator.itemgetter('id'))
+        for name in args:
+            for t in result:
+                if name == t['name']:
+                    tableinfo.append(t)
+        return tableinfo
 
     def get_columninfo(self, tablename):
         result = json.loads(test_utils.sendquery('column_list %s' % tablename))
