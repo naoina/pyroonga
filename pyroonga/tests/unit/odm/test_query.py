@@ -69,14 +69,39 @@ class TestGroongaRecord(object):
         result = record.delete(immediate=False)
         assert isinstance(result, query.SimpleQuery)
 
+    def test_commit_with_not_changed(self):
+        class A(object):
+            __tablename__ = 'test_table_name'
+            foo = None
+            grn = mock.Mock()
+        A.grn.query.return_value = 2
+        record = query.GroongaRecord(A, foo='hoge')
+        result = record.commit()
+        assert result == 0
+
+    def test_commit(self):
+        class A(object):
+            __tablename__ = 'test_table_name'
+            foo = None
+            grn = mock.Mock()
+        expected = random.randint(1, 100)
+        A.grn.query.return_value = expected
+        record = query.GroongaRecord(A, foo='hoge')
+        object.__setattr__(record, '__dirty', True)
+        result = record.commit()
+        assert result == expected
+
     def test_asdict_with_no_attrs(self):
         record = query.GroongaRecord(None)
         assert record.asdict() == {}
 
     def test_asdict(self):
-        record = query.GroongaRecord(None)
+        class A(object):
+            pass
         expected_attr = utils.random_string()
         expected_value = utils.random_string()
+        setattr(A, expected_attr, None)
+        record = query.GroongaRecord(A)
         setattr(record, expected_attr, expected_value)
         assert record.asdict() == {expected_attr: expected_value}
 
@@ -106,6 +131,24 @@ class TestGroongaRecord(object):
         record = query.GroongaRecord(A, foo='bar', bar='baz', baz='hoge')
         result = record.asdict(excludes=excludes)
         assert result == expected
+
+    def test___setattr___with_not_defined_attr(self):
+        class A(object):
+            pass
+        record = query.GroongaRecord(A)
+        with pytest.raises(AttributeError):
+            record.missing = 'foo'
+
+    def test___setattr__(self):
+        class A(object):
+            foo = None
+        record = query.GroongaRecord(A, foo='bar')
+        assert record.foo == 'bar'
+        assert object.__getattribute__(record, '__dirty') is False
+        expected = utils.random_string()
+        record.foo = expected
+        assert record.foo == expected
+        assert object.__getattribute__(record, '__dirty') is True
 
 
 class TestDrilldown(object):

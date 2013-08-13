@@ -25,6 +25,11 @@ def sendquery(cmd):
     return result.decode('utf-8')
 
 
+def insert(tablename, data):
+    sendquery('load --table %s --input_type json --values\n%s' %
+              (tablename, json.dumps(data)))
+
+
 def random_string(n=20):
     return ''.join(random.choice(string.ascii_letters) for _ in range(n))
 

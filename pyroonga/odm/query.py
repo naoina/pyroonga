@@ -130,7 +130,8 @@ class GroongaRecord(object):
 
         :param kwargs: name and value of columns
         """
-        self.__cls = cls
+        object.__setattr__(self, '__cls', cls)
+        object.__setattr__(self, '__dirty', False)
         for k, v in kwargs.items():
             try:
                 object.__getattribute__(cls, k)
@@ -138,7 +139,7 @@ class GroongaRecord(object):
                 raise AttributeError('key "%s" is not defined in %s' %
                                      (k, cls.__name__))
             else:
-                setattr(self, k, v)
+                object.__setattr__(self, k, v)
 
     def delete(self, immediate=True):
         """Delete the record
@@ -148,14 +149,37 @@ class GroongaRecord(object):
             otherwise False. If ``immediate`` argument is False, It returns
             :class:`SimpleQuery` object for lazy execution
         """
-        query = SimpleQuery(self.__cls).delete(id=self._id)
+        cls = object.__getattribute__(self, '__cls')
+        query = SimpleQuery(cls).delete(id=self._id)
         return query.execute() if immediate else query
+
+    def commit(self):
+        """Load changed data to Groonga
+
+        :returns: Number of changed data. but if data isn't changed, returns 0
+        """
+        if object.__getattribute__(self, '__dirty'):
+            object.__setattr__(self, '__dirty', False)
+            cls = object.__getattribute__(self, '__cls')
+            return LoadQuery(cls, [self]).commit()
+        else:
+            return 0
 
     def asdict(self, excludes=tuple()):
         result = self.__dict__.copy()
-        for attr in (tuple(excludes) + ('_GroongaRecord__cls',)):
+        for attr in (tuple(excludes) + ('__cls', '__dirty')):
             result.pop(attr, None)
         return result
+
+    def __setattr__(self, name, value):
+        cls = object.__getattribute__(self, '__cls')
+        try:
+            object.__getattribute__(cls, name)
+        except AttributeError:
+            raise AttributeError('"%s" column is not defined in %s' %
+                                 (name, cls.__name__))
+        object.__setattr__(self, '__dirty', True)
+        object.__setattr__(self, name, value)
 
 
 class GroongaResultBase(object):
@@ -593,7 +617,8 @@ class LoadQuery(Query):
         self._data = None
 
     def _makejson(self):
-        return utils.escape(json.dumps([v.asdict() for v in self._data]))
+        return utils.escape(json.dumps([v.asdict(excludes=('_id',)) for v in
+                                        self._data]))
 
     def __str__(self):
         return ' '.join((
