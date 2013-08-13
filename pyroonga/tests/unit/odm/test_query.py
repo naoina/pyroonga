@@ -93,6 +93,20 @@ class TestGroongaRecord(object):
         record = query.GroongaRecord(A, foo='bar', bar='baz')
         assert record.asdict() == {'foo': 'bar', 'bar': 'baz'}
 
+    @pytest.mark.parametrize(('excludes', 'expected'), (
+        (['foo'], {'bar': 'baz', 'baz': 'hoge'}),
+        (['bar'], {'foo': 'bar', 'baz': 'hoge'}),
+        (['foo', 'baz'], {'bar': 'baz'}),
+    ))
+    def test_asdict_with_excludes(self, excludes, expected):
+        class A(object):
+            foo = None
+            bar = None
+            baz = None
+        record = query.GroongaRecord(A, foo='bar', bar='baz', baz='hoge')
+        result = record.asdict(excludes=excludes)
+        assert result == expected
+
 
 class TestDrilldown(object):
     def test_default_class_attr(self):

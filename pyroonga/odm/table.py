@@ -293,8 +293,11 @@ class TableBase(object):
         query = SimpleQuery(cls).log_reopen()
         return query.execute() if immediate else query
 
-    def asdict(self):
-        return self.__dict__.copy()
+    def asdict(self, excludes=tuple()):
+        result = self.__dict__.copy()
+        for attr in excludes:
+            result.pop(attr, None)
+        return result
 
 
 class Column(object):

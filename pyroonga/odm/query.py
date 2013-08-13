@@ -151,9 +151,10 @@ class GroongaRecord(object):
         query = SimpleQuery(self.__cls).delete(id=self._id)
         return query.execute() if immediate else query
 
-    def asdict(self):
+    def asdict(self, excludes=tuple()):
         result = self.__dict__.copy()
-        result.pop('_GroongaRecord__cls', None)
+        for attr in (tuple(excludes) + ('_GroongaRecord__cls',)):
+            result.pop(attr, None)
         return result
 
 

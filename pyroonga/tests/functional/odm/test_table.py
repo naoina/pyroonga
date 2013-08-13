@@ -1428,6 +1428,30 @@ class TestTable(object):
         result = q.execute()
         assert result is True
 
+    def test_asdict(self, Table):
+        class A(Table):
+            foo = None
+            bar = None
+        expected1, expected2 = (test_utils.random_string(),
+                                test_utils.random_string())
+        table = A(foo=expected1, bar=expected2)
+        result = table.asdict()
+        assert result == {'foo': expected1, 'bar': expected2}
+
+    @pytest.mark.parametrize(('excludes', 'expected'), (
+        (['foo'], {'bar': 'baz', 'baz': 'hoge'}),
+        (['bar'], {'foo': 'bar', 'baz': 'hoge'}),
+        (['foo', 'baz'], {'bar': 'baz'}),
+    ))
+    def test_asdict_with_excludes(self, Table, excludes, expected):
+        class A(Table):
+            foo = None
+            bar = None
+            baz = None
+        table = A(foo='bar', bar='baz', baz='hoge')
+        result = table.asdict(excludes=excludes)
+        assert result == expected
+
 
 @pytest.mark.xfail(reason=(
     "failed to parallel tests due to fixed table names."
