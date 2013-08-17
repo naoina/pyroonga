@@ -184,6 +184,8 @@ Of course, As well as ``limit()`` , ``offset()`` and ``output_columns()`` method
 Suggest
 ^^^^^^^
 
+**N.B.** The Groonga's suggest feature is still in draft.
+
 First, Create table if still not created::
 
    from pyroonga import SuggestTable

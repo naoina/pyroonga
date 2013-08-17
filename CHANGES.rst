@@ -1,6 +1,13 @@
 Changelog
 ---------
 
+v0.5.1 (2013-08-17)
+^^^^^^^^^^^^^^^^^^^
+
+- More support the queries of Groonga
+- Add ``GroongaRecord`` and use to mapping it instead of Table sub-class
+- Host and port for connect to Groonga can now specify by constructor of ``pyroonga.Groonga``
+
 v0.5 (2013-07-30)
 ^^^^^^^^^^^^^^^^^
 
