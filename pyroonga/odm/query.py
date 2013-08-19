@@ -11,8 +11,6 @@ __all__ = [
 import itertools
 import json
 import logging
-import operator
-from functools import reduce
 
 from pyroonga import utils
 from pyroonga.odm.attributes import SuggestType
@@ -317,9 +315,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         :param args: iterable of columns
         :returns: self. for method chain
         """
-        from pyroonga.odm.table import Column  # avoid Circular reference
-        columns = (MatchColumn(c) if isinstance(c, Column) else c
-                   for c in args)
+        columns = (Expression(getattr(c, 'name', c)) for c in args)
         self._match_columns.extend(columns)
         return self
 
@@ -354,8 +350,9 @@ class SelectQueryBase(Query, QueryOptionsMixin):
 
     def _make_match_columns(self):
         if self._match_columns:
-            return "--match_columns '%s'" % reduce(operator.or_,
-                                                   self._match_columns)
+            exprs = (e.build(MatchColumn) for e in self._match_columns)
+            result = MatchColumn.operator[Operator.OR].join(exprs)
+            return "--match_columns '%s'" % result
         else:
             return ''
 
@@ -400,12 +397,13 @@ class SelectQuery(SelectQueryBase):
     def _makeparams(self):
         params = [utils.escape('%s:@"%s"' % target) for target in
                   sorted(self._target.items())]
-        param = Expression.OR.join(params)
-        expr = Expression.OR.join(utils.escape(str(expr)) for expr in
-                                  self._exprs)
+        op = QueryExpression.operator[Operator.OR]
+        param = op.join(params)
+        expr = op.join(
+            utils.escape(expr.build(QueryExpression)) for expr in self._exprs)
         result = param and '(%s)' % param
         if result and expr:
-            result += Expression.AND
+            result += QueryExpression.operator[Operator.AND]
         result += expr
         return '--query "%s"' % result if result else ''
 
@@ -444,99 +442,55 @@ class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
         return str(self.parent) + (' %s' % self._condition())
 
 
-class MatchColumn(object):
-    """match column representation class
-    """
-    INITIAL_WEIGHT = 1
-
-    def __init__(self, column, weight=INITIAL_WEIGHT):
-        self.column = column
-        self.weight = weight
-
-    def __mul__(self, other):
-        return MatchColumn(self.column, int(other))
-
-    def __or__(self, other):
-        return MatchColumnsTree(self, other)
-
-    def __str__(self):
-        result = self.column.name
-        if self.weight > MatchColumn.INITIAL_WEIGHT:
-            result += ' * %s' % self.weight
-        return result
-
-
-class MatchColumnsTree(object):
-    """Match columns tree"""
-
-    __slots__ = ['left', 'right']
-
-    def __init__(self, left, right):
-        self.left = left
-        self.right = right
-
-    def __or__(self, other):
-        return MatchColumnsTree(self, other)
-
-    def _extract_tree(self, inst):
-        if isinstance(inst, MatchColumnsTree):
-            return '%s || %s' % (
-                self._extract_tree(inst.left),
-                self._extract_tree(inst.right))
-        elif isinstance(inst, MatchColumn):
-            return str(inst)
-        else:
-            raise ValueError(
-                "instance takes only the `MatchColumn` and `MatchColumnsTree`."
-                " but `%s` given." % repr(inst))
-
-    def __str__(self):
-        return self._extract_tree(self)
+class Operator(object):
+    EQUAL = 'EQUAL'
+    GREATER_EQUAL = 'GREATER_EQUAL'
+    GREATER_THAN = 'GREATER_THAN'
+    LESS_EQUAL = 'LESS_EQUAL'
+    LESS_THAN = 'LESS_THAN'
+    NOT_EQUAL = 'NOT_EQUAL'
+    OR = 'OR'
+    AND = 'AND'
+    NOT = 'NOT'
+    MUL = 'MUL'
 
 
 class BaseExpression(object):
     def __eq__(self, other):
-        return ExpressionTree(Expression.EQUAL, self, other)
+        return ExpressionTree(Operator.EQUAL, self, other)
 
     def __ge__(self, other):
-        return ExpressionTree(Expression.GREATER_EQUAL, self, other)
+        return ExpressionTree(Operator.GREATER_EQUAL, self, other)
 
     def __gt__(self, other):
-        return ExpressionTree(Expression.GREATER_THAN, self, other)
+        return ExpressionTree(Operator.GREATER_THAN, self, other)
 
     def __le__(self, other):
-        return ExpressionTree(Expression.LESS_EQUAL, self, other)
+        return ExpressionTree(Operator.LESS_EQUAL, self, other)
 
     def __lt__(self, other):
-        return ExpressionTree(Expression.LESS_THAN, self, other)
+        return ExpressionTree(Operator.LESS_THAN, self, other)
 
     def __ne__(self, other):
-        return ExpressionTree(Expression.NOT_EQUAL, self, other)
+        return ExpressionTree(Operator.NOT_EQUAL, self, other)
 
     def __and__(self, other):
-        return ExpressionTree(Expression.AND, self, other)
+        return ExpressionTree(Operator.AND, self, other)
 
     def __or__(self, other):
-        return ExpressionTree(Expression.OR, self, other)
+        return ExpressionTree(Operator.OR, self, other)
 
     def __sub__(self, other):
-        return ExpressionTree(Expression.NOT, self, other)
+        return ExpressionTree(Operator.NOT, self, other)
+
+    def __mul__(self, other):
+        return ExpressionTree(Operator.MUL, self, other)
 
 
 class Expression(BaseExpression):
     """Expression constants"""
 
     __slots__ = ['value']
-
-    EQUAL = ':'
-    GREATER_EQUAL = ':>='
-    GREATER_THAN = ':>'
-    LESS_EQUAL = ':<='
-    LESS_THAN = ':<'
-    NOT_EQUAL = ':!'
-    OR = ' OR '
-    AND = ' + '
-    NOT = ' - '
 
     def __init__(self, value):
         self.value = value
@@ -546,6 +500,37 @@ class Expression(BaseExpression):
         return (Expression(arg) if
                 not isinstance(arg, (Expression, ExpressionTree))
                 else arg for arg in args)
+
+    def build(self, expr_cls):
+        return str(expr_cls(self.value))
+
+    def __str__(self):
+        return str(self.value)
+
+
+class MatchColumn(Expression):
+    """Match column class"""
+
+    operator = {
+        Operator.OR: ' || ',
+        Operator.MUL: ' * ',
+        }
+
+
+class QueryExpression(Expression):
+    """Query expression class"""
+
+    operator = {
+        Operator.EQUAL: ':',
+        Operator.GREATER_EQUAL: ':>=',
+        Operator.GREATER_THAN: ':>',
+        Operator.LESS_EQUAL: ':<=',
+        Operator.LESS_THAN: ':<',
+        Operator.NOT_EQUAL: ':!',
+        Operator.OR: ' OR ',
+        Operator.AND: ' + ',
+        Operator.NOT: ' - ',
+        }
 
     def __str__(self):
         expr_str = str(self.value)
@@ -557,23 +542,27 @@ GE = Expression
 class ExpressionTree(BaseExpression):
     """Query conditional expression tree class"""
 
-    __slots__ = ['expr', 'left', 'right']
+    __slots__ = ['op', 'left', 'right']
 
-    def __init__(self, expr, left, right):
-        self.expr = expr
+    def __init__(self, op, left, right):
+        self.op = op
         self.left, self.right = tuple(Expression.wrap_expr(left, right))
 
-    def __str__(self):
-        return self._extract_tree(self)
+    def build(self, expr_cls):
+        return self._extract_tree(self, expr_cls)
 
-    def _extract_tree(self, expr):
-        if isinstance(expr, ExpressionTree):
-            return '(%s%s%s)' % (
-                self._extract_tree(expr.left), expr.expr,
-                self._extract_tree(expr.right),
-                )
-        else:
-            return str(expr)
+    def _extract_tree(self, expr, expr_cls):
+        if not isinstance(expr, ExpressionTree):
+            return expr_cls(expr)
+        op = expr_cls.operator.get(expr.op, None)
+        if op is None:
+            raise NotImplementedError(
+                "An operator `%s` is not implemented in `%s`" %
+                (expr.op, expr_cls.__name__))
+        return '(%s%s%s)' % (
+            self._extract_tree(expr.left, expr_cls), op,
+            self._extract_tree(expr.right, expr_cls),
+            )
 
 
 class LoadQuery(Query):

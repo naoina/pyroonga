@@ -26,11 +26,10 @@ from pyroonga.odm.attributes import (
     NormalizerSymbol
     )
 from pyroonga.odm.query import (
-    Expression,
+    Operator,
     ExpressionTree,
     GroongaRecord,
     LoadQuery,
-    MatchColumn,
     SuggestQuery,
     SuggestLoadQuery,
     SelectQuery,
@@ -343,32 +342,32 @@ class Column(object):
         self._desc = False
 
     def __eq__(self, other):
-        return ExpressionTree(Expression.EQUAL, self.name, other)
+        return ExpressionTree(Operator.EQUAL, self.name, other)
 
     def __ge__(self, other):
-        return ExpressionTree(Expression.GREATER_EQUAL, self.name, other)
+        return ExpressionTree(Operator.GREATER_EQUAL, self.name, other)
 
     def __gt__(self, other):
-        return ExpressionTree(Expression.GREATER_THAN, self.name, other)
+        return ExpressionTree(Operator.GREATER_THAN, self.name, other)
 
     def __le__(self, other):
-        return ExpressionTree(Expression.LESS_EQUAL, self.name, other)
+        return ExpressionTree(Operator.LESS_EQUAL, self.name, other)
 
     def __lt__(self, other):
-        return ExpressionTree(Expression.LESS_THAN, self.name, other)
+        return ExpressionTree(Operator.LESS_THAN, self.name, other)
 
     def __ne__(self, other):
-        return ExpressionTree(Expression.NOT_EQUAL, self.name, other)
+        return ExpressionTree(Operator.NOT_EQUAL, self.name, other)
 
     def __neg__(self):
         self._desc = True
         return self
 
     def __mul__(self, other):
-        return MatchColumn(self).__mul__(other)
+        return ExpressionTree(Operator.MUL, self.name, other)
 
     def __or__(self, other):
-        return MatchColumn(self).__or__(other)
+        return ExpressionTree(Operator.OR, self.name, other)
 
     def __str__(self):
         if not (self.tablename and self.name):

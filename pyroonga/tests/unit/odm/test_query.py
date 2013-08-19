@@ -166,7 +166,7 @@ class TestSelectQuery(object):
     def make_match_column(self, name):
         c = mock.Mock(spec=table.Column)
         c.name = name
-        return query.MatchColumn(c)
+        return c
 
     def test_match_columns(self):
         q = query.SelectQuery(mock.MagicMock())
@@ -235,144 +235,127 @@ class TestSelectQuery(object):
 
 
 class TestMatchColumn(object):
-    def test_initial_weight_value(self):
-        assert query.MatchColumn.INITIAL_WEIGHT == 1
+    def test_constant(self):
+        assert (query.MatchColumn.operator == {
+            query.Operator.OR: ' || ',
+            query.Operator.MUL: ' * ',
+        }) is True
 
-    def test___init__with_default_value(self):
-        expected = random.randrange(2000)
-        c = query.MatchColumn(expected)
-        assert c.column == expected
-        assert c.weight == c.INITIAL_WEIGHT
+    def test___init__(self):
+        expr = query.MatchColumn('testvalue')
+        assert (expr.value == 'testvalue') is True
 
-    def test___init__with_weight(self):
-        expected = random.randrange(2000)
-        c = query.MatchColumn(None, expected)
-        assert c.weight == expected
+    @pytest.mark.parametrize(('value', 'expected'), (
+        ('', ''),
+        ('testvalue', 'testvalue'),
+        ('foo bar', 'foo bar'),
+        ('foo bar baz', 'foo bar baz'),
+        (10, '10'),
+    ))
+    def test___str__(self, value, expected):
+        expr = query.MatchColumn(value)
+        assert str(expr) == expected
+
+    def test___eq__(self):
+        expr = query.MatchColumn('v1')
+        et = (expr == 'v2')
+        assert (et.op == query.Operator.EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'v2'
+
+    def test___ge__(self):
+        expr = query.MatchColumn('v1')
+        et = (expr >= 'expr2')
+        assert (et.op == query.Operator.GREATER_EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___gt__(self):
+        expr = query.MatchColumn('v1')
+        et = (expr > 'expr2')
+        assert (et.op == query.Operator.GREATER_THAN) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___le__(self):
+        expr = query.MatchColumn('v1')
+        et = (expr <= 'expr2')
+        assert (et.op == query.Operator.LESS_EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___lt__(self):
+        expr = query.MatchColumn('v1')
+        et = (expr < 'expr2')
+        assert (et.op == query.Operator.LESS_THAN) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___ne__(self):
+        expr = query.MatchColumn('v1')
+        et = (expr != 'expr2')
+        assert (et.op == query.Operator.NOT_EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___and__(self):
+        expr = query.MatchColumn('v1')
+        et = (expr & 'expr2')
+        assert (et.op == query.Operator.AND) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___or__(self):
+        expr = query.MatchColumn('v1')
+        et = (expr | 'expr2')
+        assert (et.op == query.Operator.OR) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___sub__(self):
+        expr = query.MatchColumn('v1')
+        et = (expr - 'expr2')
+        assert (et.op == query.Operator.NOT) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
 
     def test___mul__(self):
-        expected = random.randrange(2000)
-        c = query.MatchColumn(None)
-        assert c.weight == c.INITIAL_WEIGHT
-        c2 = c.__mul__(expected)
-        assert c.weight == c.INITIAL_WEIGHT
-        assert c2.weight == expected
-
-    def test___mul__by_implicit_calls(self):
-        expected = random.randrange(2000)
-        c = query.MatchColumn(None)
-        assert c.weight == c.INITIAL_WEIGHT
-        c2 = c * expected
-        assert c.weight == c.INITIAL_WEIGHT
-        assert c2.weight == expected
-
-    def test___or__(self):
-        expected = random.randrange(2000)
-        c = query.MatchColumn(None)
-        assert c.weight == c.INITIAL_WEIGHT
-        c2 = c.__or__(expected)
-        assert c.weight == c.INITIAL_WEIGHT
-        assert isinstance(c2, query.MatchColumnsTree)
-        assert c2.left is c
-        assert c2.right == expected
-
-    def test___or__with_implicit_calls(self):
-        expected = random.randrange(2000)
-        c = query.MatchColumn(None)
-        assert c.weight == c.INITIAL_WEIGHT
-        c2 = c | expected
-        assert c.weight == c.INITIAL_WEIGHT
-        assert isinstance(c2, query.MatchColumnsTree)
-        assert c2.left is c
-        assert c2.right == expected
-
-    def test___str__without_weight(self):
-        column = table.Column()
-        column.name = 'test_name'
-        c = query.MatchColumn(column)
-        assert c.__str__() == 'test_name'
-
-    def test___str__without_with_weight(self):
-        column = table.Column()
-        column.name = 'test_name'
-        weight = random.randrange(2000)
-        c = query.MatchColumn(column, weight)
-        assert c.__str__() == 'test_name * %s' % weight
+        expr = query.MatchColumn('v1')
+        et = (expr * 'expr2')
+        assert (et.op == query.Operator.MUL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
 
 
-class TestMatchColumnsTree(object):
-    def test___init__(self):
-        expected_left = 'testleft'
-        expected_right = 'testright'
-        ct = query.MatchColumnsTree(expected_left, expected_right)
-        assert ct.left == 'testleft'
-        assert ct.right == 'testright'
-
-    def test___or__(self):
-        left = 'testleft'
-        right = 'testright'
-        expected_right = 'testright2'
-        ct = query.MatchColumnsTree(left, right)
-        ct2 = ct.__or__(expected_right)
-        assert (ct.left, ct.right) == ('testleft', 'testright')
-        assert ct2.left is ct
-        assert ct2.right == 'testright2'
-
-    def test___or__with_implicit_calls(self):
-        left = 'testleft'
-        right = 'testright'
-        expected_right = 'testright2'
-        ct = query.MatchColumnsTree(left, right)
-        ct2 = ct | expected_right
-        assert (ct.left, ct.right) == ('testleft', 'testright')
-        assert ct2.left is ct
-        assert ct2.right == 'testright2'
-
-    def test___str__with_not_nested(self):
-        oo = [table.Column() for _ in range(2)]
-        for i, o in enumerate(oo):
-            o.name = 'testcolumn%s' % i
-        c1, c2 = [query.MatchColumn(o) for o in oo]
-        ct = query.MatchColumnsTree(c1, c2)
-        assert ct.__str__() == 'testcolumn0 || testcolumn1'
-
-    def test___str__with_nested(self):
-        oo = [table.Column() for _ in range(4)]
-        for i, o in enumerate(oo):
-            o.name = 'testcolumn%s' % i
-        c1, c2, c3, c4 = [query.MatchColumn(o) for o in oo]
-        ct = query.MatchColumnsTree(c1, c2)
-        ct2 = query.MatchColumnsTree(ct, c3)
-        ct3 = query.MatchColumnsTree(c4, ct2)
-        assert ct3.__str__() == (
-            'testcolumn3 || testcolumn0 || testcolumn1 || testcolumn2')
-
-    @pytest.mark.parametrize(('left', 'right'), (
-        (None, None),
-        (None, 'right'),
-        ('left', None),
-        (1, 1),
+class TestOperator(object):
+    @pytest.mark.parametrize(('attr', 'expected'), (
+        ('EQUAL', 'EQUAL'),
+        ('GREATER_EQUAL', 'GREATER_EQUAL'),
+        ('GREATER_THAN', 'GREATER_THAN'),
+        ('LESS_EQUAL', 'LESS_EQUAL'),
+        ('LESS_THAN', 'LESS_THAN'),
+        ('NOT_EQUAL', 'NOT_EQUAL'),
+        ('OR', 'OR'),
+        ('AND', 'AND'),
+        ('NOT', 'NOT'),
+        ('MUL', 'MUL'),
     ))
-    def test___str__with_invalid_value(self, left, right):
-        with pytest.raises(ValueError):
-            query.MatchColumnsTree(left, right).__str__()
+    def test_constant(self, attr, expected):
+        result = object.__getattribute__(query.Operator, attr)
+        assert (result == expected) is True
 
 
 class TestExpression(object):
-    @pytest.mark.parametrize(('attr', 'expected'), (
-        ('EQUAL', ':'),
-        ('GREATER_EQUAL', ':>='),
-        ('GREATER_THAN', ':>'),
-        ('LESS_EQUAL', ':<='),
-        ('LESS_THAN', ':<'),
-        ('NOT_EQUAL', ':!'),
-        ('OR', ' OR '),
-        ('AND', ' + '),
-        ('NOT', ' - '),
-    ))
-    def test_constant(self, attr, expected):
-        result = object.__getattribute__(query.Expression, attr)
-        assert (result == expected) is True
-
     def test___init__(self):
         expr = query.Expression('testvalue')
         assert (expr.value == 'testvalue') is True
@@ -405,8 +388,8 @@ class TestExpression(object):
     @pytest.mark.parametrize(('value', 'expected'), (
         ('', ''),
         ('testvalue', 'testvalue'),
-        ('foo bar', '"foo bar"'),
-        ('foo bar baz', '"foo bar baz"'),
+        ('foo bar', 'foo bar'),
+        ('foo bar baz', 'foo bar baz'),
         (10, '10'),
     ))
     def test___str__(self, value, expected):
@@ -416,65 +399,192 @@ class TestExpression(object):
     def test___eq__(self):
         expr = query.Expression('v1')
         et = (expr == 'v2')
-        assert (et.expr == query.Expression.EQUAL) is True
+        assert (et.op == query.Operator.EQUAL) is True
         assert et.left is expr
         assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'v2'
 
     def test___ge__(self):
         expr = query.Expression('v1')
         et = (expr >= 'expr2')
-        assert (et.expr == query.Expression.GREATER_EQUAL) is True
+        assert (et.op == query.Operator.GREATER_EQUAL) is True
         assert et.left is expr
         assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
 
     def test___gt__(self):
         expr = query.Expression('v1')
         et = (expr > 'expr2')
-        assert (et.expr == query.Expression.GREATER_THAN) is True
+        assert (et.op == query.Operator.GREATER_THAN) is True
         assert et.left is expr
         assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
 
     def test___le__(self):
         expr = query.Expression('v1')
         et = (expr <= 'expr2')
-        assert (et.expr == query.Expression.LESS_EQUAL) is True
+        assert (et.op == query.Operator.LESS_EQUAL) is True
         assert et.left is expr
         assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
 
     def test___lt__(self):
         expr = query.Expression('v1')
         et = (expr < 'expr2')
-        assert (et.expr == query.Expression.LESS_THAN) is True
+        assert (et.op == query.Operator.LESS_THAN) is True
         assert et.left is expr
         assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
 
     def test___ne__(self):
         expr = query.Expression('v1')
         et = (expr != 'expr2')
-        assert (et.expr == query.Expression.NOT_EQUAL) is True
+        assert (et.op == query.Operator.NOT_EQUAL) is True
         assert et.left is expr
         assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
 
     def test___and__(self):
         expr = query.Expression('v1')
         et = (expr & 'expr2')
-        assert (et.expr == query.Expression.AND) is True
+        assert (et.op == query.Operator.AND) is True
         assert et.left is expr
         assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
 
     def test___or__(self):
         expr = query.Expression('v1')
         et = (expr | 'expr2')
-        assert (et.expr == query.Expression.OR) is True
+        assert (et.op == query.Operator.OR) is True
         assert et.left is expr
         assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
 
     def test___sub__(self):
         expr = query.Expression('v1')
         et = (expr - 'expr2')
-        assert (et.expr == query.Expression.NOT) is True
+        assert (et.op == query.Operator.NOT) is True
         assert et.left is expr
         assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___mul__(self):
+        expr = query.Expression('v1')
+        et = (expr * 'expr2')
+        assert (et.op == query.Operator.MUL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+
+class TestQueryExpression(object):
+    def test_constant(self):
+        assert (query.QueryExpression.operator == {
+            query.Operator.EQUAL: ':',
+            query.Operator.GREATER_EQUAL: ':>=',
+            query.Operator.GREATER_THAN: ':>',
+            query.Operator.LESS_EQUAL: ':<=',
+            query.Operator.LESS_THAN: ':<',
+            query.Operator.NOT_EQUAL: ':!',
+            query.Operator.OR: ' OR ',
+            query.Operator.AND: ' + ',
+            query.Operator.NOT: ' - ',
+        }) is True
+
+    def test___init__(self):
+        expr = query.QueryExpression('testvalue')
+        assert (expr.value == 'testvalue') is True
+
+    @pytest.mark.parametrize(('value', 'expected'), (
+        ('', ''),
+        ('testvalue', 'testvalue'),
+        ('foo bar', '"foo bar"'),
+        ('foo bar baz', '"foo bar baz"'),
+        (10, '10'),
+    ))
+    def test___str__(self, value, expected):
+        expr = query.QueryExpression(value)
+        assert str(expr) == expected
+
+    def test___eq__(self):
+        expr = query.QueryExpression('v1')
+        et = (expr == 'v2')
+        assert (et.op == query.Operator.EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'v2'
+
+    def test___ge__(self):
+        expr = query.QueryExpression('v1')
+        et = (expr >= 'expr2')
+        assert (et.op == query.Operator.GREATER_EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___gt__(self):
+        expr = query.QueryExpression('v1')
+        et = (expr > 'expr2')
+        assert (et.op == query.Operator.GREATER_THAN) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___le__(self):
+        expr = query.QueryExpression('v1')
+        et = (expr <= 'expr2')
+        assert (et.op == query.Operator.LESS_EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___lt__(self):
+        expr = query.QueryExpression('v1')
+        et = (expr < 'expr2')
+        assert (et.op == query.Operator.LESS_THAN) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___ne__(self):
+        expr = query.QueryExpression('v1')
+        et = (expr != 'expr2')
+        assert (et.op == query.Operator.NOT_EQUAL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___and__(self):
+        expr = query.QueryExpression('v1')
+        et = (expr & 'expr2')
+        assert (et.op == query.Operator.AND) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___or__(self):
+        expr = query.QueryExpression('v1')
+        et = (expr | 'expr2')
+        assert (et.op == query.Operator.OR) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___sub__(self):
+        expr = query.QueryExpression('v1')
+        et = (expr - 'expr2')
+        assert (et.op == query.Operator.NOT) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
+
+    def test___mul__(self):
+        expr = query.Expression('v1')
+        et = (expr * 'expr2')
+        assert (et.op == query.Operator.MUL) is True
+        assert et.left is expr
+        assert isinstance(et.right, query.Expression)
+        assert et.right.value == 'expr2'
 
 
 def test_GE():
@@ -482,84 +592,109 @@ def test_GE():
 
 
 class TestExpressionTree(object):
+    @pytest.fixture
+    def Expr(self):
+        class C(object):
+            def __init__(self, value):
+                self.value = value
+
+            def __str__(self):
+                return str(self.value)
+        return C
+
     def test___init__(self):
         et = query.ExpressionTree('testexpr', 'testleft', 'testright')
-        assert (et.expr == 'testexpr') is True
+        assert (et.op == 'testexpr') is True
         assert isinstance(et.left, query.Expression)
         assert isinstance(et.right, query.Expression)
 
     def test___eq__(self):
         et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et == 'expr2')
-        assert (et2.expr == query.Expression.EQUAL) is True
+        assert (et2.op == query.Operator.EQUAL) is True
         assert et2.left is et
         assert isinstance(et2.right, query.Expression)
 
     def test___ge__(self):
         et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et >= 'expr2')
-        assert (et2.expr == query.Expression.GREATER_EQUAL) is True
+        assert (et2.op == query.Operator.GREATER_EQUAL) is True
         assert et2.left is et
         assert isinstance(et2.right, query.Expression)
 
     def test___gt__(self):
         et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et > 'expr2')
-        assert (et2.expr == query.Expression.GREATER_THAN) is True
+        assert (et2.op == query.Operator.GREATER_THAN) is True
         assert et2.left is et
         assert isinstance(et2.right, query.Expression)
 
     def test___le__(self):
         et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et <= 'expr2')
-        assert (et2.expr == query.Expression.LESS_EQUAL) is True
+        assert (et2.op == query.Operator.LESS_EQUAL) is True
         assert et2.left is et
         assert isinstance(et2.right, query.Expression)
 
     def test___lt__(self):
         et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et < 'expr2')
-        assert (et2.expr == query.Expression.LESS_THAN) is True
+        assert (et2.op == query.Operator.LESS_THAN) is True
         assert et2.left is et
         assert isinstance(et2.right, query.Expression)
 
     def test___ne__(self):
         et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et != 'expr2')
-        assert (et2.expr == query.Expression.NOT_EQUAL) is True
+        assert (et2.op == query.Operator.NOT_EQUAL) is True
         assert et2.left is et
         assert isinstance(et2.right, query.Expression)
 
     def test___and__(self):
         et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et & 'expr2')
-        assert (et2.expr == query.Expression.AND) is True
+        assert (et2.op == query.Operator.AND) is True
         assert et2.left is et
         assert isinstance(et2.right, query.Expression)
 
     def test___or__(self):
         et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et | 'expr2')
-        assert (et2.expr == query.Expression.OR) is True
+        assert (et2.op == query.Operator.OR) is True
         assert et2.left is et
         assert isinstance(et2.right, query.Expression)
 
     def test___sub__(self):
         et = query.ExpressionTree('expr1', 'left', 'right')
         et2 = (et - 'expr2')
-        assert (et2.expr == query.Expression.NOT) is True
+        assert (et2.op == query.Operator.NOT) is True
         assert et2.left is et
         assert isinstance(et2.right, query.Expression)
 
-    def test___str__without_nested(self):
-        et = query.ExpressionTree('expr1', 'left1', 'right1')
-        assert str(et) == '(left1expr1right1)'
+    def test_build_with_missing_definition_of_expression(self, Expr):
+        class A(Expr):
+            operator = {'expr1': '|'}
+        et = query.ExpressionTree('expr2', 'left1', 'right1')
+        with pytest.raises(NotImplementedError):
+            et.build(A)
 
-    def test___str__with_nested(self):
+    def test_build_without_nested(self, Expr):
+        class A(Expr):
+            operator = {'expr1': '|'}
+        et = query.ExpressionTree('expr1', 'left1', 'right1')
+        assert et.build(A) == '(left1|right1)'
+
+    def test_build_with_nested(self, Expr):
+        class A(Expr):
+            operator = {
+                '|': '|',
+                '&': '&',
+                '+': '+',
+                }
         et1 = query.ExpressionTree('|', 'left1', 'right1')
         et2 = query.ExpressionTree('&', et1, 'right2')
         et3 = query.ExpressionTree('+', 'left3', et2)
-        assert str(et3) == '(left3+((left1|right1)&right2))'
+        assert et3.build(A) == '(left3+((left1|right1)&right2))'
 
 
 class TestSimpleQuery(object):

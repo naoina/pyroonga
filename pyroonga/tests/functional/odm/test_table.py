@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import json
-import operator
 import random
 
 import pytest
@@ -30,8 +29,6 @@ from pyroonga.odm.query import (
     GroongaSuggestResults,
     GroongaSuggestResult,
     LoadQuery,
-    MatchColumn,
-    MatchColumnsTree,
     )
 from pyroonga import utils
 from pyroonga.tests import utils as test_utils
@@ -73,31 +70,40 @@ class TestColumn(object):
         col = Column()
         expected = random.randrange(1000)
         result = col.__mul__(expected)
-        assert isinstance(result, MatchColumn)
-        assert result.column is col
-        assert result.weight == expected
+        assert isinstance(result, query.ExpressionTree)
+        assert isinstance(result, query.ExpressionTree)
+        assert isinstance(result.left, query.Expression)
+        assert isinstance(result.right, query.Expression)
+        assert result.left.value is None
+        assert result.right.value == expected
 
     def test___mul___with_implicit_calls(self):
         col = Column()
         expected = random.randrange(1000)
         result = col * expected
-        assert isinstance(result, MatchColumn)
-        assert result.column is col
-        assert result.weight == expected
+        assert isinstance(result, query.ExpressionTree)
+        assert isinstance(result.left, query.Expression)
+        assert isinstance(result.right, query.Expression)
+        assert result.left.value is None
+        assert result.right.value == expected
 
     def test___or__(self):
         col1, col2 = Column(), Column()
         result = col1.__or__(col2)
-        assert isinstance(result, MatchColumnsTree)
-        assert result.left.column is col1
-        assert result.right is col2
+        assert isinstance(result, query.ExpressionTree)
+        assert isinstance(result.left, query.Expression)
+        assert isinstance(result.right, query.Expression)
+        assert result.left.value is None
+        assert result.right.value is col2
 
     def test___or___with_implicit_calls(self):
         col1, col2 = Column(), Column()
         result = col1 | col2
-        assert isinstance(result, MatchColumnsTree)
-        assert result.left.column is col1
-        assert result.right is col2
+        assert isinstance(result, query.ExpressionTree)
+        assert isinstance(result.left, query.Expression)
+        assert isinstance(result.right, query.Expression)
+        assert result.left.value is None
+        assert result.right.value is col2
 
     def test___str___without_attributes(self):
         col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
