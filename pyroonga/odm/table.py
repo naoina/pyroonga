@@ -25,9 +25,8 @@ from pyroonga.odm.attributes import (
     Tokenizer,
     NormalizerSymbol
     )
+from pyroonga.odm import query
 from pyroonga.odm.query import (
-    Operator,
-    ExpressionTree,
     GroongaRecord,
     LoadQuery,
     SuggestQuery,
@@ -299,7 +298,7 @@ class TableBase(object):
         return result
 
 
-class Column(object):
+class Column(query.BaseExpression):
     """Column representation class
 
     e.g. ::
@@ -341,33 +340,13 @@ class Column(object):
         self.tablename = self.name = self.value = None
         self._desc = False
 
-    def __eq__(self, other):
-        return ExpressionTree(Operator.EQUAL, self.name, other)
-
-    def __ge__(self, other):
-        return ExpressionTree(Operator.GREATER_EQUAL, self.name, other)
-
-    def __gt__(self, other):
-        return ExpressionTree(Operator.GREATER_THAN, self.name, other)
-
-    def __le__(self, other):
-        return ExpressionTree(Operator.LESS_EQUAL, self.name, other)
-
-    def __lt__(self, other):
-        return ExpressionTree(Operator.LESS_THAN, self.name, other)
-
-    def __ne__(self, other):
-        return ExpressionTree(Operator.NOT_EQUAL, self.name, other)
+    @property
+    def lvalue(self):
+        return self.name
 
     def __neg__(self):
         self._desc = True
         return self
-
-    def __mul__(self, other):
-        return ExpressionTree(Operator.MUL, self.name, other)
-
-    def __or__(self, other):
-        return ExpressionTree(Operator.OR, self.name, other)
 
     def __str__(self):
         if not (self.tablename and self.name):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import random
+from datetime import date, datetime
 
 import pytest
 
@@ -178,6 +179,11 @@ class TestSelectQuery(object):
         result = q.query()
         assert result is q
 
+    def test_filter(self):
+        q = query.SelectQuery(mock.MagicMock())
+        result = q.filter()
+        assert result is q
+
     def test___str__with_match_columns(self):
         m = mock.MagicMock()
         m.__tablename__ = 'test_table'
@@ -233,6 +239,130 @@ class TestSelectQuery(object):
         assert q.__str__() == ('select --table "test_table" --query'
                                r' "(q1:@\"query1\" OR query1:@\"q1\")"')
 
+    def test___str___with_filter_and_no_args(self):
+        m = mock.MagicMock()
+        m.__tablename__ = 'test_table'
+        q = query.SelectQuery(m)
+        result = q.filter()
+        assert result is q
+        assert str(q) == ('select --table "test_table"')
+
+    @pytest.mark.parametrize(('filters', 'expected'), (
+        ([query.GE('q1')], 'q1'),
+        ([query.GE('"q1"')], r'"q1"'),
+        ([query.GE(r'"q1\"q2"')], r'"q1\"q2"'),
+        ([query.GE('"q1 q2"')], r'"\"q1 q2\""'),
+        ([query.GE('q1'), query.GE('q2')], 'q1 || q2'),
+        ([query.GE('q1'), query.GE('q2'), query.GE('q3')], 'q1 || q2 || q3'),
+        ([query.GE('q1 q2')], r'"q1 q2"'),
+        ([query.GE('q1 q2'), query.GE('q3 q4')], '"q1 q2" || "q3 q4"'),
+        ([query.GE('q1') + query.GE('q2')], '(q1 + q2)'),
+        ([query.GE('q1') + 'q2'], '(q1 + q2)'),
+        ([query.GE('q1 q2') + query.GE('q3 q4')], '("q1 q2" + "q3 q4")'),
+        ([query.GE('q1 q2') + 'q3 q4'], '("q1 q2" + "q3 q4")'),
+        ([query.GE('q1') - query.GE('q2')], '(q1 - q2)'),
+        ([query.GE('q1') - 'q2'], '(q1 - q2)'),
+        ([query.GE('q1 q2') - query.GE('q3 q4')], '("q1 q2" - "q3 q4")'),
+        ([query.GE('q1 q2') - 'q3 q4'], '("q1 q2" - "q3 q4")'),
+        ([query.GE('q1') * query.GE('q2')], '(q1 * q2)'),
+        ([query.GE('q1') * 'q2'], '(q1 * q2)'),
+        ([query.GE('q1 q2') * query.GE('q3 q4')], '("q1 q2" * "q3 q4")'),
+        ([query.GE('q1 q2') * 'q3 q4'], '("q1 q2" * "q3 q4")'),
+        ([query.GE('q1') / query.GE('q2')], '(q1 / q2)'),
+        ([query.GE('q1') / 'q2'], '(q1 / q2)'),
+        ([query.GE('q1 q2') / 'q3 q4'], '("q1 q2" / "q3 q4")'),
+        ([query.GE('q1') % query.GE('q2')], '(q1 % q2)'),
+        ([query.GE('q1') % 'q2'], '(q1 % q2)'),
+        ([query.GE('q1 q2') % 'q3 q4'], '("q1 q2" % "q3 q4")'),
+        ([query.GE('q1').not_()], '(!q1)'),
+        ([query.GE('q1').not_().not_()], '(!(!q1))'),
+        ([query.GE('q1 q2').not_()], '(!"q1 q2")'),
+        ([(query.GE('q1 q2') == query.GE('q3 q4')).not_()],
+         '(!("q1 q2" == "q3 q4"))'),
+        ([query.GE('q1').and_('q2')], '(q1 && q2)'),
+        ([query.GE('q1 q2').and_('q3 q4')], '("q1 q2" && "q3 q4")'),
+        ([query.GE('q1').or_('q2')], '(q1 || q2)'),
+        ([query.GE('q1 q2').or_('q3 q4')], '("q1 q2" || "q3 q4")'),
+        ([query.GE('q1').diff('q2')], '(q1 &! q2)'),
+        ([query.GE('q1 q2').diff('q3 q4')], '("q1 q2" &! "q3 q4")'),
+        ([~query.GE('q1')], '(~q1)'),
+        ([~~query.GE('q1')], '(~(~q1))'),
+        ([~query.GE('q1 q2')], '(~"q1 q2")'),
+        ([~(query.GE('q1 q2') == query.GE('q3 q4'))],
+         '(~("q1 q2" == "q3 q4"))'),
+        ([query.GE('q1') & query.GE('q2')], '(q1 & q2)'),
+        ([query.GE('q1') & 'q2'], '(q1 & q2)'),
+        ([query.GE('q1 q2') & query.GE('q3 q4')], '("q1 q2" & "q3 q4")'),
+        ([query.GE('q1 q2') & 'q3 q4'], '("q1 q2" & "q3 q4")'),
+        ([query.GE('q1') | query.GE('q2')], '(q1 | q2)'),
+        ([query.GE('q1') | 'q2'], '(q1 | q2)'),
+        ([query.GE('q1 q2') | query.GE('q3 q4')], '("q1 q2" | "q3 q4")'),
+        ([query.GE('q1 q2') | 'q3 q4'], '("q1 q2" | "q3 q4")'),
+        ([query.GE('q1') ^ query.GE('q2')], '(q1 ^ q2)'),
+        ([query.GE('q1') ^ 'q2'], '(q1 ^ q2)'),
+        ([query.GE('q1 q2') ^ query.GE('q3 q4')], '("q1 q2" ^ "q3 q4")'),
+        ([query.GE('q1 q2') ^ 'q3 q4'], '("q1 q2" ^ "q3 q4")'),
+        ([query.GE('q1') << query.GE('q2')], '(q1 << q2)'),
+        ([query.GE('q1') << 'q2'], '(q1 << q2)'),
+        ([query.GE('q1 q2') << query.GE('q3 q4')], '("q1 q2" << "q3 q4")'),
+        ([query.GE('q1 q2') << 'q3 q4'], '("q1 q2" << "q3 q4")'),
+        ([query.GE('q1') >> query.GE('q2')], '(q1 >>> q2)'),
+        ([query.GE('q1') >> 'q2'], '(q1 >>> q2)'),
+        ([query.GE('q1 q2') >> query.GE('q3 q4')], '("q1 q2" >>> "q3 q4")'),
+        ([query.GE('q1 q2') >> 'q3 q4'], '("q1 q2" >>> "q3 q4")'),
+        ([query.GE('q1') == query.GE('q2')], '(q1 == q2)'),
+        ([query.GE('q1') == 'q2'], '(q1 == q2)'),
+        ([query.GE('q1 q2') == 'q3 q4'], '("q1 q2" == "q3 q4")'),
+        ([query.GE('q1') != query.GE('q2')], '(q1 != q2)'),
+        ([query.GE('q1') != 'q2'], '(q1 != q2)'),
+        ([query.GE('q1 q2') != 'q3 q4'], '("q1 q2" != "q3 q4")'),
+        ([query.GE('q1') < query.GE('q2')], '(q1 < q2)'),
+        ([query.GE('q1') < 'q2'], '(q1 < q2)'),
+        ([query.GE('q1 q2') < query.GE('q3 q4')], '("q1 q2" < "q3 q4")'),
+        ([query.GE('q1 q2') < 'q3 q4'], '("q1 q2" < "q3 q4")'),
+        ([query.GE('q1') <= query.GE('q2')], '(q1 <= q2)'),
+        ([query.GE('q1') <= 'q2'], '(q1 <= q2)'),
+        ([query.GE('q1 q2') <= query.GE('q3 q4')], '("q1 q2" <= "q3 q4")'),
+        ([query.GE('q1 q2') <= 'q3 q4'], '("q1 q2" <= "q3 q4")'),
+        ([query.GE('q1') > query.GE('q2')], '(q1 > q2)'),
+        ([query.GE('q1') > 'q2'], '(q1 > q2)'),
+        ([query.GE('q1 q2') > query.GE('q3 q4')], '("q1 q2" > "q3 q4")'),
+        ([query.GE('q1 q2') > 'q3 q4'], '("q1 q2" > "q3 q4")'),
+        ([query.GE('q1') >= query.GE('q2')], '(q1 >= q2)'),
+        ([query.GE('q1') >= 'q2'], '(q1 >= q2)'),
+        ([query.GE('q1 q2') >= query.GE('q3 q4')], '("q1 q2" >= "q3 q4")'),
+        ([query.GE('q1 q2') >= 'q3 q4'], '("q1 q2" >= "q3 q4")'),
+        ([query.GE('q1').match('q2')], '(q1 @ q2)'),
+        ([query.GE('q1 q2').match('q3 q4')], '("q1 q2" @ "q3 q4")'),
+        ([query.GE('q1').startswith('q2')], '(q1 @^ q2)'),
+        ([query.GE('q1 q2').startswith('q3 q4')], '("q1 q2" @^ "q3 q4")'),
+        ([query.GE('q1').endswith('q2')], '(q1 @$ q2)'),
+        ([query.GE('q1 q2').endswith('q3 q4')], '("q1 q2" @$ "q3 q4")'),
+        ([query.GE('q1').near('q2')], '(q1 *N q2)'),
+        ([query.GE('q1 q2').near('q3 q4')], '("q1 q2" *N "q3 q4")'),
+        ([query.GE('q1').similar('q2')], '(q1 *S q2)'),
+        ([query.GE('q1 q2').similar('q3 q4')], '("q1 q2" *S "q3 q4")'),
+        ([query.GE('q1').term_extract('q2')], '(q1 *T q2)'),
+        ([query.GE('q1 q2').term_extract('q3 q4')], '("q1 q2" *T "q3 q4")'),
+    ))
+    def test___str___with_filter_and_args(self, filters, expected):
+        m = mock.MagicMock()
+        m.__tablename__ = 'test_table'
+        q = query.SelectQuery(m)
+        result = q.filter(*filters)
+        assert result is q
+        assert str(q) == ("""select --table "test_table" --filter '%s'""" %
+                          expected)
+
+    def test___str___with_filter_and_kwargs(self):
+        m = mock.MagicMock()
+        m.__tablename__ = 'test_table'
+        q = query.SelectQuery(m)
+        result = q.filter(filter1='f1 f2', f1='filter1')
+        assert result is q
+        assert str(q) == ('select --table "test_table" --filter'
+                          ' \'(f1 @ filter1) || (filter1 @ "f1 f2")\'')
+
 
 class TestOperator(object):
     @pytest.mark.parametrize(('attr', 'expected'), (
@@ -245,21 +375,210 @@ class TestOperator(object):
         ('OR', 'OR'),
         ('AND', 'AND'),
         ('NOT', 'NOT'),
+        ('DIFF', 'DIFF'),
+        ('INVERT', 'INVERT'),
+        ('BIT_AND', 'BIT_AND'),
+        ('BIT_OR', 'BIT_OR'),
+        ('BIT_XOR', 'BIT_XOR'),
+        ('LSHIFT', 'LSHIFT'),
+        ('RSHIFT', 'RSHIFT'),
+        ('ADD', 'ADD'),
+        ('SUB', 'SUB'),
         ('MUL', 'MUL'),
+        ('DIV', 'DIV'),
+        ('MOD', 'MOD'),
+        ('IADD', 'IADD'),
+        ('ISUB', 'ISUB'),
+        ('IMUL', 'IMUL'),
+        ('IDIV', 'IDIV'),
+        ('IMOD', 'IMOD'),
+        ('ILSHIFT', 'ILSHIFT'),
+        ('IRSHIFT', 'IRSHIFT'),
+        ('IBIT_AND', 'IBIT_AND'),
+        ('IBIT_OR', 'IBIT_OR'),
+        ('IBIT_XOR', 'IBIT_XOR'),
+        ('MATCH', 'MATCH'),
+        ('STARTSWITH', 'STARTSWITH'),
+        ('ENDSWITH', 'ENDSWITH'),
+        ('NEAR', 'NEAR'),
+        ('SIMILAR', 'SIMILAR'),
+        ('TERM_EXTRACT', 'TERM_EXTRACT'),
     ))
     def test_constant(self, attr, expected):
         result = object.__getattribute__(query.Operator, attr)
         assert (result == expected) is True
 
 
-class TestExpression(object):
+class BaseTestExpression(object):
+    @pytest.fixture
+    def Expression(self):
+        raise NotImplementedError
+
+    @pytest.fixture
+    def expr(self, Expression):
+        return Expression()
+
+    @pytest.fixture
+    def random_string(self):
+        return utils.random_string()
+
+    def test_lvalue(self, expr):
+        assert expr.lvalue is expr
+
+    def _test_op(self, left, result, expected, op):
+        assert (result.op == op) is True
+        assert result.left is left
+        assert isinstance(result.right, query.Expression)
+        assert (result.right.value == expected) is True
+
+    def test___eq__(self, expr, random_string):
+        et = (expr == random_string)
+        self._test_op(expr, et, random_string, query.Operator.EQUAL)
+
+    def test___ge__(self, expr, random_string):
+        et = (expr >= random_string)
+        self._test_op(expr, et, random_string, query.Operator.GREATER_EQUAL)
+
+    def test___gt__(self, expr, random_string):
+        et = (expr > random_string)
+        self._test_op(expr, et, random_string, query.Operator.GREATER_THAN)
+
+    def test___le__(self, expr, random_string):
+        et = (expr <= random_string)
+        self._test_op(expr, et, random_string, query.Operator.LESS_EQUAL)
+
+    def test___lt__(self, expr, random_string):
+        et = (expr < random_string)
+        self._test_op(expr, et, random_string, query.Operator.LESS_THAN)
+
+    def test___ne__(self, expr, random_string):
+        et = (expr != random_string)
+        self._test_op(expr, et, random_string, query.Operator.NOT_EQUAL)
+
+    def test___add__(self, expr, random_string):
+        et = (expr + random_string)
+        self._test_op(expr, et, random_string, query.Operator.ADD)
+
+    def test___sub__(self, expr, random_string):
+        et = (expr - random_string)
+        self._test_op(expr, et, random_string, query.Operator.SUB)
+
+    def test___mul__(self, expr, random_string):
+        et = (expr * random_string)
+        self._test_op(expr, et, random_string, query.Operator.MUL)
+
+    def test___div__(self, expr, random_string):
+        et = (expr / random_string)
+        self._test_op(expr, et, random_string, query.Operator.DIV)
+
+    def test___mod__(self, expr, random_string):
+        et = (expr % random_string)
+        self._test_op(expr, et, random_string, query.Operator.MOD)
+
+    def test_not_(self, expr):
+        et = expr.not_()
+        self._test_op(None, et, expr.value, query.Operator.NOT)
+
+    def test_and_(self, expr, random_string):
+        et = expr.and_(random_string)
+        self._test_op(expr, et, random_string, query.Operator.AND)
+
+    def test_or_(self, expr, random_string):
+        et = expr.or_(random_string)
+        self._test_op(expr, et, random_string, query.Operator.OR)
+
+    def test_diff(self, expr, random_string):
+        et = expr.diff(random_string)
+        self._test_op(expr, et, random_string, query.Operator.DIFF)
+
+    def test___invert__(self, expr):
+        et = ~expr
+        self._test_op(None, et, expr.value, query.Operator.INVERT)
+
+    def test___and__(self, expr, random_string):
+        et = (expr & random_string)
+        self._test_op(expr, et, random_string, query.Operator.BIT_AND)
+
+    def test___or__(self, expr, random_string):
+        et = (expr | random_string)
+        self._test_op(expr, et, random_string, query.Operator.BIT_OR)
+
+    def test___xor__(self, expr, random_string):
+        et = (expr ^ random_string)
+        self._test_op(expr, et, random_string, query.Operator.BIT_XOR)
+
+    def test___lshift__(self, expr, random_string):
+        et = (expr << random_string)
+        self._test_op(expr, et, random_string, query.Operator.LSHIFT)
+
+    def test___rshift__(self, expr, random_string):
+        et = (expr >> random_string)
+        self._test_op(expr, et, random_string, query.Operator.RSHIFT)
+
+    def test___iadd__(self, expr, random_string):
+        et = expr
+        et += random_string
+        self._test_op(expr, et, random_string, query.Operator.IADD)
+
+    def test___isub__(self, expr, random_string):
+        et = expr
+        et -= random_string
+        self._test_op(expr, et, random_string, query.Operator.ISUB)
+
+    def test___imul__(self, expr, random_string):
+        et = expr
+        et *= random_string
+        self._test_op(expr, et, random_string, query.Operator.IMUL)
+
+    def test___idiv__(self, expr, random_string):
+        et = expr
+        et /= random_string
+        self._test_op(expr, et, random_string, query.Operator.IDIV)
+
+    def test___imod__(self, expr, random_string):
+        et = expr
+        et %= random_string
+        self._test_op(expr, et, random_string, query.Operator.IMOD)
+
+    def test___ilshift__(self, expr, random_string):
+        et = expr
+        et <<= random_string
+        self._test_op(expr, et, random_string, query.Operator.ILSHIFT)
+
+    def test___irshift__(self, expr, random_string):
+        et = expr
+        et >>= random_string
+        self._test_op(expr, et, random_string, query.Operator.IRSHIFT)
+
+    def test___iand__(self, expr, random_string):
+        et = expr
+        et &= random_string
+        self._test_op(expr, et, random_string, query.Operator.IBIT_AND)
+
+    def test___ior__(self, expr, random_string):
+        et = expr
+        et |= random_string
+        self._test_op(expr, et, random_string, query.Operator.IBIT_OR)
+
+    def test___ixor__(self, expr, random_string):
+        et = expr
+        et ^= random_string
+        self._test_op(expr, et, random_string, query.Operator.IBIT_XOR)
+
+
+class TestExpression(BaseTestExpression):
     @pytest.fixture
     def Expression(self):
         return query.Expression
 
+    @pytest.fixture
+    def expr(self, Expression):
+        return Expression('v1')
+
     def test___init__(self, Expression):
         expr = Expression('testvalue')
         assert (expr.value == 'testvalue') is True
+        assert expr.lvalue is expr
 
     def test_wrap_expr_with_Expression_instances(self, Expression):
         expr1, expr2 = Expression('v1'), Expression('v2')
@@ -276,6 +595,11 @@ class TestExpression(object):
         assert exprs[0] is et1
         assert exprs[1] is et2
 
+    def test_wrap_expr_with_None(self, Expression):
+        exprs = tuple(Expression.wrap_expr(None))
+        assert len(exprs) == 1
+        assert exprs[0] is None
+
     def test_wrap_expr(self, Expression):
         exprs = tuple(Expression.wrap_expr('v1', 'v2', 10))
         assert len(exprs) == 3
@@ -285,6 +609,19 @@ class TestExpression(object):
         assert (exprs[0].value == 'v1') is True
         assert (exprs[1].value == 'v2') is True
         assert (exprs[2].value == 10) is True
+
+    def test_build_without_nested(self, Expression):
+        expr = Expression('v1')
+        result = expr.build(Expression)
+        assert result == 'v1'
+
+    def test_build_with_nested(self, Expression, random_string):
+        class A(object):
+            def __str__(self):
+                return random_string
+        expr = Expression(Expression(A()))
+        result = expr.build(Expression)
+        assert result == random_string
 
     @pytest.mark.parametrize(('value', 'expected'), (
         ('', ''),
@@ -296,86 +633,6 @@ class TestExpression(object):
     def test___str__(self, Expression, value, expected):
         expr = Expression(value)
         assert str(expr) == expected
-
-    def test___eq__(self, Expression):
-        expr = Expression('v1')
-        et = (expr == 'v2')
-        assert (et.op == query.Operator.EQUAL) is True
-        assert et.left is expr
-        assert isinstance(et.right, query.Expression)
-        assert et.right.value == 'v2'
-
-    def test___ge__(self, Expression):
-        expr = Expression('v1')
-        et = (expr >= 'expr2')
-        assert (et.op == query.Operator.GREATER_EQUAL) is True
-        assert et.left is expr
-        assert isinstance(et.right, query.Expression)
-        assert et.right.value == 'expr2'
-
-    def test___gt__(self, Expression):
-        expr = Expression('v1')
-        et = (expr > 'expr2')
-        assert (et.op == query.Operator.GREATER_THAN) is True
-        assert et.left is expr
-        assert isinstance(et.right, query.Expression)
-        assert et.right.value == 'expr2'
-
-    def test___le__(self, Expression):
-        expr = Expression('v1')
-        et = (expr <= 'expr2')
-        assert (et.op == query.Operator.LESS_EQUAL) is True
-        assert et.left is expr
-        assert isinstance(et.right, query.Expression)
-        assert et.right.value == 'expr2'
-
-    def test___lt__(self, Expression):
-        expr = Expression('v1')
-        et = (expr < 'expr2')
-        assert (et.op == query.Operator.LESS_THAN) is True
-        assert et.left is expr
-        assert isinstance(et.right, query.Expression)
-        assert et.right.value == 'expr2'
-
-    def test___ne__(self, Expression):
-        expr = Expression('v1')
-        et = (expr != 'expr2')
-        assert (et.op == query.Operator.NOT_EQUAL) is True
-        assert et.left is expr
-        assert isinstance(et.right, query.Expression)
-        assert et.right.value == 'expr2'
-
-    def test___and__(self, Expression):
-        expr = Expression('v1')
-        et = (expr & 'expr2')
-        assert (et.op == query.Operator.AND) is True
-        assert et.left is expr
-        assert isinstance(et.right, query.Expression)
-        assert et.right.value == 'expr2'
-
-    def test___or__(self, Expression):
-        expr = Expression('v1')
-        et = (expr | 'expr2')
-        assert (et.op == query.Operator.OR) is True
-        assert et.left is expr
-        assert isinstance(et.right, query.Expression)
-        assert et.right.value == 'expr2'
-
-    def test___sub__(self, Expression):
-        expr = Expression('v1')
-        et = (expr - 'expr2')
-        assert (et.op == query.Operator.NOT) is True
-        assert et.left is expr
-        assert isinstance(et.right, query.Expression)
-        assert et.right.value == 'expr2'
-
-    def test___mul__(self, Expression):
-        expr = Expression('v1')
-        et = (expr * 'expr2')
-        assert (et.op == query.Operator.MUL) is True
-        assert et.left is expr
-        assert isinstance(et.right, query.Expression)
-        assert et.right.value == 'expr2'
 
 
 class TestMatchColumn(TestExpression):
@@ -403,9 +660,9 @@ class TestQueryExpression(TestExpression):
             query.Operator.LESS_EQUAL: ':<=',
             query.Operator.LESS_THAN: ':<',
             query.Operator.NOT_EQUAL: ':!',
-            query.Operator.OR: ' OR ',
-            query.Operator.AND: ' + ',
-            query.Operator.NOT: ' - ',
+            query.Operator.BIT_OR: ' OR ',
+            query.Operator.BIT_AND: ' + ',
+            query.Operator.SUB: ' - ',
         }) is True
 
     @pytest.mark.parametrize(('value', 'expected'), (
@@ -420,11 +677,86 @@ class TestQueryExpression(TestExpression):
         assert str(expr) == expected
 
 
+class TestFilterExpression(TestExpression):
+    @pytest.fixture
+    def Expression(self):
+        return query.FilterExpression
+
+    def test_constant(self):
+        assert (query.FilterExpression.operator == {
+            query.Operator.ADD: ' + ',
+            query.Operator.SUB: ' - ',
+            query.Operator.MUL: ' * ',
+            query.Operator.DIV: ' / ',
+            query.Operator.MOD: ' % ',
+            query.Operator.NOT: '!',
+            query.Operator.AND: ' && ',
+            query.Operator.OR: ' || ',
+            query.Operator.DIFF: ' &! ',
+            query.Operator.INVERT: '~',
+            query.Operator.BIT_AND: ' & ',
+            query.Operator.BIT_OR: ' | ',
+            query.Operator.BIT_XOR: ' ^ ',
+            query.Operator.LSHIFT: ' << ',
+            query.Operator.RSHIFT: ' >>> ',
+            query.Operator.EQUAL: ' == ',
+            query.Operator.NOT_EQUAL: ' != ',
+            query.Operator.LESS_THAN: ' < ',
+            query.Operator.LESS_EQUAL: ' <= ',
+            query.Operator.GREATER_THAN: ' > ',
+            query.Operator.GREATER_EQUAL: ' >= ',
+            query.Operator.IADD: ' += ',
+            query.Operator.ISUB: ' -= ',
+            query.Operator.IMUL: ' *= ',
+            query.Operator.IDIV: ' /= ',
+            query.Operator.IMOD: ' %= ',
+            query.Operator.ILSHIFT: ' <<= ',
+            query.Operator.IRSHIFT: ' >>>= ',
+            query.Operator.IBIT_AND: ' &= ',
+            query.Operator.IBIT_OR: ' |= ',
+            query.Operator.IBIT_XOR: ' ^= ',
+            query.Operator.MATCH: ' @ ',
+            query.Operator.STARTSWITH: ' @^ ',
+            query.Operator.ENDSWITH: ' @$ ',
+            query.Operator.NEAR: ' *N ',
+            query.Operator.SIMILAR: ' *S ',
+            query.Operator.TERM_EXTRACT: ' *T ',
+            }) is True
+
+    str_test_params = (
+        ('', ''),
+        ('testvalue', 'testvalue'),
+        ('foo bar', '"foo bar"'),
+        ('foo bar baz', '"foo bar baz"'),
+        (10, '10'),
+        (0, '0'),
+        (True, 'true'),
+        (False, 'false'),
+        (None, 'null'),
+        (datetime(2013, 8, 20, 20, 19, 44, 128374),
+         '"2013/08/20 20:19:44.128374"'),
+        (date(2013, 9, 26), '"2013/09/26 00:00:00.000000"'),
+        )
+
+    @pytest.mark.parametrize(('value', 'expected'), str_test_params)
+    def test___str__(self, Expression, value, expected):
+        expr = Expression(value)
+        assert str(expr) == expected
+
+
 def test_GE():
     assert query.GE is query.Expression
 
 
-class TestExpressionTree(object):
+class TestExpressionTree(BaseTestExpression):
+    @pytest.fixture
+    def Expression(self):
+        return query.ExpressionTree
+
+    @pytest.fixture
+    def expr(self, Expression):
+        return Expression('expr1', 'left', 'right')
+
     @pytest.fixture
     def Expr(self):
         class C(object):
@@ -435,6 +767,12 @@ class TestExpressionTree(object):
                 return str(self.value)
         return C
 
+    def _test_op_tree(self, left, result, expected, op):
+        assert (result.op == op) is True
+        assert result.left is left
+        assert isinstance(result.right, query.ExpressionTree)
+        assert result.right is expected
+
     def test___init__(self):
         et = query.ExpressionTree('testexpr', 'testleft', 'testright')
         assert (et.op == 'testexpr') is True
@@ -442,85 +780,13 @@ class TestExpressionTree(object):
         assert isinstance(et.right, query.Expression)
         assert (et.left.value, et.right.value) == ('testleft', 'testright')
 
-    def test___eq__(self):
-        et = query.ExpressionTree('expr1', 'left', 'right')
-        et2 = (et == 'expr2')
-        assert (et2.op == query.Operator.EQUAL) is True
-        assert et2.left is et
-        assert isinstance(et2.right, query.Expression)
-        assert et2.right.value == 'expr2'
+    def test_not_(self, expr):
+        et = expr.not_()
+        self._test_op_tree(None, et, expr, query.Operator.NOT)
 
-    def test___ge__(self):
-        et = query.ExpressionTree('expr1', 'left', 'right')
-        et2 = (et >= 'expr2')
-        assert (et2.op == query.Operator.GREATER_EQUAL) is True
-        assert et2.left is et
-        assert isinstance(et2.right, query.Expression)
-        assert et2.right.value == 'expr2'
-
-    def test___gt__(self):
-        et = query.ExpressionTree('expr1', 'left', 'right')
-        et2 = (et > 'expr2')
-        assert (et2.op == query.Operator.GREATER_THAN) is True
-        assert et2.left is et
-        assert isinstance(et2.right, query.Expression)
-        assert et2.right.value == 'expr2'
-
-    def test___le__(self):
-        et = query.ExpressionTree('expr1', 'left', 'right')
-        et2 = (et <= 'expr2')
-        assert (et2.op == query.Operator.LESS_EQUAL) is True
-        assert et2.left is et
-        assert isinstance(et2.right, query.Expression)
-        assert et2.right.value == 'expr2'
-
-    def test___lt__(self):
-        et = query.ExpressionTree('expr1', 'left', 'right')
-        et2 = (et < 'expr2')
-        assert (et2.op == query.Operator.LESS_THAN) is True
-        assert et2.left is et
-        assert isinstance(et2.right, query.Expression)
-        assert et2.right.value == 'expr2'
-
-    def test___ne__(self):
-        et = query.ExpressionTree('expr1', 'left', 'right')
-        et2 = (et != 'expr2')
-        assert (et2.op == query.Operator.NOT_EQUAL) is True
-        assert et2.left is et
-        assert isinstance(et2.right, query.Expression)
-        assert et2.right.value == 'expr2'
-
-    def test___and__(self):
-        et = query.ExpressionTree('expr1', 'left', 'right')
-        et2 = (et & 'expr2')
-        assert (et2.op == query.Operator.AND) is True
-        assert et2.left is et
-        assert isinstance(et2.right, query.Expression)
-        assert et2.right.value == 'expr2'
-
-    def test___or__(self):
-        et = query.ExpressionTree('expr1', 'left', 'right')
-        et2 = (et | 'expr2')
-        assert (et2.op == query.Operator.OR) is True
-        assert et2.left is et
-        assert isinstance(et2.right, query.Expression)
-        assert et2.right.value == 'expr2'
-
-    def test___sub__(self):
-        et = query.ExpressionTree('expr1', 'left', 'right')
-        et2 = (et - 'expr2')
-        assert (et2.op == query.Operator.NOT) is True
-        assert et2.left is et
-        assert isinstance(et2.right, query.Expression)
-        assert et2.right.value == 'expr2'
-
-    def test___mul__(self):
-        et = query.ExpressionTree('expr1', 'left', 'right')
-        et2 = (et * 'expr2')
-        assert (et2.op == query.Operator.MUL) is True
-        assert et2.left is et
-        assert isinstance(et2.right, query.Expression)
-        assert et2.right.value == 'expr2'
+    def test___invert__(self, expr):
+        et = ~expr
+        self._test_op_tree(None, et, expr, query.Operator.INVERT)
 
     def test_build_with_missing_definition_of_expression(self, Expr):
         class A(Expr):

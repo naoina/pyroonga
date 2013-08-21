@@ -17,7 +17,6 @@ from pyroonga.odm.attributes import (
     )
 from pyroonga.odm.table import (
     Column,
-    TableMeta,
     SuggestTable,
     prop_attr,
     tablebase,
@@ -32,128 +31,6 @@ from pyroonga.odm.query import (
     )
 from pyroonga import utils
 from pyroonga.tests import utils as test_utils
-
-
-class TestColumn(object):
-    def test___init___with_default_value(self):
-        col = Column()
-        assert col.flags is ColumnFlags.COLUMN_SCALAR
-        assert col.type is DataType.ShortText
-        assert col.__tablemeta__ is TableMeta
-        assert col.tablename is None
-        assert col.name is None
-        assert col.value is None
-
-    def test___init___with_invalid_flags(self):
-        with pytest.raises(TypeError):
-            Column(flags='')
-
-    def test___init___with_flags(self):
-        try:
-            col = Column(flags=ColumnFlags.COLUMN_VECTOR)
-            assert col.flags is ColumnFlags.COLUMN_VECTOR
-        except TypeError:
-            assert False, "TypeError should not be raised"
-
-    @pytest.mark.parametrize('type_', (
-        DataType.UInt32,
-        TableMeta,
-    ))
-    def test___init___with_type(self, type_):
-        try:
-            col = Column(type=type_)
-            assert col.type is type_
-        except TypeError:
-            assert False, "TypeError should not be raised"
-
-    def test___mul__(self):
-        col = Column()
-        expected = random.randrange(1000)
-        result = col.__mul__(expected)
-        assert isinstance(result, query.ExpressionTree)
-        assert isinstance(result, query.ExpressionTree)
-        assert isinstance(result.left, query.Expression)
-        assert isinstance(result.right, query.Expression)
-        assert result.left.value is None
-        assert result.right.value == expected
-
-    def test___mul___with_implicit_calls(self):
-        col = Column()
-        expected = random.randrange(1000)
-        result = col * expected
-        assert isinstance(result, query.ExpressionTree)
-        assert isinstance(result.left, query.Expression)
-        assert isinstance(result.right, query.Expression)
-        assert result.left.value is None
-        assert result.right.value == expected
-
-    def test___or__(self):
-        col1, col2 = Column(), Column()
-        result = col1.__or__(col2)
-        assert isinstance(result, query.ExpressionTree)
-        assert isinstance(result.left, query.Expression)
-        assert isinstance(result.right, query.Expression)
-        assert result.left.value is None
-        assert result.right.value is col2
-
-    def test___or___with_implicit_calls(self):
-        col1, col2 = Column(), Column()
-        result = col1 | col2
-        assert isinstance(result, query.ExpressionTree)
-        assert isinstance(result.left, query.Expression)
-        assert isinstance(result.right, query.Expression)
-        assert result.left.value is None
-        assert result.right.value is col2
-
-    def test___str___without_attributes(self):
-        col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
-        with pytest.raises(TypeError):
-            str(col)
-
-    def test___str___without_name(self):
-        col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
-        col.tablename = 'tb1'
-        with pytest.raises(TypeError):
-            str(col)
-
-    def test___str___without_tablename(self):
-        col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=DataType.ShortText)
-        col.name = 'name1'
-        with pytest.raises(TypeError):
-            str(col)
-
-    def test___str___without_table(self):
-        col = Column(flags=ColumnFlags.COLUMN_VECTOR, type=DataType.ShortText)
-        col.tablename = 'tb2'
-        col.name = 'name2'
-        assert str(col) == ('column_create --table tb2 --name name2 --flags'
-                            ' COLUMN_VECTOR --type ShortText')
-
-    def test___str___with_class(self):
-        ExampleTableBase = tablebase()
-
-        class ExampleTable(ExampleTableBase):
-            name = Column()
-
-        col = Column(flags=ColumnFlags.COLUMN_INDEX, type=ExampleTable,
-                     source=ExampleTable.name)
-        col.tablename = 'tb3'
-        col.name = 'name3'
-        assert str(col) == ('column_create --table tb3 --name name3 --flags'
-                            ' COLUMN_INDEX --type ExampleTable --source name')
-
-    def test___str___with_class_string(self):
-        ExampleTableBase = tablebase()
-
-        class ExampleTable(ExampleTableBase):
-            name = Column()
-
-        col = Column(flags=ColumnFlags.COLUMN_INDEX, type='ExampleTable',
-                     source='name')
-        col.tablename = 'tb4'
-        col.name = 'name4'
-        assert str(col) == ('column_create --table tb4 --name name4 --flags'
-                            ' COLUMN_INDEX --type ExampleTable --source name')
 
 
 class TestPropAttr(object):

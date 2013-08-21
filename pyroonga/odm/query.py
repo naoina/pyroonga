@@ -11,6 +11,7 @@ __all__ = [
 import itertools
 import json
 import logging
+from datetime import date, datetime
 
 from pyroonga import utils
 from pyroonga.odm.attributes import SuggestType
@@ -295,6 +296,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         Query.__init__(self, tbl)
         QueryOptionsMixin.__init__(self)
         self._exprs = list(Expression.wrap_expr(*args))
+        self._filters = []
         self._target = kwargs
         self._match_columns = []
         self._cache = True
@@ -328,6 +330,19 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         """
         self._exprs.extend(Expression.wrap_expr(*args))
         self._target.update(kwargs)
+        return self
+
+    def filter(self, *args, **kwargs):
+        """Set the filter query parameters
+
+        :param args: instances of :class:`ExpressionTree`
+        :param kwargs: Column names and values for Match operator.
+            If more than one given, they will be concatenate with *OR* operator
+        :returns: self. for method chain
+        """
+        filters = self._filters
+        filters.extend(Expression.wrap_expr(*args))
+        filters.extend(Expression(k).match(v) for k, v in kwargs.items())
         return self
 
     def cache(self, iscache):
@@ -369,13 +384,21 @@ class SelectQueryBase(Query, QueryOptionsMixin):
     def _makeparams(self):
         return ''
 
+    def _makefilters(self):
+        if not self._filters:
+            return ''
+        exprs = (e.build(FilterExpression) for e in self._filters)
+        result = FilterExpression.operator[Operator.OR].join(exprs)
+        return "--filter '%s'" % result
+
     def _condition(self):
         return ' '.join((
             self._make_match_columns(),
             QueryOptionsMixin._condition(self),
             self._makecache(),
             self._makematch_escalation_threshold(),
-            self._makeparams())).strip()
+            self._makeparams(),
+            self._makefilters())).strip()
 
     def __str__(self):
         return ('select --table "%s" %s' % (
@@ -397,13 +420,13 @@ class SelectQuery(SelectQueryBase):
     def _makeparams(self):
         params = [utils.escape('%s:@"%s"' % target) for target in
                   sorted(self._target.items())]
-        op = QueryExpression.operator[Operator.OR]
+        op = QueryExpression.operator[Operator.BIT_OR]
         param = op.join(params)
         expr = op.join(
             utils.escape(expr.build(QueryExpression)) for expr in self._exprs)
         result = param and '(%s)' % param
         if result and expr:
-            result += QueryExpression.operator[Operator.AND]
+            result += QueryExpression.operator[Operator.BIT_AND]
         result += expr
         return '--query "%s"' % result if result else ''
 
@@ -452,39 +475,153 @@ class Operator(object):
     OR = 'OR'
     AND = 'AND'
     NOT = 'NOT'
+    DIFF = 'DIFF'
+    INVERT = 'INVERT'
+    BIT_AND = 'BIT_AND'
+    BIT_OR = 'BIT_OR'
+    BIT_XOR = 'BIT_XOR'
+    LSHIFT = 'LSHIFT'
+    RSHIFT = 'RSHIFT'
+    ADD = 'ADD'
+    SUB = 'SUB'
     MUL = 'MUL'
+    DIV = 'DIV'
+    MOD = 'MOD'
+    IADD = 'IADD'
+    ISUB = 'ISUB'
+    IMUL = 'IMUL'
+    IDIV = 'IDIV'
+    IMOD = 'IMOD'
+    ILSHIFT = 'ILSHIFT'
+    IRSHIFT = 'IRSHIFT'
+    IBIT_AND = 'IBIT_AND'
+    IBIT_OR = 'IBIT_OR'
+    IBIT_XOR = 'IBIT_XOR'
+    MATCH = 'MATCH'
+    STARTSWITH = 'STARTSWITH'
+    ENDSWITH = 'ENDSWITH'
+    NEAR = 'NEAR'
+    SIMILAR = 'SIMILAR'
+    TERM_EXTRACT = 'TERM_EXTRACT'
 
 
 class BaseExpression(object):
+    __slots__ = []
+
+    @property
+    def lvalue(self):
+        return self
+
     def __eq__(self, other):
-        return ExpressionTree(Operator.EQUAL, self, other)
+        return ExpressionTree(Operator.EQUAL, self.lvalue, other)
 
     def __ge__(self, other):
-        return ExpressionTree(Operator.GREATER_EQUAL, self, other)
+        return ExpressionTree(Operator.GREATER_EQUAL, self.lvalue, other)
 
     def __gt__(self, other):
-        return ExpressionTree(Operator.GREATER_THAN, self, other)
+        return ExpressionTree(Operator.GREATER_THAN, self.lvalue, other)
 
     def __le__(self, other):
-        return ExpressionTree(Operator.LESS_EQUAL, self, other)
+        return ExpressionTree(Operator.LESS_EQUAL, self.lvalue, other)
 
     def __lt__(self, other):
-        return ExpressionTree(Operator.LESS_THAN, self, other)
+        return ExpressionTree(Operator.LESS_THAN, self.lvalue, other)
 
     def __ne__(self, other):
-        return ExpressionTree(Operator.NOT_EQUAL, self, other)
+        return ExpressionTree(Operator.NOT_EQUAL, self.lvalue, other)
 
-    def __and__(self, other):
-        return ExpressionTree(Operator.AND, self, other)
-
-    def __or__(self, other):
-        return ExpressionTree(Operator.OR, self, other)
+    def __add__(self, other):
+        return ExpressionTree(Operator.ADD, self.lvalue, other)
 
     def __sub__(self, other):
-        return ExpressionTree(Operator.NOT, self, other)
+        return ExpressionTree(Operator.SUB, self.lvalue, other)
 
     def __mul__(self, other):
-        return ExpressionTree(Operator.MUL, self, other)
+        return ExpressionTree(Operator.MUL, self.lvalue, other)
+
+    def __div__(self, other):
+        return ExpressionTree(Operator.DIV, self.lvalue, other)
+
+    def __mod__(self, other):
+        return ExpressionTree(Operator.MOD, self.lvalue, other)
+
+    def not_(self):
+        return ExpressionTree(Operator.NOT, None, self.lvalue)
+
+    def and_(self, other):
+        return ExpressionTree(Operator.AND, self.lvalue, other)
+
+    def or_(self, other):
+        return ExpressionTree(Operator.OR, self.lvalue, other)
+
+    def diff(self, other):
+        return ExpressionTree(Operator.DIFF, self.lvalue, other)
+
+    def __invert__(self):
+        return ExpressionTree(Operator.INVERT, None, self.lvalue)
+
+    def __and__(self, other):
+        return ExpressionTree(Operator.BIT_AND, self.lvalue, other)
+
+    def __or__(self, other):
+        return ExpressionTree(Operator.BIT_OR, self.lvalue, other)
+
+    def __xor__(self, other):
+        return ExpressionTree(Operator.BIT_XOR, self.lvalue, other)
+
+    def __lshift__(self, other):
+        return ExpressionTree(Operator.LSHIFT, self.lvalue, other)
+
+    def __rshift__(self, other):
+        return ExpressionTree(Operator.RSHIFT, self.lvalue, other)
+
+    def __iadd__(self, other):
+        return ExpressionTree(Operator.IADD, self.lvalue, other)
+
+    def __isub__(self, other):
+        return ExpressionTree(Operator.ISUB, self.lvalue, other)
+
+    def __imul__(self, other):
+        return ExpressionTree(Operator.IMUL, self.lvalue, other)
+
+    def __idiv__(self, other):
+        return ExpressionTree(Operator.IDIV, self.lvalue, other)
+
+    def __imod__(self, other):
+        return ExpressionTree(Operator.IMOD, self.lvalue, other)
+
+    def __ilshift__(self, other):
+        return ExpressionTree(Operator.ILSHIFT, self.lvalue, other)
+
+    def __irshift__(self, other):
+        return ExpressionTree(Operator.IRSHIFT, self.lvalue, other)
+
+    def __iand__(self, other):
+        return ExpressionTree(Operator.IBIT_AND, self.lvalue, other)
+
+    def __ior__(self, other):
+        return ExpressionTree(Operator.IBIT_OR, self.lvalue, other)
+
+    def __ixor__(self, other):
+        return ExpressionTree(Operator.IBIT_XOR, self.lvalue, other)
+
+    def match(self, other):
+        return ExpressionTree(Operator.MATCH, self.lvalue, other)
+
+    def startswith(self, other):
+        return ExpressionTree(Operator.STARTSWITH, self.lvalue, other)
+
+    def endswith(self, other):
+        return ExpressionTree(Operator.ENDSWITH, self.lvalue, other)
+
+    def near(self, other):
+        return ExpressionTree(Operator.NEAR, self.lvalue, other)
+
+    def similar(self, other):
+        return ExpressionTree(Operator.SIMILAR, self.lvalue, other)
+
+    def term_extract(self, other):
+        return ExpressionTree(Operator.TERM_EXTRACT, self.lvalue, other)
 
 
 class Expression(BaseExpression):
@@ -493,16 +630,21 @@ class Expression(BaseExpression):
     __slots__ = ['value']
 
     def __init__(self, value):
+        super(Expression, self).__init__()
         self.value = value
 
     @classmethod
     def wrap_expr(cls, *args):
-        return (Expression(arg) if
-                not isinstance(arg, (Expression, ExpressionTree))
-                else arg for arg in args)
+        return (cls._wrap(e) for e in args)
+
+    @classmethod
+    def _wrap(cls, expr):
+        if expr is None or isinstance(expr, (Expression, ExpressionTree)):
+            return expr
+        return Expression(expr)
 
     def build(self, expr_cls):
-        return str(expr_cls(self.value))
+        return str(expr_cls(self))
 
     def __str__(self):
         return str(self.value)
@@ -527,14 +669,75 @@ class QueryExpression(Expression):
         Operator.LESS_EQUAL: ':<=',
         Operator.LESS_THAN: ':<',
         Operator.NOT_EQUAL: ':!',
-        Operator.OR: ' OR ',
-        Operator.AND: ' + ',
-        Operator.NOT: ' - ',
+        Operator.BIT_OR: ' OR ',
+        Operator.BIT_AND: ' + ',
+        Operator.SUB: ' - ',
         }
 
     def __str__(self):
         expr_str = str(self.value)
         return '"%s"' % expr_str if ' ' in expr_str else expr_str
+
+
+class FilterExpression(Expression):
+    """Filter expression class"""
+
+    operator = {
+        Operator.ADD: ' + ',
+        Operator.SUB: ' - ',
+        Operator.MUL: ' * ',
+        Operator.DIV: ' / ',
+        Operator.MOD: ' % ',
+        Operator.NOT: '!',
+        Operator.AND: ' && ',
+        Operator.OR: ' || ',
+        Operator.DIFF: ' &! ',
+        Operator.INVERT: '~',
+        Operator.BIT_AND: ' & ',
+        Operator.BIT_OR: ' | ',
+        Operator.BIT_XOR: ' ^ ',
+        Operator.LSHIFT: ' << ',
+        Operator.RSHIFT: ' >>> ',
+        Operator.EQUAL: ' == ',
+        Operator.NOT_EQUAL: ' != ',
+        Operator.LESS_THAN: ' < ',
+        Operator.LESS_EQUAL: ' <= ',
+        Operator.GREATER_THAN: ' > ',
+        Operator.GREATER_EQUAL: ' >= ',
+        Operator.IADD: ' += ',
+        Operator.ISUB: ' -= ',
+        Operator.IMUL: ' *= ',
+        Operator.IDIV: ' /= ',
+        Operator.IMOD: ' %= ',
+        Operator.ILSHIFT: ' <<= ',
+        Operator.IRSHIFT: ' >>>= ',
+        Operator.IBIT_AND: ' &= ',
+        Operator.IBIT_OR: ' |= ',
+        Operator.IBIT_XOR: ' ^= ',
+        Operator.MATCH: ' @ ',
+        Operator.STARTSWITH: ' @^ ',
+        Operator.ENDSWITH: ' @$ ',
+        Operator.NEAR: ' *N ',
+        Operator.SIMILAR: ' *S ',
+        Operator.TERM_EXTRACT: ' *T ',
+        }
+
+    def __str__(self):
+        value = self.value
+        if value is True:
+            expr_str = 'true'
+        elif value is False:
+            expr_str = 'false'
+        elif value is None:
+            expr_str = 'null'
+        elif isinstance(value, (datetime, date)):
+            expr_str = '"%s"' % value.strftime('%Y/%m/%d %H:%M:%S.%f')
+        else:
+            expr_str = str(value)
+            if ' ' in expr_str:
+                expr_str = '"%s"' % utils.escape(expr_str)
+        # TODO: Geo point, Array
+        return expr_str
 
 GE = Expression
 
@@ -545,6 +748,7 @@ class ExpressionTree(BaseExpression):
     __slots__ = ['op', 'left', 'right']
 
     def __init__(self, op, left, right):
+        super(ExpressionTree, self).__init__()
         self.op = op
         self.left, self.right = tuple(Expression.wrap_expr(left, right))
 
@@ -552,12 +756,14 @@ class ExpressionTree(BaseExpression):
         return self._extract_tree(self, expr_cls)
 
     def _extract_tree(self, expr, expr_cls):
+        if expr is None:
+            return ''
         if not isinstance(expr, ExpressionTree):
             return expr_cls(expr)
         op = expr_cls.operator.get(expr.op, None)
         if op is None:
             raise NotImplementedError(
-                "An operator `%s` is not implemented in `%s`" %
+                "An operator `%s` is not defined in `%s`" %
                 (expr.op, expr_cls.__name__))
         return '(%s%s%s)' % (
             self._extract_tree(expr.left, expr_cls), op,
