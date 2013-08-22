@@ -539,8 +539,11 @@ class BaseExpression(object):
     def __mul__(self, other):
         return ExpressionTree(Operator.MUL, self.lvalue, other)
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         return ExpressionTree(Operator.DIV, self.lvalue, other)
+
+    def __div__(self, other):
+        return self.__truediv__(other)
 
     def __mod__(self, other):
         return ExpressionTree(Operator.MOD, self.lvalue, other)
@@ -584,8 +587,11 @@ class BaseExpression(object):
     def __imul__(self, other):
         return ExpressionTree(Operator.IMUL, self.lvalue, other)
 
-    def __idiv__(self, other):
+    def __itruediv__(self, other):
         return ExpressionTree(Operator.IDIV, self.lvalue, other)
+
+    def __idiv__(self, other):
+        return self.__itruediv__(other)
 
     def __imod__(self, other):
         return ExpressionTree(Operator.IMOD, self.lvalue, other)
