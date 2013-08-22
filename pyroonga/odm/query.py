@@ -342,7 +342,8 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         """
         filters = self._filters
         filters.extend(Expression.wrap_expr(*args))
-        filters.extend(Expression(k).match(v) for k, v in kwargs.items())
+        filters.extend(Expression(k).match(v) for k, v in
+                       sorted(kwargs.items()))
         return self
 
     def cache(self, iscache):
