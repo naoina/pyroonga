@@ -190,8 +190,7 @@ class TestSelectQuery(object):
         q = query.SelectQuery(m)
         result = q.match_columns(self.make_match_column('c1'))
         assert result is q
-        assert q.__str__() == ('select --table "test_table" --match_columns'
-                               " 'c1'")
+        assert str(q) == ('select --table test_table --match_columns "c1"')
 
     def test___str__with_match_columns_and_multiple_columns(self):
         m = mock.MagicMock()
@@ -200,8 +199,8 @@ class TestSelectQuery(object):
         result = q.match_columns(self.make_match_column('c1'),
                                  self.make_match_column('c2'))
         assert result is q
-        assert q.__str__() == ('select --table "test_table" --match_columns'
-                               " 'c1 || c2'")
+        assert str(q) == ('select --table test_table --match_columns'
+                          ' "c1 || c2"')
 
     def test___str__with_query_and_no_args(self):
         m = mock.MagicMock()
@@ -209,7 +208,7 @@ class TestSelectQuery(object):
         q = query.SelectQuery(m)
         result = q.query()
         assert result is q
-        assert q.__str__() == ('select --table "test_table"')
+        assert str(q) == ('select --table test_table')
 
     @pytest.mark.parametrize(('queries', 'expected'), (
         (('q1',), r'q1'),
@@ -227,8 +226,7 @@ class TestSelectQuery(object):
         q = query.SelectQuery(m)
         result = q.query(*queries)
         assert result is q
-        assert q.__str__() == ('select --table "test_table" --query "%s"' %
-                               expected)
+        assert str(q) == ('select --table test_table --query "%s"' % expected)
 
     def test___str__with_query_and_kwargs(self):
         m = mock.MagicMock()
@@ -236,8 +234,8 @@ class TestSelectQuery(object):
         q = query.SelectQuery(m)
         result = q.query(query1='q1', q1='query1')
         assert result is q
-        assert q.__str__() == ('select --table "test_table" --query'
-                               r' "(q1:@\"query1\" OR query1:@\"q1\")"')
+        assert str(q) == ('select --table test_table --query'
+                          r' "(q1:@\"query1\" OR query1:@\"q1\")"')
 
     def test___str___with_filter_and_no_args(self):
         m = mock.MagicMock()
@@ -245,105 +243,106 @@ class TestSelectQuery(object):
         q = query.SelectQuery(m)
         result = q.filter()
         assert result is q
-        assert str(q) == ('select --table "test_table"')
+        assert str(q) == ('select --table test_table')
 
     @pytest.mark.parametrize(('filters', 'expected'), (
         ([query.GE('q1')], 'q1'),
-        ([query.GE('"q1"')], r'"q1"'),
-        ([query.GE(r'"q1\"q2"')], r'"q1\"q2"'),
-        ([query.GE('"q1 q2"')], r'"\"q1 q2\""'),
+        ([query.GE('"q1"')], r'\\\"q1\\\"'),
+        ([query.GE(r'\"q1\\"q2\"')], r'\\\\\\\"q1\\\\\\\\\\\"q2\\\\\\\"'),
+        ([query.GE('"q1 q2"')], r'\"\\\"q1 q2\\\"\"'),
         ([query.GE('q1'), query.GE('q2')], 'q1 || q2'),
         ([query.GE('q1'), query.GE('q2'), query.GE('q3')], 'q1 || q2 || q3'),
-        ([query.GE('q1 q2')], r'"q1 q2"'),
-        ([query.GE('q1 q2'), query.GE('q3 q4')], '"q1 q2" || "q3 q4"'),
+        ([query.GE('q1 q2')], r'\"q1 q2\"'),
+        ([query.GE('q1 q2'), query.GE('q3 q4')], r'\"q1 q2\" || \"q3 q4\"'),
         ([query.GE('q1') + query.GE('q2')], '(q1 + q2)'),
         ([query.GE('q1') + 'q2'], '(q1 + q2)'),
-        ([query.GE('q1 q2') + query.GE('q3 q4')], '("q1 q2" + "q3 q4")'),
-        ([query.GE('q1 q2') + 'q3 q4'], '("q1 q2" + "q3 q4")'),
+        ([query.GE('q1 q2') + query.GE('q3 q4')], r'(\"q1 q2\" + \"q3 q4\")'),
+        ([query.GE('q1 q2') + 'q3 q4'], r'(\"q1 q2\" + \"q3 q4\")'),
         ([query.GE('q1') - query.GE('q2')], '(q1 - q2)'),
         ([query.GE('q1') - 'q2'], '(q1 - q2)'),
-        ([query.GE('q1 q2') - query.GE('q3 q4')], '("q1 q2" - "q3 q4")'),
-        ([query.GE('q1 q2') - 'q3 q4'], '("q1 q2" - "q3 q4")'),
+        ([query.GE('q1 q2') - query.GE('q3 q4')], r'(\"q1 q2\" - \"q3 q4\")'),
+        ([query.GE('q1 q2') - 'q3 q4'], r'(\"q1 q2\" - \"q3 q4\")'),
         ([query.GE('q1') * query.GE('q2')], '(q1 * q2)'),
         ([query.GE('q1') * 'q2'], '(q1 * q2)'),
-        ([query.GE('q1 q2') * query.GE('q3 q4')], '("q1 q2" * "q3 q4")'),
-        ([query.GE('q1 q2') * 'q3 q4'], '("q1 q2" * "q3 q4")'),
+        ([query.GE('q1 q2') * query.GE('q3 q4')], r'(\"q1 q2\" * \"q3 q4\")'),
+        ([query.GE('q1 q2') * 'q3 q4'], r'(\"q1 q2\" * \"q3 q4\")'),
         ([query.GE('q1') / query.GE('q2')], '(q1 / q2)'),
         ([query.GE('q1') / 'q2'], '(q1 / q2)'),
-        ([query.GE('q1 q2') / 'q3 q4'], '("q1 q2" / "q3 q4")'),
+        ([query.GE('q1 q2') / 'q3 q4'], r'(\"q1 q2\" / \"q3 q4\")'),
         ([query.GE('q1') % query.GE('q2')], '(q1 % q2)'),
         ([query.GE('q1') % 'q2'], '(q1 % q2)'),
-        ([query.GE('q1 q2') % 'q3 q4'], '("q1 q2" % "q3 q4")'),
+        ([query.GE('q1 q2') % 'q3 q4'], r'(\"q1 q2\" % \"q3 q4\")'),
         ([query.GE('q1').not_()], '(!q1)'),
         ([query.GE('q1').not_().not_()], '(!(!q1))'),
-        ([query.GE('q1 q2').not_()], '(!"q1 q2")'),
+        ([query.GE('q1 q2').not_()], r'(!\"q1 q2\")'),
         ([(query.GE('q1 q2') == query.GE('q3 q4')).not_()],
-         '(!("q1 q2" == "q3 q4"))'),
+         r'(!(\"q1 q2\" == \"q3 q4\"))'),
         ([query.GE('q1').and_('q2')], '(q1 && q2)'),
-        ([query.GE('q1 q2').and_('q3 q4')], '("q1 q2" && "q3 q4")'),
+        ([query.GE('q1 q2').and_('q3 q4')], r'(\"q1 q2\" && \"q3 q4\")'),
         ([query.GE('q1').or_('q2')], '(q1 || q2)'),
-        ([query.GE('q1 q2').or_('q3 q4')], '("q1 q2" || "q3 q4")'),
+        ([query.GE('q1 q2').or_('q3 q4')], r'(\"q1 q2\" || \"q3 q4\")'),
         ([query.GE('q1').diff('q2')], '(q1 &! q2)'),
-        ([query.GE('q1 q2').diff('q3 q4')], '("q1 q2" &! "q3 q4")'),
+        ([query.GE('q1 q2').diff('q3 q4')], r'(\"q1 q2\" &! \"q3 q4\")'),
         ([~query.GE('q1')], '(~q1)'),
         ([~~query.GE('q1')], '(~(~q1))'),
-        ([~query.GE('q1 q2')], '(~"q1 q2")'),
+        ([~query.GE('q1 q2')], r'(~\"q1 q2\")'),
         ([~(query.GE('q1 q2') == query.GE('q3 q4'))],
-         '(~("q1 q2" == "q3 q4"))'),
+         r'(~(\"q1 q2\" == \"q3 q4\"))'),
         ([query.GE('q1') & query.GE('q2')], '(q1 & q2)'),
         ([query.GE('q1') & 'q2'], '(q1 & q2)'),
-        ([query.GE('q1 q2') & query.GE('q3 q4')], '("q1 q2" & "q3 q4")'),
-        ([query.GE('q1 q2') & 'q3 q4'], '("q1 q2" & "q3 q4")'),
+        ([query.GE('q1 q2') & query.GE('q3 q4')], r'(\"q1 q2\" & \"q3 q4\")'),
+        ([query.GE('q1 q2') & 'q3 q4'], r'(\"q1 q2\" & \"q3 q4\")'),
         ([query.GE('q1') | query.GE('q2')], '(q1 | q2)'),
         ([query.GE('q1') | 'q2'], '(q1 | q2)'),
-        ([query.GE('q1 q2') | query.GE('q3 q4')], '("q1 q2" | "q3 q4")'),
-        ([query.GE('q1 q2') | 'q3 q4'], '("q1 q2" | "q3 q4")'),
+        ([query.GE('q1 q2') | query.GE('q3 q4')], r'(\"q1 q2\" | \"q3 q4\")'),
+        ([query.GE('q1 q2') | 'q3 q4'], r'(\"q1 q2\" | \"q3 q4\")'),
         ([query.GE('q1') ^ query.GE('q2')], '(q1 ^ q2)'),
         ([query.GE('q1') ^ 'q2'], '(q1 ^ q2)'),
-        ([query.GE('q1 q2') ^ query.GE('q3 q4')], '("q1 q2" ^ "q3 q4")'),
-        ([query.GE('q1 q2') ^ 'q3 q4'], '("q1 q2" ^ "q3 q4")'),
+        ([query.GE('q1 q2') ^ query.GE('q3 q4')], r'(\"q1 q2\" ^ \"q3 q4\")'),
+        ([query.GE('q1 q2') ^ 'q3 q4'], r'(\"q1 q2\" ^ \"q3 q4\")'),
         ([query.GE('q1') << query.GE('q2')], '(q1 << q2)'),
         ([query.GE('q1') << 'q2'], '(q1 << q2)'),
-        ([query.GE('q1 q2') << query.GE('q3 q4')], '("q1 q2" << "q3 q4")'),
-        ([query.GE('q1 q2') << 'q3 q4'], '("q1 q2" << "q3 q4")'),
+        ([query.GE('q1 q2') << query.GE('q3 q4')], r'(\"q1 q2\" << \"q3 q4\")'),
+        ([query.GE('q1 q2') << 'q3 q4'], r'(\"q1 q2\" << \"q3 q4\")'),
         ([query.GE('q1') >> query.GE('q2')], '(q1 >>> q2)'),
         ([query.GE('q1') >> 'q2'], '(q1 >>> q2)'),
-        ([query.GE('q1 q2') >> query.GE('q3 q4')], '("q1 q2" >>> "q3 q4")'),
-        ([query.GE('q1 q2') >> 'q3 q4'], '("q1 q2" >>> "q3 q4")'),
+        ([query.GE('q1 q2') >> query.GE('q3 q4')], r'(\"q1 q2\" >>> \"q3 q4\")'),
+        ([query.GE('q1 q2') >> 'q3 q4'], r'(\"q1 q2\" >>> \"q3 q4\")'),
         ([query.GE('q1') == query.GE('q2')], '(q1 == q2)'),
         ([query.GE('q1') == 'q2'], '(q1 == q2)'),
-        ([query.GE('q1 q2') == 'q3 q4'], '("q1 q2" == "q3 q4")'),
+        ([query.GE('q1 q2') == 'q3 q4'], r'(\"q1 q2\" == \"q3 q4\")'),
         ([query.GE('q1') != query.GE('q2')], '(q1 != q2)'),
         ([query.GE('q1') != 'q2'], '(q1 != q2)'),
-        ([query.GE('q1 q2') != 'q3 q4'], '("q1 q2" != "q3 q4")'),
+        ([query.GE('q1 q2') != 'q3 q4'], r'(\"q1 q2\" != \"q3 q4\")'),
         ([query.GE('q1') < query.GE('q2')], '(q1 < q2)'),
         ([query.GE('q1') < 'q2'], '(q1 < q2)'),
-        ([query.GE('q1 q2') < query.GE('q3 q4')], '("q1 q2" < "q3 q4")'),
-        ([query.GE('q1 q2') < 'q3 q4'], '("q1 q2" < "q3 q4")'),
+        ([query.GE('q1 q2') < query.GE('q3 q4')], r'(\"q1 q2\" < \"q3 q4\")'),
+        ([query.GE('q1 q2') < 'q3 q4'], r'(\"q1 q2\" < \"q3 q4\")'),
         ([query.GE('q1') <= query.GE('q2')], '(q1 <= q2)'),
         ([query.GE('q1') <= 'q2'], '(q1 <= q2)'),
-        ([query.GE('q1 q2') <= query.GE('q3 q4')], '("q1 q2" <= "q3 q4")'),
-        ([query.GE('q1 q2') <= 'q3 q4'], '("q1 q2" <= "q3 q4")'),
+        ([query.GE('q1 q2') <= query.GE('q3 q4')], r'(\"q1 q2\" <= \"q3 q4\")'),
+        ([query.GE('q1 q2') <= 'q3 q4'], r'(\"q1 q2\" <= \"q3 q4\")'),
         ([query.GE('q1') > query.GE('q2')], '(q1 > q2)'),
         ([query.GE('q1') > 'q2'], '(q1 > q2)'),
-        ([query.GE('q1 q2') > query.GE('q3 q4')], '("q1 q2" > "q3 q4")'),
-        ([query.GE('q1 q2') > 'q3 q4'], '("q1 q2" > "q3 q4")'),
+        ([query.GE('q1 q2') > query.GE('q3 q4')], r'(\"q1 q2\" > \"q3 q4\")'),
+        ([query.GE('q1 q2') > 'q3 q4'], r'(\"q1 q2\" > \"q3 q4\")'),
         ([query.GE('q1') >= query.GE('q2')], '(q1 >= q2)'),
         ([query.GE('q1') >= 'q2'], '(q1 >= q2)'),
-        ([query.GE('q1 q2') >= query.GE('q3 q4')], '("q1 q2" >= "q3 q4")'),
-        ([query.GE('q1 q2') >= 'q3 q4'], '("q1 q2" >= "q3 q4")'),
+        ([query.GE('q1 q2') >= query.GE('q3 q4')], r'(\"q1 q2\" >= \"q3 q4\")'),
+        ([query.GE('q1 q2') >= 'q3 q4'], r'(\"q1 q2\" >= \"q3 q4\")'),
         ([query.GE('q1').match('q2')], '(q1 @ q2)'),
-        ([query.GE('q1 q2').match('q3 q4')], '("q1 q2" @ "q3 q4")'),
+        ([query.GE('q1 q2').match('q3 q4')], r'(\"q1 q2\" @ \"q3 q4\")'),
         ([query.GE('q1').startswith('q2')], '(q1 @^ q2)'),
-        ([query.GE('q1 q2').startswith('q3 q4')], '("q1 q2" @^ "q3 q4")'),
+        ([query.GE('q1 q2').startswith('q3 q4')], r'(\"q1 q2\" @^ \"q3 q4\")'),
         ([query.GE('q1').endswith('q2')], '(q1 @$ q2)'),
-        ([query.GE('q1 q2').endswith('q3 q4')], '("q1 q2" @$ "q3 q4")'),
+        ([query.GE('q1 q2').endswith('q3 q4')], r'(\"q1 q2\" @$ \"q3 q4\")'),
         ([query.GE('q1').near('q2')], '(q1 *N q2)'),
-        ([query.GE('q1 q2').near('q3 q4')], '("q1 q2" *N "q3 q4")'),
+        ([query.GE('q1 q2').near('q3 q4')], r'(\"q1 q2\" *N \"q3 q4\")'),
         ([query.GE('q1').similar('q2')], '(q1 *S q2)'),
-        ([query.GE('q1 q2').similar('q3 q4')], '("q1 q2" *S "q3 q4")'),
+        ([query.GE('q1 q2').similar('q3 q4')], r'(\"q1 q2\" *S \"q3 q4\")'),
         ([query.GE('q1').term_extract('q2')], '(q1 *T q2)'),
-        ([query.GE('q1 q2').term_extract('q3 q4')], '("q1 q2" *T "q3 q4")'),
+        ([query.GE('q1 q2').term_extract('q3 q4')],
+         r'(\"q1 q2\" *T \"q3 q4\")'),
     ))
     def test___str___with_filter_and_args(self, filters, expected):
         m = mock.MagicMock()
@@ -351,7 +350,7 @@ class TestSelectQuery(object):
         q = query.SelectQuery(m)
         result = q.filter(*filters)
         assert result is q
-        assert str(q) == ("""select --table "test_table" --filter '%s'""" %
+        assert str(q) == (r'select --table test_table --filter "%s"' %
                           expected)
 
     def test___str___with_filter_and_kwargs(self):
@@ -360,8 +359,8 @@ class TestSelectQuery(object):
         q = query.SelectQuery(m)
         result = q.filter(filter1='f1 f2', f1='filter1')
         assert result is q
-        assert str(q) == ('select --table "test_table" --filter'
-                          ' \'(f1 @ filter1) || (filter1 @ "f1 f2")\'')
+        assert str(q) == ('select --table test_table --filter'
+                          r' "(f1 @ filter1) || (filter1 @ \"f1 f2\")"')
 
 
 class TestOperator(object):

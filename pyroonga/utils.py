@@ -44,13 +44,20 @@ def to_text(s):
     return text_type(s)
 
 
-def escape(s):
+def escape(s, force_quote=False):
     """Escape for query of groonga
 
     :param s: string
+    :param force_quote: If True, always quote the ``s``.
+        If False, quote only if contains '\u0020'.  Default is False
     :returns: escaped string
     """
-    return s.replace('\\', r'\\').replace('\n', r'\n').replace('"', r'\"')
+    s = s.replace('\\', r'\\')
+    s = s.replace('\n', r'\n')
+    s = s.replace('"', r'\"')
+    if force_quote or ' ' in s:
+        s = '"%s"' % s
+    return s
 
 
 def to_python(results, base_idx, maxlen=None):

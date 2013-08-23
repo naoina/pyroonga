@@ -24,18 +24,26 @@ def test_to_text(value, expected):
     assert utils.to_text(value) == expected
 
 
-@pytest.mark.parametrize(('value', 'expected'), (
-    ('https://github.com/naoina/pyroonga',
+@pytest.mark.parametrize(('values', 'expected'), (
+    (['https://github.com/naoina/pyroonga', False],
      'https://github.com/naoina/pyroonga'),
-    ('left "center" right\nhello \\yen',
-     r'left \"center\" right\nhello \\yen'),
-    ('さくら咲き', 'さくら咲き'),
-    ('さ\\くら"咲\nき', r'さ\\くら\"咲\nき'),
-    (u'さくら咲き', u'さくら咲き'),
-    (u'さ\\くら"咲\nき', u'さ\\\\くら\\"咲\\nき'),
+    (['https://github.com/naoina/pyroonga', True],
+     '"https://github.com/naoina/pyroonga"'),
+    (['left "center" right\nhello \\yen', False],
+     r'"left \"center\" right\nhello \\yen"'),
+    (['left "center" right\nhello \\yen', True],
+     r'"left \"center\" right\nhello \\yen"'),
+    (['さくら咲き', False], 'さくら咲き'),
+    (['さ\\く ら"咲\nき', False], r'"さ\\く ら\"咲\nき"'),
+    ([u'さくら咲き', False], u'さくら咲き'),
+    ([u'さ\\く ら"咲\nき', False], u'"さ\\\\く ら\\"咲\\nき"'),
+    (['さくら咲き', True], '"さくら咲き"'),
+    (['さ\\く ら"咲\nき', True], r'"さ\\く ら\"咲\nき"'),
+    ([u'さくら咲き', True], u'"さくら咲き"'),
+    ([u'さ\\く ら"咲\nき', True], u'"さ\\\\く ら\\"咲\\nき"'),
 ))
-def test_escape(value, expected):
-    result = utils.escape(value)
+def test_escape(values, expected):
+    result = utils.escape(*values)
     assert result == expected
 
 

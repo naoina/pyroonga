@@ -369,7 +369,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         if self._match_columns:
             exprs = (e.build(MatchColumn) for e in self._match_columns)
             result = MatchColumn.operator[Operator.OR].join(exprs)
-            return "--match_columns '%s'" % result
+            return '--match_columns %s' % utils.escape(result, True)
         else:
             return ''
 
@@ -391,7 +391,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
             return ''
         exprs = (e.build(FilterExpression) for e in self._filters)
         result = FilterExpression.operator[Operator.OR].join(exprs)
-        return "--filter '%s'" % result
+        return '--filter %s' % utils.escape(result, True)
 
     def _condition(self):
         return ' '.join((
@@ -403,7 +403,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
             self._makefilters())).strip()
 
     def __str__(self):
-        return utils.to_text('select --table "%s" %s' % (
+        return utils.to_text('select --table %s %s' % (
             self._table.__tablename__,
             self._condition())).strip()
 
@@ -420,17 +420,16 @@ class SelectQuery(SelectQueryBase):
         return DrillDownQuery(self, *columns)
 
     def _makeparams(self):
-        params = [utils.escape('%s:@"%s"' % target) for target in
+        params = ['%s:@%s' % (k, utils.escape(v, True)) for k, v in
                   sorted(self._target.items())]
         op = QueryExpression.operator[Operator.BIT_OR]
         param = op.join(params)
-        expr = op.join(
-            utils.escape(expr.build(QueryExpression)) for expr in self._exprs)
+        expr = op.join(expr.build(QueryExpression) for expr in self._exprs)
         result = param and '(%s)' % param
         if result and expr:
             result += QueryExpression.operator[Operator.BIT_AND]
         result += expr
-        return '--query "%s"' % result if result else ''
+        return '--query %s' % utils.escape(result, True) if result else ''
 
 
 class DrillDownQuery(SelectQueryBase, QueryOptionsMixin):
@@ -686,7 +685,7 @@ class QueryExpression(Expression):
 
     def __str__(self):
         expr_str = utils.to_text(self.value)
-        return '"%s"' % expr_str if ' ' in expr_str else expr_str
+        return utils.escape(expr_str)
 
 
 @utils.python_2_unicode_compatible
@@ -742,11 +741,9 @@ class FilterExpression(Expression):
         elif value is None:
             expr_str = 'null'
         elif isinstance(value, (datetime, date)):
-            expr_str = '"%s"' % value.strftime('%Y/%m/%d %H:%M:%S.%f')
+            expr_str = utils.escape(value.strftime('%Y/%m/%d %H:%M:%S.%f'))
         else:
-            expr_str = utils.to_text(value)
-            if ' ' in expr_str:
-                expr_str = '"%s"' % utils.escape(expr_str)
+            expr_str = utils.escape(utils.to_text(value))
         # TODO: Geo point, Array
         return expr_str
 
@@ -823,15 +820,14 @@ class LoadQuery(Query):
         self._data = None
 
     def _makejson(self):
-        return utils.escape(json.dumps([v.asdict(excludes=('_id',)) for v in
-                                        self._data]))
+        return json.dumps([v.asdict(excludes=('_id',)) for v in self._data])
 
     def __str__(self):
         return ' '.join((
             'load',
             '--table', self._table.__tablename__,
             '--input-type', 'json',
-            '--values', '"%s"' % self._makejson()))
+            '--values', utils.escape(self._makejson(), True)))
 
 
 class SimpleQuery(Query):
@@ -861,7 +857,7 @@ class SimpleQuery(Query):
         if id is not None:
             query.extend(('--id', str(id)))
         if filter is not None:
-            query.extend(('--filter', '"%s"' % utils.escape(filter)))
+            query.extend(('--filter', utils.escape(str(filter), True)))
         self._query.extend(query)
         return self
 
@@ -1076,7 +1072,7 @@ class SuggestQuery(Query, QueryOptionsMixin):
             '--column', '"%s"' % self._table.kana.name,
             '--types', '"%s"' % self._types,
             self._condition(),
-            '--query', '"%s"' % utils.escape(self._query)))
+            '--query', utils.escape(self._query, True)))
 
 
 class SuggestLoadQuery(LoadQuery):
@@ -1089,4 +1085,4 @@ class SuggestLoadQuery(LoadQuery):
             '--input_type', 'json',
             '--each',
             "'suggest_preparer(_id, type, item, sequence, time, pair_query)'",
-            '"%s"' % self._makejson()))
+            utils.escape(self._makejson(), True)))
