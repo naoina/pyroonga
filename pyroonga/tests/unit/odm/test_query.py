@@ -629,6 +629,8 @@ class TestExpression(BaseTestExpression):
         ('foo bar', 'foo bar'),
         ('foo bar baz', 'foo bar baz'),
         (10, '10'),
+        ("さくら咲き", "さくら咲き"),
+        (u"さくら咲き", "さくら咲き"),
     ))
     def test___str__(self, Expression, value, expected):
         expr = Expression(value)
@@ -671,6 +673,8 @@ class TestQueryExpression(TestExpression):
         ('foo bar', '"foo bar"'),
         ('foo bar baz', '"foo bar baz"'),
         (10, '10'),
+        ("さくら咲き", "さくら咲き"),
+        (u"さくら咲き", "さくら咲き"),
     ))
     def test___str__(self, Expression, value, expected):
         expr = Expression(value)
@@ -729,6 +733,8 @@ class TestFilterExpression(TestExpression):
         ('foo bar', '"foo bar"'),
         ('foo bar baz', '"foo bar baz"'),
         (10, '10'),
+        ("さくら咲き", "さくら咲き"),
+        (u"さくら咲き", "さくら咲き"),
         (0, '0'),
         (True, 'true'),
         (False, 'false'),

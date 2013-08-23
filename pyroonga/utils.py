@@ -8,6 +8,41 @@ __author__ = "Naoya Inada <naoina@kuune.org>"
 __all__ = [
 ]
 
+import sys
+
+PY2 = sys.version_info[0] == 2
+
+if PY2:
+    text_type = unicode
+else:
+    text_type = str
+
+
+def python_2_unicode_compatible(klass):
+    """This decorator from on Django
+
+    See https://docs.djangoproject.com/en/dev/ref/utils/#django.utils.encoding.python_2_unicode_compatible
+    """
+    if PY2:
+        klass.__unicode__ = klass.__str__
+        klass.__str__ = lambda self: self.__unicode__().encode('utf-8')
+    return klass
+
+
+def to_text(s):
+    """Convert to text object
+
+    :param s: object
+    :returns: text object (``str`` on Python3 and ``unicode`` on Python2)
+    """
+    if isinstance(s, text_type):
+        return s
+    if isinstance(s, bytes):
+        return s.decode('utf-8')
+    if hasattr(s, '__unicode__'):
+        return s.__unicode__()
+    return text_type(s)
+
 
 def escape(s):
     """Escape for query of groonga

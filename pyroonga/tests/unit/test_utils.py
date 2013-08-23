@@ -5,11 +5,34 @@ import pytest
 from pyroonga import utils
 
 
+class ToTextUnicodeHelper(object):
+    def __unicode__(self):
+        return u'さくら咲き'
+
+
+@pytest.mark.parametrize(('value', 'expected'), (
+    ('value', u'value'),
+    (b'value', u'value'),
+    (u'value', u'value'),
+    ('さくら咲き', u'さくら咲き'),
+    (u'さくら咲き'.encode('utf-8'), u'さくら咲き'),
+    (u'さくら咲き', u'さくら咲き'),
+    (10, u'10'),
+    (ToTextUnicodeHelper(), u'さくら咲き'),
+))
+def test_to_text(value, expected):
+    assert utils.to_text(value) == expected
+
+
 @pytest.mark.parametrize(('value', 'expected'), (
     ('https://github.com/naoina/pyroonga',
      'https://github.com/naoina/pyroonga'),
     ('left "center" right\nhello \\yen',
      r'left \"center\" right\nhello \\yen'),
+    ('さくら咲き', 'さくら咲き'),
+    ('さ\\くら"咲\nき', r'さ\\くら\"咲\nき'),
+    (u'さくら咲き', u'さくら咲き'),
+    (u'さ\\くら"咲\nき', u'さ\\\\くら\\"咲\\nき'),
 ))
 def test_escape(value, expected):
     result = utils.escape(value)

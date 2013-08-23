@@ -283,6 +283,7 @@ class Drilldown(object):
         self._nsubrecs = _nsubrecs
 
 
+@utils.python_2_unicode_compatible
 class SelectQueryBase(Query, QueryOptionsMixin):
     """'select' query representation base class"""
 
@@ -402,7 +403,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
             self._makefilters())).strip()
 
     def __str__(self):
-        return ('select --table "%s" %s' % (
+        return utils.to_text('select --table "%s" %s' % (
             self._table.__tablename__,
             self._condition())).strip()
 
@@ -631,6 +632,7 @@ class BaseExpression(object):
         return ExpressionTree(Operator.TERM_EXTRACT, self.lvalue, other)
 
 
+@utils.python_2_unicode_compatible
 class Expression(BaseExpression):
     """Expression constants"""
 
@@ -654,7 +656,7 @@ class Expression(BaseExpression):
         return str(expr_cls(self))
 
     def __str__(self):
-        return str(self.value)
+        return utils.to_text(self.value)
 
 
 class MatchColumn(Expression):
@@ -666,6 +668,7 @@ class MatchColumn(Expression):
         }
 
 
+@utils.python_2_unicode_compatible
 class QueryExpression(Expression):
     """Query expression class"""
 
@@ -682,10 +685,11 @@ class QueryExpression(Expression):
         }
 
     def __str__(self):
-        expr_str = str(self.value)
+        expr_str = utils.to_text(self.value)
         return '"%s"' % expr_str if ' ' in expr_str else expr_str
 
 
+@utils.python_2_unicode_compatible
 class FilterExpression(Expression):
     """Filter expression class"""
 
@@ -740,7 +744,7 @@ class FilterExpression(Expression):
         elif isinstance(value, (datetime, date)):
             expr_str = '"%s"' % value.strftime('%Y/%m/%d %H:%M:%S.%f')
         else:
-            expr_str = str(value)
+            expr_str = utils.to_text(value)
             if ' ' in expr_str:
                 expr_str = '"%s"' % utils.escape(expr_str)
         # TODO: Geo point, Array

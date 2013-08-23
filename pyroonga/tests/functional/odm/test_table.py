@@ -376,11 +376,18 @@ class TestTable(object):
         Table.bind(grn)
         test_utils.sendquery('table_create --name %s --flags TABLE_HASH_KEY '
                         '--key_type ShortText' % Tb.__tablename__)
-        self._insert(Tb.__tablename__, [{'_key': 'key1'}, {'_key': 'key2'}])
+        self._insert(Tb.__tablename__, [
+            {'_key': 'key1'},
+            {'_key': 'key2'},
+            {'_key': u'キー３'},
+            {'_key': 'キー４'},
+            ])
         result = Tb.select().all()
         expected = [{'_id': 1, '_key': 'key1'},
-                    {'_id': 2, '_key': 'key2'}]
-        self.assertGroongaResultEqual(result, expected, all_len=2)
+                    {'_id': 2, '_key': 'key2'},
+                    {'_id': 3, '_key': u'キー３'},
+                    {'_id': 4, '_key': u'キー４'}]
+        self.assertGroongaResultEqual(result, expected, all_len=4)
 
     def test_select_with_column(self, Table):
         class Tb(Table):
@@ -399,6 +406,8 @@ class TestTable(object):
             {'_key': 'key1', 'name': 'Name1', 'address': 'Address1'},
             {'_key': 'key2', 'name': 'name2', 'address': 'address2'},
             {'_key': 'key3', 'name': 'foo', 'address': 'bar'},
+            {'_key': u'キー４', 'name': '園城寺怜', 'address': u'千里山'},
+            {'_key': 'キー５', 'name': u'白水哩', 'address': '新道寺'},
             ])
 
         result = Tb.select(_key='1').all()
@@ -411,16 +420,37 @@ class TestTable(object):
                      'name': 'name2'}]
         self.assertGroongaResultEqual(result, expected, all_len=1)
 
+        result = Tb.select(_key='キー４').all()
+        expected = [{'_id': 4, '_key': u'キー４', 'address': u'千里山',
+                     'name': u'園城寺怜'}]
+        self.assertGroongaResultEqual(result, expected, all_len=1)
+
+        result = Tb.select(_key=u'キー５').all()
+        expected = [{'_id': 5, '_key': u'キー５', 'address': u'新道寺',
+                     'name': u'白水哩'}]
+        self.assertGroongaResultEqual(result, expected, all_len=1)
+
         result = Tb.select(name='name').all()
         expected = [{'_id': 1, '_key': 'key1', 'address': 'Address1',
                      'name': 'Name1'},
                     {'_id': 2, '_key': 'key2', 'address': 'address2',
-                     'name': 'name2'}]
+                     'name': 'name2'},
+                    ]
         self.assertGroongaResultEqual(result, expected, all_len=2)
+
+        result = Tb.select(name='城').all()
+        expected = [{'_id': 4, '_key': u'キー４', 'address': u'千里山',
+                     'name': u'園城寺怜'}]
+        self.assertGroongaResultEqual(result, expected, all_len=1)
 
         result = Tb.select(address='ar').all()
         expected = [{'_id': 3, '_key': 'key3', 'address': 'bar',
                      'name': 'foo'}]
+        self.assertGroongaResultEqual(result, expected, all_len=1)
+
+        result = Tb.select(address='道寺').all()
+        expected = [{'_id': 5, '_key': u'キー５', 'address': u'新道寺',
+                     'name': u'白水哩'}]
         self.assertGroongaResultEqual(result, expected, all_len=1)
 
     def test_select_with_condition(self, Table1, fixture1):
@@ -744,32 +774,40 @@ class TestTable(object):
 
         data = [Tb(_key='key1', name='name1'),
                 Tb(_key='key2', name='name2'),
-                Tb(_key='key3', name='name3')]
+                Tb(_key='key3', name='name3'),
+                Tb(_key='キー４', name='園城寺怜'),
+                Tb(_key=u'キー５', name=u'白水哩')]
         result = Tb.load(data)
-        assert (result == 3) is True
+        assert (result == 5) is True
         stored = json.loads(test_utils.sendquery(
             'select --table %s' % Tb.__tablename__))
-        expected = [[[3],
+        expected = [[[5],
                      [['_id', 'UInt32'], ['_key', 'ShortText'],
                       ['name', 'ShortText']],
                      [1, 'key1', 'name1'],
                      [2, 'key2', 'name2'],
-                     [3, 'key3', 'name3']]]
+                     [3, 'key3', 'name3'],
+                     [4, u'キー４', u'園城寺怜'],
+                     [5, u'キー５', u'白水哩']]]
         assert stored[1] == expected
 
         # data override test
         data = [Tb(_key='key1', name='foo'),
                 Tb(_key='key2', name='bar'),
-                Tb(_key='key3', name='baz')]
+                Tb(_key='key3', name='baz'),
+                Tb(_key='キー４', name='松実玄'),
+                Tb(_key=u'キー５', name='新子憧')]
         result = Tb.load(data)
         stored = json.loads(test_utils.sendquery(
             'select --table %s' % Tb.__tablename__))
-        expected = [[[3],
+        expected = [[[5],
                      [['_id', 'UInt32'], ['_key', 'ShortText'],
                       ['name', 'ShortText']],
                      [1, 'key1', 'foo'],
                      [2, 'key2', 'bar'],
-                     [3, 'key3', 'baz']]]
+                     [3, 'key3', 'baz'],
+                     [4, u'キー４', u'松実玄'],
+                     [5, u'キー５', u'新子憧']]]
         assert stored[1] == expected
 
     def test_load_lazy(self, Table):
@@ -786,7 +824,9 @@ class TestTable(object):
 
         data = [Tb(_key='key1', name='name1'),
                 Tb(_key='key2', name='name2'),
-                Tb(_key='key3', name='name3')]
+                Tb(_key='key3', name='name3'),
+                Tb(_key='キー４', name='園城寺怜'),
+                Tb(_key=u'キー５', name=u'白水哩')]
         result = Tb.load(data, immediate=False)
         assert isinstance(result, LoadQuery)
         stored = json.loads(test_utils.sendquery(
@@ -798,12 +838,14 @@ class TestTable(object):
         result.commit()  # load actually
         stored = json.loads(test_utils.sendquery(
             'select --table %s' % Tb.__tablename__))
-        expected = [[[3],
+        expected = [[[5],
                      [['_id', 'UInt32'], ['_key', 'ShortText'],
                       ['name', 'ShortText']],
                      [1, 'key1', 'name1'],
                      [2, 'key2', 'name2'],
-                     [3, 'key3', 'name3']]]
+                     [3, 'key3', 'name3'],
+                     [4, u'キー４', u'園城寺怜'],
+                     [5, u'キー５', u'白水哩']]]
         assert stored[1] == expected
 
         # duplicate commit
@@ -836,7 +878,8 @@ class TestTable(object):
         data2 = [Tb(_key='key4', name='Madoka Kaname'),
                  Tb(_key='key5', name='Homura Akemi'),
                  Tb(_key='key6', name='Kyoko Sakura'),
-                 Tb(_key='key7', name='Sayaka Miki')]
+                 Tb(_key='key7', name='Sayaka Miki'),
+                 Tb(_key=u'キー８', name=u'巴マミ')]
         result.load(data2)
         stored = json.loads(test_utils.sendquery(
             'select --table %s' % Tb.__tablename__))
@@ -847,7 +890,7 @@ class TestTable(object):
         result.commit()  # load actually
         stored = json.loads(test_utils.sendquery(
             'select --table %s' % Tb.__tablename__))
-        expected = [[[7],
+        expected = [[[8],
                      [['_id', 'UInt32'], ['_key', 'ShortText'],
                       ['name', 'ShortText']],
                      [1, 'key1', 'name1'],
@@ -856,7 +899,8 @@ class TestTable(object):
                      [4, 'key4', 'Madoka Kaname'],
                      [5, 'key5', 'Homura Akemi'],
                      [6, 'key6', 'Kyoko Sakura'],
-                     [7, 'key7', 'Sayaka Miki']]]
+                     [7, 'key7', 'Sayaka Miki'],
+                     [8, u'キー８', u'巴マミ']]]
         assert stored[1] == expected
 
     def test_load_lazy_rollback(self, Table):
@@ -1315,23 +1359,25 @@ class TestTable(object):
         class A(Table):
             foo = None
             bar = None
-        expected1, expected2 = (test_utils.random_string(),
-                                test_utils.random_string())
-        table = A(foo=expected1, bar=expected2)
+            baz = None
+        expected1 = test_utils.random_string()
+        expected2 = '園城寺怜'
+        expected3 = u'白水哩'
+        table = A(foo=expected1, bar=expected2, baz=expected3)
         result = table.asdict()
-        assert result == {'foo': expected1, 'bar': expected2}
+        assert result == {'foo': expected1, 'bar': expected2, 'baz': expected3}
 
     @pytest.mark.parametrize(('excludes', 'expected'), (
-        (['foo'], {'bar': 'baz', 'baz': 'hoge'}),
-        (['bar'], {'foo': 'bar', 'baz': 'hoge'}),
-        (['foo', 'baz'], {'bar': 'baz'}),
+        (['foo'], {'bar': '園城寺怜', 'baz': u'白水哩'}),
+        (['bar'], {'foo': 'bar', 'baz': u'白水哩'}),
+        (['foo', 'baz'], {'bar': '園城寺怜'}),
     ))
     def test_asdict_with_excludes(self, Table, excludes, expected):
         class A(Table):
             foo = None
             bar = None
             baz = None
-        table = A(foo='bar', bar='baz', baz='hoge')
+        table = A(foo='bar', bar='園城寺怜', baz=u'白水哩')
         result = table.asdict(excludes=excludes)
         assert result == expected
 
