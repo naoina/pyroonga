@@ -1,6 +1,13 @@
 Changelog
 ---------
 
+v0.5.2 (2013-09-17)
+^^^^^^^^^^^^^^^^^^^
+
+- Multibyte support
+- Add 'filter' API
+- Some changes
+
 v0.5.1 (2013-08-17)
 ^^^^^^^^^^^^^^^^^^^
 
