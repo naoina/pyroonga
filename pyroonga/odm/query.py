@@ -662,6 +662,7 @@ class MatchColumn(Expression):
 
     operator = {
         Operator.OR: ' || ',
+        Operator.BIT_OR: ' || ',
         Operator.MUL: ' * ',
         }
 

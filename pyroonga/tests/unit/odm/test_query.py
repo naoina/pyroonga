@@ -204,6 +204,10 @@ class TestSelectQuery(object):
         (((make_match_column('c1') * 10).or_(make_match_column('c2')),), r'((c1 * 10) || c2)'),
         (((make_match_column('c1') * 10).or_(make_match_column('c2') * 3),),
             r'((c1 * 10) || (c2 * 3))'),
+        (((make_match_column('c1') * 10) | 'c2',), r'((c1 * 10) || c2)'),
+        (((make_match_column('c1') * 10) | make_match_column('c2'),), r'((c1 * 10) || c2)'),
+        (((make_match_column('c1') * 10) | (make_match_column('c2') * 3),),
+            r'((c1 * 10) || (c2 * 3))'),
     ))
     def test___str__with_match_columns(self, columns, expected):
         m = mock.MagicMock()
@@ -655,6 +659,7 @@ class TestMatchColumn(TestExpression):
     def test_constant(self):
         assert (query.MatchColumn.operator == {
             query.Operator.OR: ' || ',
+            query.Operator.BIT_OR: ' || ',
             query.Operator.MUL: ' * ',
         }) is True
 
