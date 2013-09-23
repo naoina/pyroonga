@@ -163,12 +163,13 @@ class TestDrilldown(object):
         assert drilldown._nsubrecs == 'test2'
 
 
-class TestSelectQuery(object):
-    def make_match_column(self, name):
-        c = mock.Mock(spec=table.Column)
-        c.name = name
-        return c
+def make_match_column(name):
+    c = table.Column()
+    c.name = name
+    return c
 
+
+class TestSelectQuery(object):
     def test_match_columns(self):
         q = query.SelectQuery(mock.MagicMock())
         result = q.match_columns()
@@ -184,23 +185,33 @@ class TestSelectQuery(object):
         result = q.filter()
         assert result is q
 
-    def test___str__with_match_columns(self):
+    @pytest.mark.parametrize(('columns', 'expected'), (
+        (('c1',), r'c1'),
+        (('c1', 'c2'), r'c1 || c2'),
+        (('c1', 'c2', 'c3'), r'c1 || c2 || c3'),
+        ((make_match_column('c1'), 'c2'), r'c1 || c2'),
+        (('c1', make_match_column('c2')), r'c1 || c2'),
+        ((make_match_column('c1'), make_match_column('c2')), r'c1 || c2'),
+        ((make_match_column('c1'), make_match_column('c2'), make_match_column('c3')),
+            r'c1 || c2 || c3'),
+        ((make_match_column('c1').or_('c2'),), r'(c1 || c2)'),
+        ((make_match_column('c1').or_(make_match_column('c2')),), r'(c1 || c2)'),
+        ((make_match_column('c1') * 10,), r'(c1 * 10)'),
+        ((make_match_column('c1') * 10, 'c2'), r'(c1 * 10) || c2'),
+        ((make_match_column('c1') * 10, make_match_column('c2')), r'(c1 * 10) || c2'),
+        ((make_match_column('c1') * 10, make_match_column('c2') * 3), r'(c1 * 10) || (c2 * 3)'),
+        (((make_match_column('c1') * 10).or_('c2'),), r'((c1 * 10) || c2)'),
+        (((make_match_column('c1') * 10).or_(make_match_column('c2')),), r'((c1 * 10) || c2)'),
+        (((make_match_column('c1') * 10).or_(make_match_column('c2') * 3),),
+            r'((c1 * 10) || (c2 * 3))'),
+    ))
+    def test___str__with_match_columns(self, columns, expected):
         m = mock.MagicMock()
         m.__tablename__ = 'test_table'
         q = query.SelectQuery(m)
-        result = q.match_columns(self.make_match_column('c1'))
+        result = q.match_columns(*columns)
         assert result is q
-        assert str(q) == ('select --table test_table --match_columns "c1"')
-
-    def test___str__with_match_columns_and_multiple_columns(self):
-        m = mock.MagicMock()
-        m.__tablename__ = 'test_table'
-        q = query.SelectQuery(m)
-        result = q.match_columns(self.make_match_column('c1'),
-                                 self.make_match_column('c2'))
-        assert result is q
-        assert str(q) == ('select --table test_table --match_columns'
-                          ' "c1 || c2"')
+        assert str(q) == ('select --table test_table --match_columns "%s"' % expected)
 
     def test___str__with_query_and_no_args(self):
         m = mock.MagicMock()

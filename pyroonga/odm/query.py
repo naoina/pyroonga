@@ -318,8 +318,7 @@ class SelectQueryBase(Query, QueryOptionsMixin):
         :param args: iterable of columns
         :returns: self. for method chain
         """
-        columns = (Expression(getattr(c, 'name', c)) for c in args)
-        self._match_columns.extend(columns)
+        self._match_columns.extend(Expression.wrap_expr(*args))
         return self
 
     def query(self, *args, **kwargs):
@@ -649,7 +648,7 @@ class Expression(BaseExpression):
     def _wrap(cls, expr):
         if expr is None or isinstance(expr, (Expression, ExpressionTree)):
             return expr
-        return Expression(expr)
+        return Expression(getattr(expr, 'name', expr))
 
     def build(self, expr_cls):
         return str(expr_cls(self))
