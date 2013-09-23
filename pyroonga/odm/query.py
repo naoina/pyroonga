@@ -191,8 +191,8 @@ class GroongaResultBase(object):
         :param results: query results.
         :param maxlen: maximum length of mapping results. Default is all.
         """
-        self._result = [GroongaRecord(cls, **mapped) for mapped in
-                        utils.to_python(results, 1, maxlen)]
+        self._result = tuple(GroongaRecord(cls, **mapped) for mapped in
+            utils.to_python(results, 1, maxlen))
         self._all_len = results[0][0]
 
     @property
@@ -209,8 +209,11 @@ class GroongaResultBase(object):
     def __iter__(self):
         return iter(self._result)
 
-    def __getitem__(self, key):
-        return self._result[key]
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            start, stop, step = index.indices(len(self))
+            return self._result[start:stop:step]
+        return self._result[index]
 
     def __reversed__(self):
         return reversed(self._result)

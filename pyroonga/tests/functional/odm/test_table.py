@@ -389,6 +389,29 @@ class TestTable(object):
                     {'_id': 4, '_key': u'キー４'}]
         self.assertGroongaResultEqual(result, expected, all_len=4)
 
+    def test_select_with_slice(self, Table):
+        class Tb(Table):
+            pass
+
+        grn = Groonga()
+        Table.bind(grn)
+        test_utils.sendquery('table_create --name %s --flags TABLE_HASH_KEY '
+                        '--key_type ShortText' % Tb.__tablename__)
+        self._insert(Tb.__tablename__, [
+            {'_key': 'key1'},
+            {'_key': 'key2'},
+            {'_key': u'キー３'},
+            {'_key': 'キー４'},
+            ])
+        result = Tb.select().all()
+        expected = [{'_id': 2, '_key': 'key2'},
+                    {'_id': 3, '_key': u'キー３'}]
+        r = result[1:3]
+        assert len(r) == 2
+        for obj, val in zip(r, expected):
+            for k, v in val.items():
+                assert (getattr(obj, k) == v) is True
+
     def test_select_with_column(self, Table):
         class Tb(Table):
             name = Column()
