@@ -342,7 +342,7 @@ class Column(query.BaseExpression):
 
     @property
     def lvalue(self):
-        return self.name
+        return '%s.%s' % (self.tablename, self.name)
 
     def __neg__(self):
         self._desc = True

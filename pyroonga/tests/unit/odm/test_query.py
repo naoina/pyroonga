@@ -163,8 +163,9 @@ class TestDrilldown(object):
         assert drilldown._nsubrecs == 'test2'
 
 
-def make_match_column(name):
+def make_match_column(name, tablename='T'):
     c = table.Column()
+    c.tablename = tablename
     c.name = name
     return c
 
@@ -189,25 +190,25 @@ class TestSelectQuery(object):
         (('c1',), r'c1'),
         (('c1', 'c2'), r'c1 || c2'),
         (('c1', 'c2', 'c3'), r'c1 || c2 || c3'),
-        ((make_match_column('c1'), 'c2'), r'c1 || c2'),
-        (('c1', make_match_column('c2')), r'c1 || c2'),
-        ((make_match_column('c1'), make_match_column('c2')), r'c1 || c2'),
+        ((make_match_column('c1'), 'c2'), r'T.c1 || c2'),
+        (('c1', make_match_column('c2')), r'c1 || T.c2'),
+        ((make_match_column('c1'), make_match_column('c2')), r'T.c1 || T.c2'),
         ((make_match_column('c1'), make_match_column('c2'), make_match_column('c3')),
-            r'c1 || c2 || c3'),
-        ((make_match_column('c1').or_('c2'),), r'(c1 || c2)'),
-        ((make_match_column('c1').or_(make_match_column('c2')),), r'(c1 || c2)'),
-        ((make_match_column('c1') * 10,), r'(c1 * 10)'),
-        ((make_match_column('c1') * 10, 'c2'), r'(c1 * 10) || c2'),
-        ((make_match_column('c1') * 10, make_match_column('c2')), r'(c1 * 10) || c2'),
-        ((make_match_column('c1') * 10, make_match_column('c2') * 3), r'(c1 * 10) || (c2 * 3)'),
-        (((make_match_column('c1') * 10).or_('c2'),), r'((c1 * 10) || c2)'),
-        (((make_match_column('c1') * 10).or_(make_match_column('c2')),), r'((c1 * 10) || c2)'),
+            r'T.c1 || T.c2 || T.c3'),
+        ((make_match_column('c1').or_('c2'),), r'(T.c1 || c2)'),
+        ((make_match_column('c1').or_(make_match_column('c2')),), r'(T.c1 || T.c2)'),
+        ((make_match_column('c1') * 10,), r'(T.c1 * 10)'),
+        ((make_match_column('c1') * 10, 'c2'), r'(T.c1 * 10) || c2'),
+        ((make_match_column('c1') * 10, make_match_column('c2')), r'(T.c1 * 10) || T.c2'),
+        ((make_match_column('c1') * 10, make_match_column('c2') * 3), r'(T.c1 * 10) || (T.c2 * 3)'),
+        (((make_match_column('c1') * 10).or_('c2'),), r'((T.c1 * 10) || c2)'),
+        (((make_match_column('c1') * 10).or_(make_match_column('c2')),), r'((T.c1 * 10) || T.c2)'),
         (((make_match_column('c1') * 10).or_(make_match_column('c2') * 3),),
-            r'((c1 * 10) || (c2 * 3))'),
-        (((make_match_column('c1') * 10) | 'c2',), r'((c1 * 10) || c2)'),
-        (((make_match_column('c1') * 10) | make_match_column('c2'),), r'((c1 * 10) || c2)'),
+            r'((T.c1 * 10) || (T.c2 * 3))'),
+        (((make_match_column('c1') * 10) | 'c2',), r'((T.c1 * 10) || c2)'),
+        (((make_match_column('c1') * 10) | make_match_column('c2'),), r'((T.c1 * 10) || T.c2)'),
         (((make_match_column('c1') * 10) | (make_match_column('c2') * 3),),
-            r'((c1 * 10) || (c2 * 3))'),
+            r'((T.c1 * 10) || (T.c2 * 3))'),
     ))
     def test___str__with_match_columns(self, columns, expected):
         m = mock.MagicMock()
