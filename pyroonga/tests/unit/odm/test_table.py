@@ -7,6 +7,21 @@ from pyroonga.odm import attributes as a, query, table
 from pyroonga.tests.unit.odm import test_query
 
 
+class TestTable(object):
+    @pytest.mark.parametrize('attr', (
+        '_id',
+        '_nsubrecs',
+        '_score',
+        'ALL',
+    ))
+    def test_pseudocolumns(self, attr):
+        Table = table.tablebase()
+
+        class T(Table):
+            pass
+        assert isinstance(getattr(T, attr, None), table.Column)
+
+
 class TestColumn(test_query.BaseTestExpression):
     @pytest.fixture
     def Expression(self):

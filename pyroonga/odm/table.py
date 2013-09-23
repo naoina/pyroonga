@@ -68,6 +68,7 @@ class TableMeta(type):
     def _set_pseudocolumns(cls):
         for attr, name, typ in (('_id', '_id', DataType.UInt32),
                                 ('_nsubrecs', '_nsubrecs', DataType.Int32),
+                                ('_score', '_score', DataType.Int32),
                                 ('ALL', '*', DataType.ShortText)):
             col = Column(flags=ColumnFlags.COLUMN_SCALAR, type=typ)
             setattr(cls, attr, col)
