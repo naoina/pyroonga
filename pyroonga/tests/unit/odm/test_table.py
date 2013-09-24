@@ -35,7 +35,7 @@ class TestColumn(test_query.BaseTestExpression):
 
     def _test_op(self, left, result, expected, op):
         assert (result.op == op) is True
-        assert (result.left.value == left.name) is True
+        assert result.left.value is left
         assert isinstance(result.right, query.Expression)
         assert (result.right.value == expected) is True
 
@@ -79,15 +79,15 @@ class TestColumn(test_query.BaseTestExpression):
         assert (result.op == op) is True
         assert result.left is left
         assert isinstance(result.right, query.Expression)
-        assert (result.right.value == expected) is True
+        assert result.right.value is expected
 
     def test_not_(self, expr):
         et = expr.not_()
-        self._test_op_column(None, et, expr.name, query.Operator.NOT)
+        self._test_op_column(None, et, expr, query.Operator.NOT)
 
     def test___invert__(self, expr):
         et = ~expr
-        self._test_op_column(None, et, expr.name, query.Operator.INVERT)
+        self._test_op_column(None, et, expr, query.Operator.INVERT)
 
     def test___str___without_attributes(self):
         col = table.Column(flags=a.ColumnFlags.COLUMN_SCALAR, type=a.DataType.ShortText)

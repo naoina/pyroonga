@@ -516,121 +516,121 @@ class BaseExpression(object):
         return self
 
     def __eq__(self, other):
-        return ExpressionTree(Operator.EQUAL, self.lvalue, other)
+        return ExpressionTree(Operator.EQUAL, self, other)
 
     def __ge__(self, other):
-        return ExpressionTree(Operator.GREATER_EQUAL, self.lvalue, other)
+        return ExpressionTree(Operator.GREATER_EQUAL, self, other)
 
     def __gt__(self, other):
-        return ExpressionTree(Operator.GREATER_THAN, self.lvalue, other)
+        return ExpressionTree(Operator.GREATER_THAN, self, other)
 
     def __le__(self, other):
-        return ExpressionTree(Operator.LESS_EQUAL, self.lvalue, other)
+        return ExpressionTree(Operator.LESS_EQUAL, self, other)
 
     def __lt__(self, other):
-        return ExpressionTree(Operator.LESS_THAN, self.lvalue, other)
+        return ExpressionTree(Operator.LESS_THAN, self, other)
 
     def __ne__(self, other):
-        return ExpressionTree(Operator.NOT_EQUAL, self.lvalue, other)
+        return ExpressionTree(Operator.NOT_EQUAL, self, other)
 
     def __add__(self, other):
-        return ExpressionTree(Operator.ADD, self.lvalue, other)
+        return ExpressionTree(Operator.ADD, self, other)
 
     def __sub__(self, other):
-        return ExpressionTree(Operator.SUB, self.lvalue, other)
+        return ExpressionTree(Operator.SUB, self, other)
 
     def __mul__(self, other):
-        return ExpressionTree(Operator.MUL, self.lvalue, other)
+        return ExpressionTree(Operator.MUL, self, other)
 
     def __truediv__(self, other):
-        return ExpressionTree(Operator.DIV, self.lvalue, other)
+        return ExpressionTree(Operator.DIV, self, other)
 
     def __div__(self, other):
         return self.__truediv__(other)
 
     def __mod__(self, other):
-        return ExpressionTree(Operator.MOD, self.lvalue, other)
+        return ExpressionTree(Operator.MOD, self, other)
 
     def not_(self):
-        return ExpressionTree(Operator.NOT, None, self.lvalue)
+        return ExpressionTree(Operator.NOT, None, self)
 
     def and_(self, other):
-        return ExpressionTree(Operator.AND, self.lvalue, other)
+        return ExpressionTree(Operator.AND, self, other)
 
     def or_(self, other):
-        return ExpressionTree(Operator.OR, self.lvalue, other)
+        return ExpressionTree(Operator.OR, self, other)
 
     def diff(self, other):
-        return ExpressionTree(Operator.DIFF, self.lvalue, other)
+        return ExpressionTree(Operator.DIFF, self, other)
 
     def __invert__(self):
-        return ExpressionTree(Operator.INVERT, None, self.lvalue)
+        return ExpressionTree(Operator.INVERT, None, self)
 
     def __and__(self, other):
-        return ExpressionTree(Operator.BIT_AND, self.lvalue, other)
+        return ExpressionTree(Operator.BIT_AND, self, other)
 
     def __or__(self, other):
-        return ExpressionTree(Operator.BIT_OR, self.lvalue, other)
+        return ExpressionTree(Operator.BIT_OR, self, other)
 
     def __xor__(self, other):
-        return ExpressionTree(Operator.BIT_XOR, self.lvalue, other)
+        return ExpressionTree(Operator.BIT_XOR, self, other)
 
     def __lshift__(self, other):
-        return ExpressionTree(Operator.LSHIFT, self.lvalue, other)
+        return ExpressionTree(Operator.LSHIFT, self, other)
 
     def __rshift__(self, other):
-        return ExpressionTree(Operator.RSHIFT, self.lvalue, other)
+        return ExpressionTree(Operator.RSHIFT, self, other)
 
     def __iadd__(self, other):
-        return ExpressionTree(Operator.IADD, self.lvalue, other)
+        return ExpressionTree(Operator.IADD, self, other)
 
     def __isub__(self, other):
-        return ExpressionTree(Operator.ISUB, self.lvalue, other)
+        return ExpressionTree(Operator.ISUB, self, other)
 
     def __imul__(self, other):
-        return ExpressionTree(Operator.IMUL, self.lvalue, other)
+        return ExpressionTree(Operator.IMUL, self, other)
 
     def __itruediv__(self, other):
-        return ExpressionTree(Operator.IDIV, self.lvalue, other)
+        return ExpressionTree(Operator.IDIV, self, other)
 
     def __idiv__(self, other):
         return self.__itruediv__(other)
 
     def __imod__(self, other):
-        return ExpressionTree(Operator.IMOD, self.lvalue, other)
+        return ExpressionTree(Operator.IMOD, self, other)
 
     def __ilshift__(self, other):
-        return ExpressionTree(Operator.ILSHIFT, self.lvalue, other)
+        return ExpressionTree(Operator.ILSHIFT, self, other)
 
     def __irshift__(self, other):
-        return ExpressionTree(Operator.IRSHIFT, self.lvalue, other)
+        return ExpressionTree(Operator.IRSHIFT, self, other)
 
     def __iand__(self, other):
-        return ExpressionTree(Operator.IBIT_AND, self.lvalue, other)
+        return ExpressionTree(Operator.IBIT_AND, self, other)
 
     def __ior__(self, other):
-        return ExpressionTree(Operator.IBIT_OR, self.lvalue, other)
+        return ExpressionTree(Operator.IBIT_OR, self, other)
 
     def __ixor__(self, other):
-        return ExpressionTree(Operator.IBIT_XOR, self.lvalue, other)
+        return ExpressionTree(Operator.IBIT_XOR, self, other)
 
     def match(self, other):
-        return ExpressionTree(Operator.MATCH, self.lvalue, other)
+        return ExpressionTree(Operator.MATCH, self, other)
 
     def startswith(self, other):
-        return ExpressionTree(Operator.STARTSWITH, self.lvalue, other)
+        return ExpressionTree(Operator.STARTSWITH, self, other)
 
     def endswith(self, other):
-        return ExpressionTree(Operator.ENDSWITH, self.lvalue, other)
+        return ExpressionTree(Operator.ENDSWITH, self, other)
 
     def near(self, other):
-        return ExpressionTree(Operator.NEAR, self.lvalue, other)
+        return ExpressionTree(Operator.NEAR, self, other)
 
     def similar(self, other):
-        return ExpressionTree(Operator.SIMILAR, self.lvalue, other)
+        return ExpressionTree(Operator.SIMILAR, self, other)
 
     def term_extract(self, other):
-        return ExpressionTree(Operator.TERM_EXTRACT, self.lvalue, other)
+        return ExpressionTree(Operator.TERM_EXTRACT, self, other)
 
 
 @utils.python_2_unicode_compatible
@@ -651,13 +651,13 @@ class Expression(BaseExpression):
     def _wrap(cls, expr):
         if expr is None or isinstance(expr, (Expression, ExpressionTree)):
             return expr
-        return Expression(getattr(expr, 'name', expr))
+        return Expression(expr)
 
     def build(self, expr_cls):
-        return str(expr_cls(self))
+        return str(expr_cls(self.value))
 
     def __str__(self):
-        return utils.to_text(self.value)
+        return utils.to_text(getattr(self.value, 'lvalue', self.value))
 
 
 class MatchColumn(Expression):
@@ -668,6 +668,12 @@ class MatchColumn(Expression):
         Operator.BIT_OR: ' || ',
         Operator.MUL: ' * ',
         }
+
+    def __str__(self):
+        result = super(MatchColumn, self).__str__()
+        if hasattr(self.value, 'tablename'):
+            return '%s.%s' % (self.value.tablename, result)
+        return result
 
 
 @utils.python_2_unicode_compatible
@@ -687,7 +693,7 @@ class QueryExpression(Expression):
         }
 
     def __str__(self):
-        expr_str = utils.to_text(self.value)
+        expr_str = utils.to_text(getattr(self.value, 'lvalue', self.value))
         return utils.escape(expr_str)
 
 
@@ -770,7 +776,7 @@ class ExpressionTree(BaseExpression):
         if expr is None:
             return ''
         if not isinstance(expr, ExpressionTree):
-            return expr_cls(expr)
+            return expr_cls(getattr(expr, 'value', expr))
         op = expr_cls.operator.get(expr.op, None)
         if op is None:
             raise NotImplementedError(
