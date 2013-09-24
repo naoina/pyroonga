@@ -651,7 +651,7 @@ class Expression(BaseExpression):
     def _wrap(cls, expr):
         if expr is None or isinstance(expr, (Expression, ExpressionTree)):
             return expr
-        return Expression(getattr(expr, 'lvalue', expr))
+        return Expression(getattr(expr, 'name', expr))
 
     def build(self, expr_cls):
         return str(expr_cls(self))

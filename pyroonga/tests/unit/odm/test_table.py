@@ -4,7 +4,6 @@ import pytest
 
 from pyroonga.odm import attributes as a, query, table
 
-from pyroonga.tests import utils as test_utils
 from pyroonga.tests.unit.odm import test_query
 
 
@@ -31,13 +30,12 @@ class TestColumn(test_query.BaseTestExpression):
     @pytest.fixture
     def expr(self, Expression):
         col = Expression()
-        col.tablename = 'TestTableName'
         col.name = 'test_name'
         return col
 
     def _test_op(self, left, result, expected, op):
         assert (result.op == op) is True
-        assert (result.left.value == left.lvalue) is True
+        assert (result.left.value == left.name) is True
         assert isinstance(result.right, query.Expression)
         assert (result.right.value == expected) is True
 
@@ -74,9 +72,8 @@ class TestColumn(test_query.BaseTestExpression):
 
     def test_lvalue(self, random_string):
         col = table.Column()
-        col.tablename = test_utils.random_string()
         col.name = random_string
-        assert (col.lvalue == ('%s.%s' % (col.tablename, random_string))) is True
+        assert (col.lvalue == random_string) is True
 
     def _test_op_column(self, left, result, expected, op):
         assert (result.op == op) is True
@@ -86,11 +83,11 @@ class TestColumn(test_query.BaseTestExpression):
 
     def test_not_(self, expr):
         et = expr.not_()
-        self._test_op_column(None, et, expr.lvalue, query.Operator.NOT)
+        self._test_op_column(None, et, expr.name, query.Operator.NOT)
 
     def test___invert__(self, expr):
         et = ~expr
-        self._test_op_column(None, et, expr.lvalue, query.Operator.INVERT)
+        self._test_op_column(None, et, expr.name, query.Operator.INVERT)
 
     def test___str___without_attributes(self):
         col = table.Column(flags=a.ColumnFlags.COLUMN_SCALAR, type=a.DataType.ShortText)
