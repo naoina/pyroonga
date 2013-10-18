@@ -26,3 +26,32 @@ def test_connect():
         assert grn.host == host
         assert grn.port == port
         assert grn.connected is True
+
+
+def test_import():
+    from pyroonga import (
+        connect,
+        Groonga,
+        GroongaError,
+        Symbol,
+        TableFlags,
+        ColumnFlagsFlag,
+        ColumnFlags,
+        DataType,
+        TokenizerSymbol,
+        Tokenizer,
+        Normalizer,
+        LogLevel,
+        SuggestType,
+        Column,
+        prop_attr,
+        tablebase,
+        SuggestTable,
+        event_type,
+        bigram,
+        kana,
+        item_query,
+        pair_query,
+        sequence_query,
+        event_query,
+        )

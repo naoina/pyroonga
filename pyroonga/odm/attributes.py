@@ -9,7 +9,7 @@ __author__ = "Naoya Inada <naoina@kuune.org>"
 
 __all__ = [
     'Symbol', 'TableFlags', 'ColumnFlagsFlag', 'ColumnFlags', 'DataType',
-    'TokenizerSymbol', 'Tokenizer', 'LogLevel', 'SuggestType',
+    'TokenizerSymbol', 'Tokenizer', 'Normalizer', 'LogLevel', 'SuggestType',
 ]
 
 from collections import Iterable
